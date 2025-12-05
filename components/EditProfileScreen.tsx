@@ -11,9 +11,6 @@ const GamepadIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http
 const CameraIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>);
 const Spinner: FC = () => (<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>);
 const CheckCircleIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01" /></svg>);
-const UsersIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>);
-const CopyIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>);
-const CheckIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12" /></svg>);
 
 
 interface EditProfileScreenProps {
@@ -56,13 +53,6 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onUpdateUs
     const [status, setStatus] = useState<'idle' | 'processing' | 'success'>('idle');
     const [validationError, setValidationError] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
-
-    // Referral Logic State
-    const [referralInput, setReferralInput] = useState('');
-    const [referralStatus, setReferralStatus] = useState<'idle' | 'processing' | 'success'>('idle');
-    const [referralError, setReferralError] = useState('');
-    const [referralCopied, setReferralCopied] = useState(false);
-
 
     const [initialState, setInitialState] = useState({
         name: user.name,
@@ -153,53 +143,6 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onUpdateUs
             setStatus('idle');
         }
     };
-
-    const handleSubmitReferral = async () => {
-        if (!referralInput.trim()) return;
-        setReferralError('');
-        setReferralStatus('processing');
-
-        const code = referralInput.trim();
-        
-        if (code === user.uid) {
-            setReferralError("You cannot refer yourself.");
-            setReferralStatus('idle');
-            return;
-        }
-
-        try {
-             // Check if code exists (code is UID)
-             const potentialReferrerRef = ref(db, 'users/' + code);
-             const snapshot = await get(potentialReferrerRef);
-
-             if (snapshot.exists()) {
-                 // Code valid, update user
-                 if (user.uid) {
-                     const userRef = ref(db, 'users/' + user.uid);
-                     await update(userRef, {
-                         referredBy: code
-                     });
-                     setReferralStatus('success');
-                 }
-             } else {
-                 setReferralError("Invalid referral code.");
-                 setReferralStatus('idle');
-             }
-
-        } catch (err) {
-            console.error(err);
-            setReferralError("Something went wrong.");
-            setReferralStatus('idle');
-        }
-    };
-
-    const handleCopyReferral = () => {
-        if (user.uid) {
-            navigator.clipboard.writeText(user.uid);
-            setReferralCopied(true);
-            setTimeout(() => setReferralCopied(false), 2000);
-        }
-    };
     
     const hasNameChanged = name.trim() !== initialState.name;
     const hasPlayerUidChanged = playerUid.trim() !== initialState.playerUid;
@@ -213,7 +156,7 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onUpdateUs
             <div className="bg-light-card dark:bg-dark-card p-6 rounded-2xl shadow-lg">
                 
                 {/* Avatar & Basic Info */}
-                <form onSubmit={handleSaveChanges} className="space-y-6 border-b border-gray-200 dark:border-gray-700 pb-8 mb-8">
+                <form onSubmit={handleSaveChanges} className="space-y-6">
                     <div className="flex flex-col items-center animate-smart-pop-in">
                         <div className="relative group">
                             <img 
@@ -301,82 +244,6 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onUpdateUs
                         </button>
                     </div>
                 </form>
-
-                {/* REFERRAL SYSTEM SECTION */}
-                <div className="animate-smart-slide-up" style={{ animationDelay: '500ms' }}>
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-5 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-2">
-                        <UsersIcon className="w-5 h-5 text-primary" />
-                        Referral Program
-                    </h3>
-
-                    {/* My Referral Code (Card Style) */}
-                    <div className="bg-gradient-to-br from-purple-500 to-indigo-600 p-5 rounded-2xl shadow-lg mb-6 relative overflow-hidden group">
-                        <div className="absolute -right-6 -top-6 bg-white/10 w-24 h-24 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
-                        
-                        <p className="text-xs font-bold text-white/80 uppercase tracking-widest mb-1">Your Unique ID</p>
-                        <div className="flex justify-between items-end">
-                            <span className="font-mono font-black text-2xl text-white tracking-wide drop-shadow-md truncate max-w-[200px]">{user.uid}</span>
-                            <button 
-                                onClick={handleCopyReferral}
-                                className="bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-lg font-bold text-xs backdrop-blur-md transition-colors flex items-center gap-1.5 border border-white/10"
-                            >
-                                {referralCopied ? <CheckIcon className="w-3.5 h-3.5"/> : <CopyIcon className="w-3.5 h-3.5"/>}
-                                {referralCopied ? "COPIED" : "COPY"}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Enter Referrer Code (Input Style) */}
-                    {!user.referredBy ? (
-                        <div className="bg-gray-50 dark:bg-gray-800/50 p-5 rounded-2xl border border-gray-200 dark:border-gray-700">
-                            <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Have a referral code?</p>
-                            
-                            {referralStatus === 'success' ? (
-                                <div className="flex items-center gap-3 p-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-xl border border-green-200 dark:border-green-800">
-                                    <div className="bg-white dark:bg-green-800 p-1.5 rounded-full">
-                                        <CheckCircleIcon className="w-5 h-5" />
-                                    </div>
-                                    <span className="font-bold text-sm">Success! You are linked.</span>
-                                </div>
-                            ) : (
-                                <div className="flex gap-2">
-                                    <input 
-                                        type="text" 
-                                        value={referralInput}
-                                        onChange={(e) => { setReferralInput(e.target.value); setReferralError(''); }}
-                                        placeholder="Paste code here"
-                                        className={`flex-1 p-3 rounded-xl border ${referralError ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-2 focus:ring-primary/20'} bg-white dark:bg-dark-bg outline-none transition-all text-sm font-mono`}
-                                    />
-                                    <button 
-                                        onClick={handleSubmitReferral}
-                                        disabled={!referralInput.trim() || referralStatus === 'processing'}
-                                        className="bg-primary hover:bg-primary-dark text-white px-5 rounded-xl font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/20"
-                                    >
-                                        {referralStatus === 'processing' ? <Spinner /> : 'Apply'}
-                                    </button>
-                                </div>
-                            )}
-                            
-                            {referralError && (
-                                <p className="text-red-500 text-xs mt-2 font-medium flex items-center gap-1 animate-fade-in">
-                                    <span className="inline-block w-1 h-1 bg-red-500 rounded-full"></span>
-                                    {referralError}
-                                </p>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="bg-green-50 dark:bg-green-900/10 p-4 rounded-xl border border-green-200 dark:border-green-900/30 flex items-center gap-3">
-                            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full text-green-600 shadow-sm">
-                                <CheckCircleIcon className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-bold text-green-700 dark:text-green-400">Referred Successfully</p>
-                                <p className="text-xs text-green-600/80 dark:text-green-400/70 font-mono mt-0.5">Referrer: {user.referredBy}</p>
-                            </div>
-                        </div>
-                    )}
-
-                </div>
 
             </div>
         </div>

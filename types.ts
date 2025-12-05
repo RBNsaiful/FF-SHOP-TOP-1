@@ -20,10 +20,6 @@ export interface User {
       lastAdTimestamp?: number;
       limitReachedAt?: number; // Timestamp when daily limit was reached
   };
-  // Referral System Fields
-  referralCode?: string; // Own code (usually UID)
-  referredBy?: string; // UID of the person who referred this user
-  isReferralRewardClaimed?: boolean; // Has the referrer been paid yet?
 }
 
 export interface DiamondOffer {
@@ -152,12 +148,6 @@ export interface DeveloperSettings {
     description: string;
 }
 
-export interface ReferralSettings {
-    bonusAmount: number; // Amount referrer gets
-    minDepositRequired: number; // Minimum first deposit to trigger reward
-    active: boolean;
-}
-
 export interface AppSettings {
   appName: string;
   maintenanceMode: boolean;
@@ -166,5 +156,4 @@ export interface AppSettings {
   visibility?: AppVisibility;
   earnSettings?: EarnSettings;
   developerSettings?: DeveloperSettings;
-  referralSettings?: ReferralSettings;
 }

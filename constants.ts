@@ -102,11 +102,6 @@ export const DEFAULT_APP_SETTINGS = {
         url: "http://rbm-saiful-contact.vercel.app",
         message: "Developed by",
         description: "Contact for development"
-    },
-    referralSettings: {
-        bonusAmount: 5, // Admin gives 5 taka per referral by default
-        minDepositRequired: 200, // User must deposit 200 taka to trigger reward
-        active: true
     }
 };
 
@@ -248,12 +243,6 @@ export const TEXTS: any = {
     notifications: "Notifications",
     noNotifications: "No notifications yet.",
     markAllRead: "Mark all as read",
-    referralCode: "Referral Code (Optional)",
-    referralTitle: "Refer & Earn",
-    myReferralCode: "My Referral Code",
-    shareMessage: "Share this code with your friends!",
-    referralBonus: "Referral Bonus",
-    referralInstruction: "Get bonus when your friend deposits money first time!",
     'Level 6 Package': 'Level 6 Package',
     'Level 10 Package': 'Level 10 Package',
     'Level 15 Package': 'Level 15 Package',
@@ -400,12 +389,6 @@ export const TEXTS: any = {
     notifications: "নোটিফিকেশন",
     noNotifications: "কোনো নোটিফিকেশন নেই।",
     markAllRead: "সব পড়া হয়েছে হিসেবে মার্ক করুন",
-    referralCode: "রেফার কোড (ঐচ্ছিক)",
-    referralTitle: "রেফার ও আয়",
-    myReferralCode: "আমার রেফার কোড",
-    shareMessage: "এই কোডটি বন্ধুদের সাথে শেয়ার করুন!",
-    referralBonus: "রেফার বোনাস",
-    referralInstruction: "বন্ধু প্রথমবার টাকা জমা দিলেই আপনি বোনাস পাবেন!",
     'Level 6 Package': 'লেভেল ৬ প্যাকেজ',
     'Level 10 Package': 'লেভেল ১০ প্যাকেজ',
     'Level 15 Package': 'লেভেল ১৫ প্যাকেজ',

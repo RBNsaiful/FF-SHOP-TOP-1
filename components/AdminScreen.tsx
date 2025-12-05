@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, FC, FormEvent, useMemo } from 'react';
 import { User, Screen, Transaction, Purchase, AppSettings, Language, PaymentMethod, AppVisibility, Notification, AdUnit, DeveloperSettings } from '../types';
 import { db } from '../firebase';
@@ -33,6 +32,8 @@ const XIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www
 const SearchIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>);
 const CodeIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>);
 const UnlockIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>);
+const PlusIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>);
+const MinusIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="5" y1="12" x2="19" y2="12"/></svg>);
 
 // Offer Icons
 const DiamondIcon: FC<{className?: string}> = ({className}) => (<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className={className}><path d="M12 2L2 8.5l10 13.5L22 8.5 12 2z" /></svg>);
@@ -365,6 +366,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     // Balance Modal State
     const [balanceModalUser, setBalanceModalUser] = useState<User | null>(null);
     const [balanceAmount, setBalanceAmount] = useState('');
+    const [balanceAction, setBalanceAction] = useState<'add' | 'deduct'>('add');
 
     const t = ADMIN_TEXTS[language];
 
@@ -465,10 +467,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 webAds: { ...DEFAULT_APP_SETTINGS.earnSettings.webAds, ...(data.appSettings.earnSettings?.webAds || {}) },
                                 adMob: { ...DEFAULT_APP_SETTINGS.earnSettings.adMob, ...(data.appSettings.earnSettings?.adMob || {}) },
                             },
-                            referralSettings: {
-                                ...DEFAULT_APP_SETTINGS.referralSettings,
-                                ...(data.appSettings.referralSettings || {})
-                            }
+                            // Referral settings removed
                         };
                         setSettings(mergedSettings);
                         setOriginalSettings(mergedSettings); 
@@ -635,7 +634,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         }, `Confirm ${action}?`);
     };
 
-    // --- REFERRAL BONUS LOGIC INSIDE TRANSACTION APPROVAL ---
+    // --- TRANSACTION APPROVAL (Referral Logic Removed) ---
     const handleTxnAction = (txn: Transaction, action: 'Completed' | 'Failed') => {
         requestConfirmation(async () => {
             if (txn.key && txn.userId) {
@@ -649,60 +648,16 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                     await runTransaction(userRef, (userData) => {
                         if (userData) {
                             userData.balance = (userData.balance || 0) + txn.amount;
-                            
-                            // 3. CHECK REFERRAL LOGIC
-                            // If user has a referrer AND hasn't claimed reward yet AND deposit meets minimum amount
-                            if (userData.referredBy && !userData.isReferralRewardClaimed) {
-                                const minDeposit = settings.referralSettings?.minDepositRequired || 0;
-                                if (txn.amount >= minDeposit && settings.referralSettings?.active) {
-                                    // Trigger bonus for referrer (handled below outside transaction to keep it simple, or trigger here)
-                                    // We mark it as claimed here so it doesn't trigger again
-                                    userData.isReferralRewardClaimed = true;
-                                    userData.pendingReferralBonus = true; // Flag for post-process
-                                }
-                            }
                             return userData;
                         }
                         return userData;
                     });
-
-                    // 4. Process Referral Bonus (if triggered)
-                    // We need to read the user data again or handle it separately because we need to write to a DIFFERENT user (the referrer)
-                    const snap = await get(userRef);
-                    const userData = snap.val();
-                    
-                    if (userData && userData.pendingReferralBonus && userData.referredBy) {
-                        const referrerRef = ref(db, `users/${userData.referredBy}`);
-                        const bonusAmount = settings.referralSettings?.bonusAmount || 0;
-                        
-                        // Add money to referrer
-                        await runTransaction(referrerRef, (referrerData) => {
-                            if (referrerData) {
-                                referrerData.balance = (referrerData.balance || 0) + bonusAmount;
-                                referrerData.totalEarned = (referrerData.totalEarned || 0) + bonusAmount;
-                                return referrerData;
-                            }
-                            return referrerData;
-                        });
-
-                        // Clear the pending flag on the user
-                        await update(userRef, { pendingReferralBonus: null });
-
-                        // Send Notification to Referrer
-                        const notifRef = ref(db, 'notifications');
-                        await push(notifRef, {
-                            title: "Referral Bonus!",
-                            message: `You earned ${bonusAmount} because your friend made their first deposit!`,
-                            type: 'bonus',
-                            timestamp: Date.now()
-                        });
-                    }
                 }
             }
         });
     };
 
-    const handleBalanceUpdate = (type: 'add' | 'deduct') => {
+    const handleBalanceUpdate = () => {
         if (!balanceModalUser || !balanceAmount) return;
         const amount = Number(balanceAmount);
         if (isNaN(amount) || amount <= 0) return;
@@ -712,12 +667,12 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
             const snap = await get(userRef);
             if (snap.exists()) {
                 const currentBalance = snap.val().balance || 0;
-                const newBalance = type === 'add' ? currentBalance + amount : currentBalance - amount;
+                const newBalance = balanceAction === 'add' ? currentBalance + amount : currentBalance - amount;
                 if (newBalance < 0) { alert("Insufficient balance."); return; }
                 await update(userRef, { balance: newBalance });
                 setBalanceModalUser(null); setBalanceAmount('');
             }
-        }, `${type} ${amount} to ${balanceModalUser.name}?`);
+        }, `${balanceAction === 'add' ? 'Add' : 'Deduct'} ${amount} to ${balanceModalUser.name}?`);
     };
 
     const handleSaveOffer = async (e: FormEvent) => {
@@ -972,7 +927,10 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                             </div>
                                             <div className="flex justify-between items-center bg-white dark:bg-gray-700/30 p-2 rounded-lg border border-gray-200 dark:border-gray-700/50">
                                                 <div><p className="text-[10px] text-gray-500 uppercase font-bold">Wallet</p><p className="text-lg font-black text-primary truncate max-w-[150px]">৳{Math.floor(u.balance)}</p></div>
-                                                <button onClick={() => setBalanceModalUser(u)} className="bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold border shadow-sm hover:bg-gray-50 active:scale-95 transition-transform flex items-center gap-1"><EditIcon className="w-3 h-3" /> {t.manageBalance}</button>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => { setBalanceModalUser(u); setBalanceAction('add'); setBalanceAmount(''); }} className="bg-green-100 text-green-700 p-2 rounded-lg hover:bg-green-200 active:scale-95 transition-transform"><PlusIcon className="w-4 h-4" /></button>
+                                                    <button onClick={() => { setBalanceModalUser(u); setBalanceAction('deduct'); setBalanceAmount(''); }} className="bg-red-100 text-red-700 p-2 rounded-lg hover:bg-red-200 active:scale-95 transition-transform"><MinusIcon className="w-4 h-4" /></button>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
@@ -1067,37 +1025,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                             <div><label className="block mb-1 text-gray-500">{t.rewardPerAd}</label><input type="number" value={settings.earnSettings?.rewardPerAd} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, rewardPerAd: Number(e.target.value) }})} className={inputClass} /></div>
                                             <div><label className="block mb-1 text-gray-500">{t.cooldown}</label><input type="number" value={settings.earnSettings?.adCooldownSeconds} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adCooldownSeconds: Number(e.target.value) }})} className={inputClass} /></div>
                                             <div><label className="block mb-1 text-gray-500">{t.resetHours}</label><input type="number" value={settings.earnSettings?.resetHours} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, resetHours: Number(e.target.value) }})} className={inputClass} /></div>
-                                        </div>
-                                    </div>
-
-                                    {/* REFERRAL SETTINGS */}
-                                    <div className="bg-orange-50 dark:bg-orange-900/10 p-4 rounded-xl border border-orange-200 dark:border-orange-900/30 mt-4">
-                                        <h4 className="font-bold text-sm mb-3 uppercase text-orange-600 dark:text-orange-400">Referral System</h4>
-                                        <div className="grid grid-cols-2 gap-3 text-xs">
-                                            <div>
-                                                <label className="block mb-1 text-gray-500">Bonus Amount (৳)</label>
-                                                <input 
-                                                    type="number" 
-                                                    value={settings.referralSettings?.bonusAmount || 0} 
-                                                    onChange={(e) => setSettings({...settings, referralSettings: { ...settings.referralSettings!, bonusAmount: Number(e.target.value) }})} 
-                                                    className={inputClass} 
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block mb-1 text-gray-500">Min Deposit (৳)</label>
-                                                <input 
-                                                    type="number" 
-                                                    value={settings.referralSettings?.minDepositRequired || 0} 
-                                                    onChange={(e) => setSettings({...settings, referralSettings: { ...settings.referralSettings!, minDepositRequired: Number(e.target.value) }})} 
-                                                    className={inputClass} 
-                                                />
-                                            </div>
-                                            <div className="col-span-2 flex items-center justify-between bg-white dark:bg-dark-card p-2 rounded border border-gray-200 dark:border-gray-700">
-                                                <span className="font-bold text-gray-600 dark:text-gray-300">System Active</span>
-                                                <div onClick={() => setSettings({...settings, referralSettings: { ...settings.referralSettings!, active: !settings.referralSettings?.active }})} className={`w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.referralSettings?.active ? 'bg-orange-500' : 'bg-gray-300'}`}>
-                                                    <div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.referralSettings?.active ? 'translate-x-4' : ''}`}></div>
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
 
@@ -1479,6 +1406,25 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                             </div>
                             <div className="flex gap-2 mt-4 pt-2"><button type="button" onClick={() => setIsContactModalOpen(false)} className="flex-1 py-2 bg-gray-200 rounded-lg font-bold">{t.cancel}</button><button type="submit" className="flex-1 py-2 bg-primary text-white rounded-lg font-bold">{t.save}</button></div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Balance Modal */}
+            {balanceModalUser && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-dark-card w-full max-w-xs p-6 rounded-2xl shadow-xl animate-smart-pop-in text-center flex flex-col max-h-[85vh]">
+                        <h3 className="font-bold text-lg mb-1">{t.manageBalance}</h3>
+                        <p className="text-sm text-gray-500 mb-4">For: {balanceModalUser.name}</p>
+                        <p className="text-2xl font-black mb-4 text-primary">৳{Math.floor(balanceModalUser.balance)}</p>
+                        <input type="number" placeholder="Enter amount" value={balanceAmount} onChange={(e) => setBalanceAmount(e.target.value)} className={`${inputClass} text-center font-bold text-lg mb-4`} />
+                        <button 
+                            onClick={handleBalanceUpdate} 
+                            className={`py-3 ${balanceAction === 'add' ? 'bg-green-500 shadow-green-500/30' : 'bg-red-500 shadow-red-500/30'} text-white rounded-xl font-bold shadow-lg`}
+                        >
+                            {balanceAction === 'add' ? t.addBalance : t.deductBalance}
+                        </button>
+                        <button onClick={() => setBalanceModalUser(null)} className="mt-4 text-gray-400 text-sm hover:text-gray-600">Close</button>
                     </div>
                 </div>
             )}
