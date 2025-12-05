@@ -144,6 +144,10 @@ export interface EarnSettings {
     homeAdActive?: boolean; // Control visibility for Home Ads
     earnAdCode?: string;
     earnAdActive?: boolean; // Control visibility for Earn Ads
+    
+    // Profile Pages Footer Ads
+    profileAdCode?: string;
+    profileAdActive?: boolean;
 }
 
 export interface DeveloperSettings {

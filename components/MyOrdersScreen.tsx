@@ -2,10 +2,13 @@ import React, { useState, useRef, useEffect, FC } from 'react';
 import type { User, Purchase } from '../types';
 import { db } from '../firebase';
 import { ref, onValue, remove } from 'firebase/database';
+import AdRenderer from './AdRenderer';
 
 interface MyOrdersScreenProps {
   user: User;
   texts: any;
+  adCode?: string;
+  adActive?: boolean;
 }
 
 const CopyIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>);
@@ -155,7 +158,7 @@ const PurchaseCard: FC<{ purchase: Purchase, texts: any, index: number, onDelete
     );
 };
 
-const MyOrdersScreen: FC<MyOrdersScreenProps> = ({ user, texts }) => {
+const MyOrdersScreen: FC<MyOrdersScreenProps> = ({ user, texts, adCode, adActive }) => {
     const [purchases, setPurchases] = useState<Purchase[]>([]);
     const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
 
@@ -247,6 +250,13 @@ const MyOrdersScreen: FC<MyOrdersScreenProps> = ({ user, texts }) => {
                     confirmText={texts.deleteConfirmButton}
                     cancelText={texts.cancel}
                 />
+            )}
+
+            {/* --- FOOTER ADVERTISEMENT (Scroll to View) --- */}
+            {adCode && (
+                <div className="mt-8 animate-fade-in w-full flex justify-center min-h-[250px]">
+                    <AdRenderer code={adCode} active={adActive} />
+                </div>
             )}
         </div>
     );

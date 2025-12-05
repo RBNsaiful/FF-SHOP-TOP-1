@@ -2,6 +2,7 @@ import React, { useState, FC } from 'react';
 import type { User, PaymentMethod, Screen } from '../types';
 import { db } from '../firebase';
 import { ref, push } from 'firebase/database';
+import AdRenderer from './AdRenderer';
 
 // Icons
 const CheckIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12" /></svg>);
@@ -30,9 +31,11 @@ interface WalletScreenProps {
   texts: any;
   onNavigate: (screen: Screen) => void;
   paymentMethods: PaymentMethod[];
+  adCode?: string;
+  adActive?: boolean;
 }
 
-const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentMethods }) => {
+const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentMethods, adCode, adActive }) => {
   const [step, setStep] = useState(1); 
   const [amount, setAmount] = useState('');
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
@@ -320,6 +323,13 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
                 </div>
             )}
         </div>
+
+        {/* --- FOOTER ADVERTISEMENT (Scroll to View) --- */}
+        {adCode && (
+            <div className="mt-8 animate-fade-in w-full flex justify-center min-h-[250px]">
+                <AdRenderer code={adCode} active={adActive} />
+            </div>
+        )}
     </div>
   );
 };

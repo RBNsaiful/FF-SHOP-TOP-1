@@ -78,6 +78,17 @@ const DEFAULT_AD_SCRIPT = `<script type="text/javascript">
 </script>
 <script type="text/javascript" src="https://www.highperformanceformat.com/f85450a96a85b5e7e930f493e0279a95/invoke.js"></script>`;
 
+const DEFAULT_PROFILE_AD_SCRIPT = `<script type="text/javascript">
+  atOptions = {
+  	'key' : '49e7bf0baed63b2660a8485cb2d96803',
+  	'format' : 'iframe',
+  	'height' : 250,
+  	'width' : 300,
+  	'params' : {}
+  };
+</script>
+<script type="text/javascript" src="//www.highperformanceformat.com/49e7bf0baed63b2660a8485cb2d96803/invoke.js"></script>`;
+
 // NEW APP SETTINGS DEFAULT WITH HYBRID ADS
 export const DEFAULT_APP_SETTINGS = {
     appName: "FF SHOP",
@@ -111,6 +122,8 @@ export const DEFAULT_APP_SETTINGS = {
         homeAdActive: true,
         earnAdCode: DEFAULT_AD_SCRIPT,
         earnAdActive: true,
+        profileAdCode: DEFAULT_PROFILE_AD_SCRIPT,
+        profileAdActive: true,
     },
     developerSettings: {
         title: "RBN Saiful",

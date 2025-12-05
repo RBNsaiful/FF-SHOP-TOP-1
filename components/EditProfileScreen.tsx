@@ -1,252 +1,290 @@
-import React, { useState, useRef, FC, ChangeEvent, FormEvent, useEffect } from 'react';
+
+import React, { useState, FC, FormEvent, useRef, useEffect } from 'react';
 import type { User, Screen } from '../types';
 import { DEFAULT_AVATAR_URL } from '../constants';
-import { db } from '../firebase';
-import { ref, update, get } from 'firebase/database';
+import { db, auth } from '../firebase';
+import { ref, update } from 'firebase/database';
+import { updateProfile } from 'firebase/auth';
+import AdRenderer from './AdRenderer';
+import ImageCropper from './ImageCropper';
 
 // Icons
 const UserIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>);
 const MailIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>);
 const GamepadIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.01.152v3.516a4 4 0 0 0 3.998 3.998c.044.001.087.002.13.002h10.384a4 4 0 0 0 3.998-3.998c.001-.044.002-.087.002-.13V8.742c0-.05-.004-.1-.01-.152A4 4 0 0 0 17.32 5z"/></svg>);
-const CameraIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>);
-const Spinner: FC = () => (<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>);
+const Spinner: FC = () => (<div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>);
 const CheckCircleIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01" /></svg>);
-
+const CameraIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>);
 
 interface EditProfileScreenProps {
   user: User;
   texts: any;
   onNavigate: (screen: Screen) => void;
+  adCode?: string;
+  adActive?: boolean;
 }
 
-const InputField: FC<{ icon: FC<{className?: string}>, label: string, id: string, value: string, onChange: (e: ChangeEvent<HTMLInputElement>) => void, onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void, placeholder?: string, type?: string, containerStyle?: React.CSSProperties, className?: string, disabled?: boolean, readOnly?: boolean, error?: string, maxLength?: number, inputMode?: "text" | "none" | "tel" | "url" | "email" | "numeric" | "decimal" | "search", pattern?: string }> = ({ icon: Icon, label, id, containerStyle, className, error, disabled, readOnly, ...props }) => (
-    <div style={containerStyle} className={className}>
-        <label htmlFor={id} className={`text-sm font-medium ${disabled ? 'text-gray-400' : 'text-gray-500 dark:text-gray-400'}`}>{label}</label>
-        <div className="relative mt-1">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Icon className={`h-5 w-5 ${disabled ? 'text-gray-300 dark:text-gray-600' : 'text-gray-400'}`} />
-            </div>
-            <input
-                id={id}
-                disabled={disabled}
-                readOnly={readOnly}
-                {...props}
-                className={`w-full p-3 pl-10 rounded-lg focus:outline-none transition-colors
-                    ${disabled || readOnly 
-                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-default border-transparent focus:ring-0' 
-                        : `bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text border ${error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:ring-primary'} focus:ring-2`
-                    }
-                `}
-            />
-        </div>
-        {error && <p className="text-red-500 text-xs mt-1 ml-1 font-medium">{error}</p>}
-    </div>
-);
+const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate, adCode, adActive }) => {
+  const [name, setName] = useState(user.name);
+  const [playerUid, setPlayerUid] = useState(user.playerUid || '');
+  const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || DEFAULT_AVATAR_URL);
+  
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [nameError, setNameError] = useState('');
+  const [uidError, setUidError] = useState('');
+  
+  // Cropper State
+  const [showCropper, setShowCropper] = useState(false);
+  const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate }) => {
-    const [name, setName] = useState(user.name);
-    const [email, setEmail] = useState(user.email);
-    const [playerUid, setPlayerUid] = useState(user.playerUid || '');
-    const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || DEFAULT_AVATAR_URL);
-    const [status, setStatus] = useState<'idle' | 'processing' | 'success'>('idle');
-    const [validationError, setValidationError] = useState('');
-    const fileInputRef = useRef<HTMLInputElement>(null);
+  // Validation Logic
+  const validateName = (val: string) => {
+      // 6-15 characters, no special chars like $:!#
+      if (val.length < 6 || val.length > 15) return "Invalid name";
+      if (/[!@#$%^&*(),.?":{}|<>]/.test(val)) return "Invalid name";
+      return "";
+  };
 
-    const [initialState, setInitialState] = useState({
-        name: user.name,
-        playerUid: user.playerUid || '',
-        avatarUrl: user.avatarUrl || DEFAULT_AVATAR_URL
-    });
+  const validateUid = (val: string) => {
+      if (!val) return ""; // Optional
+      if (!/^\d+$/.test(val)) return "Player UID must be between 8 and 12 digits.";
+      if (val.length < 8 || val.length > 12) return "Player UID must be between 8 and 12 digits.";
+      return "";
+  };
 
-    useEffect(() => {
-        setName(user.name);
-        setEmail(user.email);
-        setPlayerUid(user.playerUid || '');
-        setAvatarUrl(user.avatarUrl || DEFAULT_AVATAR_URL);
-        setInitialState({
-             name: user.name,
-             playerUid: user.playerUid || '',
-             avatarUrl: user.avatarUrl || DEFAULT_AVATAR_URL
-        });
-    }, [user]);
+  // Check if button should be active
+  const isFormValid = !nameError && !uidError && name.length > 0;
+  const isDirty = name !== user.name || playerUid !== (user.playerUid || '') || avatarUrl !== user.avatarUrl;
+  const canSave = isFormValid && isDirty && !isSaving;
 
-    const handleInputFocus = (event: React.FocusEvent<HTMLInputElement>) => {
+  // Handle Input Changes with immediate validation
+  const handleNameChange = (val: string) => {
+      setName(val);
+      setNameError(validateName(val));
+  };
+
+  const handleUidChange = (val: string) => {
+      // Allow only numbers
+      if (val && !/^\d*$/.test(val)) return;
+      setPlayerUid(val);
+      setUidError(validateUid(val));
+  };
+
+  const handleSave = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!canSave || !user.uid) return;
+
+    // Final Validation Check
+    const finalNameError = validateName(name);
+    const finalUidError = validateUid(playerUid);
+    
+    if (finalNameError || finalUidError) {
+        setNameError(finalNameError);
+        setUidError(finalUidError);
+        return;
+    }
+
+    setIsSaving(true);
+    
+    try {
+        const updates: any = {
+            name: name,
+            playerUid: playerUid,
+            avatarUrl: avatarUrl
+        };
+
+        // Update in Realtime DB
+        await update(ref(db, 'users/' + user.uid), updates);
+        
+        // Update in Auth
+        if (auth.currentUser) {
+            await updateProfile(auth.currentUser, {
+                displayName: name,
+                photoURL: avatarUrl
+            });
+        }
+
+        setShowSuccess(true);
+        
+        // Navigate back after success
         setTimeout(() => {
-            event.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 300);
-    };
+            onNavigate('profile');
+        }, 1500);
 
-    const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setAvatarUrl(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+    } catch (error) {
+        console.error("Error updating profile:", error);
+        alert("Failed to update profile.");
+        setIsSaving(false);
+    }
+  };
 
-    const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value;
-        if (/^[a-zA-Z\s]*$/.test(val) && val.length <= 15) {
-            setName(val);
-            if (validationError) setValidationError('');
-        }
-    };
-    
-    const handleUidChange = (e: ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value;
-        if (/^\d*$/.test(val)) {
-            setPlayerUid(val);
-            if (validationError) setValidationError('');
-        }
-    };
+  // Image Selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setTempImageSrc(event.target?.result as string);
+        setShowCropper(true);
+        // Reset file input
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
-    const handleSaveChanges = async (e: FormEvent) => {
-        e.preventDefault();
-        
-        const trimmedName = name.trim();
-        if (trimmedName.length < 6 || trimmedName.length > 15) {
-            setValidationError("Invalid name");
-            return;
-        }
+  const handleCropComplete = (croppedImage: string) => {
+      setAvatarUrl(croppedImage);
+      setShowCropper(false);
+      setTempImageSrc(null);
+  };
 
-        if (playerUid.length > 0) {
-            if (playerUid.length < 8 || playerUid.length > 12) {
-                setValidationError(texts.uidLength);
-                return;
-            }
-        }
+  return (
+    <div className="p-4 animate-smart-fade-in pb-24">
+      {/* Cropper Modal */}
+      {showCropper && tempImageSrc && (
+          <ImageCropper 
+            imageSrc={tempImageSrc} 
+            onCancel={() => { setShowCropper(false); setTempImageSrc(null); }}
+            onCropComplete={handleCropComplete}
+          />
+      )}
 
-        if (status !== 'idle') return;
-
-        setStatus('processing');
-        
-        try {
-             if (user.uid) {
-                 const userRef = ref(db, 'users/' + user.uid);
-                 await update(userRef, {
-                     name: trimmedName,
-                     playerUid: playerUid.trim(), 
-                     avatarUrl
-                 });
-             }
-            setStatus('success');
-            setTimeout(() => {
-                onNavigate('profile');
-            }, 1500);
-        } catch (error) {
-            console.error("Failed to update profile", error);
-            setStatus('idle');
-        }
-    };
-    
-    const hasNameChanged = name.trim() !== initialState.name;
-    const hasPlayerUidChanged = playerUid.trim() !== initialState.playerUid;
-    const hasAvatarChanged = avatarUrl !== initialState.avatarUrl;
-    const hasAnyChange = hasNameChanged || hasPlayerUidChanged || hasAvatarChanged;
-
-    const isSaveDisabled = status !== 'idle' || !hasAnyChange;
-
-    return (
-        <div className="p-4 animate-smart-fade-in">
-            <div className="bg-light-card dark:bg-dark-card p-6 rounded-2xl shadow-lg">
-                
-                {/* Avatar & Basic Info */}
-                <form onSubmit={handleSaveChanges} className="space-y-6">
-                    <div className="flex flex-col items-center animate-smart-pop-in">
-                        <div className="relative group">
-                            <img 
-                                src={avatarUrl}
-                                alt="Avatar"
-                                className="w-28 h-28 rounded-full object-cover border-4 border-white dark:border-dark-bg shadow-lg"
-                            />
-                             <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                aria-label={texts.changePhoto}
-                             >
-                                <CameraIcon className="w-8 h-8 text-white" />
-                             </button>
-                        </div>
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleAvatarChange}
-                            accept="image/*"
-                            className="hidden"
+      <div className="max-w-sm mx-auto">
+         
+         <form onSubmit={handleSave} className="bg-light-card dark:bg-dark-card rounded-2xl shadow-lg p-5 space-y-5 border border-gray-100 dark:border-gray-800">
+            
+            {/* Avatar Section - Compact */}
+            <div className="flex flex-col items-center justify-center">
+                <div 
+                    className="relative group cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    <div className="w-20 h-20 rounded-full p-0.5 bg-gradient-to-br from-primary to-secondary shadow-md">
+                        <img 
+                            src={avatarUrl} 
+                            alt="Avatar" 
+                            className="w-full h-full rounded-full object-cover border-2 border-white dark:border-dark-card bg-gray-100"
+                            onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR_URL; }}
                         />
-                         <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="mt-3 text-sm font-semibold text-primary hover:underline"
-                        >
-                           {texts.changePhoto}
-                        </button>
                     </div>
-
-                    <InputField
-                        id="name"
-                        label={texts.name}
-                        icon={UserIcon}
-                        value={name}
-                        onChange={handleNameChange}
-                        onFocus={handleInputFocus}
-                        className="opacity-0 animate-smart-slide-up"
-                        containerStyle={{ animationDelay: '100ms' }}
-                        error={validationError && !validationError.includes('UID') ? validationError : ''}
-                        placeholder="Full Name"
-                    />
-
-                    <InputField
-                        id="email"
-                        label={texts.email}
-                        icon={MailIcon}
-                        value={email}
-                        onChange={() => {}} 
-                        type="email"
-                        disabled={true}
-                        readOnly={true}
-                        className="opacity-0 animate-smart-slide-up"
-                        containerStyle={{ animationDelay: '200ms' }}
-                    />
-
-                    <InputField
-                        id="playerUid"
-                        label={texts.uid}
-                        icon={GamepadIcon}
-                        value={playerUid}
-                        onChange={handleUidChange}
-                        placeholder={texts.uidOptional}
-                        onFocus={handleInputFocus}
-                        className="opacity-0 animate-smart-slide-up"
-                        containerStyle={{ animationDelay: '300ms' }}
-                        error={validationError && validationError.includes('UID') ? validationError : ''}
-                        type="text" 
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={12}
-                    />
-                    
-                    <div className="opacity-0 animate-smart-slide-up" style={{ animationDelay: '400ms' }}>
-                        <button
-                            type="submit"
-                            disabled={isSaveDisabled}
-                            className="w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 rounded-lg flex items-center justify-center transition-all duration-300 shadow-lg disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed hover:opacity-90 transform active:scale-95"
-                        >
-                            {status === 'processing' && <Spinner />}
-                            {status === 'success' && <CheckCircleIcon className="w-6 h-6" />}
-                            {status === 'idle' && <span>{texts.saveChanges}</span>}
-                        </button>
+                    <div className="absolute bottom-0 right-0 bg-primary text-white p-1.5 rounded-full border-2 border-white dark:border-dark-card shadow-sm">
+                        <CameraIcon className="w-3.5 h-3.5" />
                     </div>
-                </form>
-
+                </div>
+                <button 
+                    type="button" 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="mt-2 text-primary font-bold text-xs hover:underline"
+                >
+                    {texts.changePhoto}
+                </button>
+                <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileSelect} 
+                    accept="image/*" 
+                    className="hidden" 
+                />
             </div>
-        </div>
-    );
+
+            {/* Inputs Section */}
+            <div className="space-y-4">
+                {/* Name Input */}
+                <div>
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 block">
+                        {texts.name}
+                    </label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <UserIcon className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <input 
+                            type="text" 
+                            value={name}
+                            onChange={(e) => handleNameChange(e.target.value)}
+                            className={`w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-gray-800 border rounded-xl focus:ring-1 outline-none transition-all text-sm font-medium text-light-text dark:text-dark-text
+                                ${nameError ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-primary'}
+                            `}
+                            placeholder="Enter your name"
+                        />
+                    </div>
+                    {nameError && <p className="text-red-500 text-[10px] mt-1 font-bold">{nameError}</p>}
+                </div>
+
+                {/* Email Input (Read Only) */}
+                <div>
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 block">
+                        {texts.email}
+                    </label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <MailIcon className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <input 
+                            type="email" 
+                            value={user.email}
+                            disabled
+                            className="w-full pl-9 pr-3 py-2.5 bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-gray-500 cursor-not-allowed text-sm font-medium"
+                        />
+                    </div>
+                </div>
+
+                {/* Player UID Input */}
+                <div>
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 block">
+                        Save UID
+                    </label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <GamepadIcon className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <input 
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={playerUid}
+                            onChange={(e) => handleUidChange(e.target.value)}
+                            className={`w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-gray-800 border rounded-xl focus:ring-1 outline-none transition-all text-sm font-medium text-light-text dark:text-dark-text
+                                ${uidError ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-primary'}
+                            `}
+                            placeholder="" // Removed demo number 12345678
+                        />
+                    </div>
+                    {uidError && <p className="text-red-500 text-[10px] mt-1 font-bold">{uidError}</p>}
+                </div>
+            </div>
+
+            <div className="pt-2">
+                <button 
+                    type="submit" 
+                    disabled={!canSave && !showSuccess}
+                    className={`w-full py-3 rounded-xl font-bold text-white shadow-lg flex items-center justify-center transition-all duration-300 text-sm
+                        ${showSuccess 
+                            ? 'bg-green-500 shadow-green-500/30'
+                            : !canSave 
+                                ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-500 cursor-not-allowed opacity-70 shadow-none' 
+                                : 'bg-gradient-to-r from-primary to-secondary hover:opacity-90 active:scale-95 shadow-primary/30'
+                        }
+                    `}
+                >
+                    {isSaving ? <Spinner /> : showSuccess ? <span className="flex items-center gap-2 animate-pop-in"><CheckCircleIcon className="w-5 h-5"/> Saved</span> : texts.saveChanges}
+                </button>
+            </div>
+         </form>
+      </div>
+
+        {/* --- FOOTER ADVERTISEMENT --- */}
+        {adCode && (
+            <div className="mt-8 animate-fade-in w-full flex justify-center min-h-[250px]">
+                <AdRenderer code={adCode} active={adActive} />
+            </div>
+        )}
+    </div>
+  );
 };
 
 export default EditProfileScreen;

@@ -3,10 +3,13 @@ import type { User, Transaction } from '../types';
 import { PAYMENT_METHODS } from '../constants';
 import { db } from '../firebase';
 import { ref, onValue } from 'firebase/database';
+import AdRenderer from './AdRenderer';
 
 interface MyTransactionScreenProps {
   user: User;
   texts: any;
+  adCode?: string;
+  adActive?: boolean;
 }
 
 const PlusCircleIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>);
@@ -85,7 +88,7 @@ const TransactionItem: FC<{ transaction: Transaction, texts: any, index: number 
     );
 }
 
-const MyTransactionScreen: FC<MyTransactionScreenProps> = ({ user, texts }) => {
+const MyTransactionScreen: FC<MyTransactionScreenProps> = ({ user, texts, adCode, adActive }) => {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
 
     useEffect(() => {
@@ -140,6 +143,13 @@ const MyTransactionScreen: FC<MyTransactionScreenProps> = ({ user, texts }) => {
                     )}
                 </div>
             </div>
+
+            {/* --- FOOTER ADVERTISEMENT (Scroll to View) --- */}
+            {adCode && (
+                <div className="mt-8 animate-fade-in w-full flex justify-center min-h-[250px]">
+                    <AdRenderer code={adCode} active={adActive} />
+                </div>
+            )}
         </div>
     );
 };

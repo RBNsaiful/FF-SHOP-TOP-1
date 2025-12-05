@@ -1,3 +1,4 @@
+
 import React, { useState, FC, FormEvent } from 'react';
 import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, db } from '../firebase';
@@ -11,7 +12,7 @@ interface AuthScreenProps {
 
 // Icons
 const MailIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>);
-const LockIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>);
+const LockIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>);
 const UserIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>);
 const EyeIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>);
 const EyeOffIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x="1" y1="1" x2="23" y2="23"/></svg>);
@@ -30,7 +31,15 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
   // Form Validation Logic
   const isEmailValid = email.includes('@') && email.includes('.');
   const isPasswordValid = password.length >= 6;
-  const isNameValid = isLogin || name.trim().length >= 3;
+  
+  // Name Validation: 6-15 chars, no special characters like $:!#
+  const validateName = (val: string) => {
+      if (val.length < 6 || val.length > 15) return false;
+      if (/[!@#$%^&*(),.?":{}|<>]/.test(val)) return false;
+      return true;
+  };
+
+  const isNameValid = isLogin || validateName(name);
   const doPasswordsMatch = isLogin || (password === confirmPassword);
   
   const isFormValid = isEmailValid && isPasswordValid && isNameValid && doPasswordsMatch;
@@ -42,16 +51,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // DATABASE CHECK: Prevent overwriting existing user data
-      // This ensures if an Email/Pass user logs in with Google (same email), their balance/data is preserved.
       const userRef = ref(db, 'users/' + user.uid);
       const snapshot = await get(userRef);
 
       if (snapshot.exists()) {
-          // Data already exists. Do nothing. The App.tsx listener will load it.
           console.log("Existing user logged in via Google. Data preserved.");
       } else {
-          // New user (or new UID), create default entry
           await set(userRef, {
             name: user.displayName || 'User',
             email: user.email || '',
@@ -83,16 +88,20 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
     e.preventDefault();
     setError('');
 
-    if (!isFormValid) return;
+    if (!isFormValid) {
+        if (!isLogin && !validateName(name)) {
+             setError("Invalid name. Must be 6-15 characters, no special symbols.");
+             return;
+        }
+        return;
+    }
 
     setLoading(true);
 
     try {
       if (isLogin) {
-        // Login Logic
         await signInWithEmailAndPassword(auth, email, password);
       } else {
-        // Register Logic
         if (password !== confirmPassword) {
             throw new Error(texts.passwordsDoNotMatch);
         }
@@ -100,10 +109,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         
-        // Update Profile Name
         await updateProfile(user, { displayName: name });
 
-        // Initialize User in Database (Use set because it's a fresh auth creation)
         await set(ref(db, 'users/' + user.uid), {
             name: name,
             email: email,
@@ -170,10 +177,13 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3.5 bg-white dark:bg-dark-card border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all font-medium text-gray-800 dark:text-white"
+                            className={`w-full pl-10 pr-4 py-3.5 bg-white dark:bg-dark-card border rounded-2xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
+                                ${name && !validateName(name) ? 'border-red-500 focus:ring-red-500' : 'border-gray-100 dark:border-gray-800 focus:ring-primary/50 focus:border-primary'}
+                            `}
                             required={!isLogin}
                         />
                     </div>
+                    {name && !validateName(name) && <p className="text-red-500 text-[10px] mt-1 font-bold">Invalid name (6-15 chars, no symbols)</p>}
                 </div>
             )}
 

@@ -192,7 +192,6 @@ const App: FC = () => {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(initialPaymentMethods);
   const [banners, setBanners] = useState<Banner[]>(initialBanners);
   const [supportContacts, setSupportContacts] = useState<SupportContact[]>(initialContacts);
-  // Removed old adUnits state
 
   const [isBalancePulsing, setIsBalancePulsing] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -218,7 +217,9 @@ const App: FC = () => {
                               ...prev.earnSettings, 
                               ...(data.appSettings.earnSettings || {}),
                               webAds: { ...DEFAULT_APP_SETTINGS.earnSettings.webAds, ...(data.appSettings.earnSettings?.webAds || {}) },
-                              adMob: { ...DEFAULT_APP_SETTINGS.earnSettings.adMob, ...(data.appSettings.earnSettings?.adMob || {}) }
+                              adMob: { ...DEFAULT_APP_SETTINGS.earnSettings.adMob, ...(data.appSettings.earnSettings?.adMob || {}) },
+                              profileAdCode: data.appSettings.earnSettings?.profileAdCode ?? DEFAULT_APP_SETTINGS.earnSettings.profileAdCode,
+                              profileAdActive: data.appSettings.earnSettings?.profileAdActive ?? DEFAULT_APP_SETTINGS.earnSettings.profileAdActive,
                           },
                           developerSettings: {
                               ...DEFAULT_APP_SETTINGS.developerSettings,
@@ -248,7 +249,6 @@ const App: FC = () => {
                   setBanners(formattedBanners);
               }
               if (data.supportContacts) setSupportContacts(Object.values(data.supportContacts));
-              // Removed old adUnits logic
           }
       }, (error) => {
           console.error("Config fetch error:", error);
@@ -391,16 +391,16 @@ const App: FC = () => {
   const renderScreen = () => {
     switch (activeScreen) {
       case 'home': return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} />;
-      case 'wallet': return <WalletScreen user={user} texts={texts} onNavigate={handleSuccessNavigate} paymentMethods={paymentMethods} />;
+      case 'wallet': return <WalletScreen user={user} texts={texts} onNavigate={handleSuccessNavigate} paymentMethods={paymentMethods} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
       case 'profile': return <ProfileScreen user={user} texts={texts} onLogout={handleLogout} setActiveScreen={setActiveScreen} theme={theme} setTheme={setTheme} language={language} setLanguage={setLanguage} appSettings={appSettings} />;
-      case 'myOrders': return <MyOrdersScreen user={user} texts={texts} />;
-      case 'myTransaction': return <MyTransactionScreen user={user} texts={texts} />;
-      case 'contactUs': return <ContactUsScreen texts={texts} contacts={supportContacts} />;
-      case 'changePassword': return <ChangePasswordScreen texts={texts} onPasswordChanged={() => setActiveScreen('profile')} />;
+      case 'myOrders': return <MyOrdersScreen user={user} texts={texts} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
+      case 'myTransaction': return <MyTransactionScreen user={user} texts={texts} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
+      case 'contactUs': return <ContactUsScreen texts={texts} contacts={supportContacts} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
+      case 'changePassword': return <ChangePasswordScreen texts={texts} onPasswordChanged={() => setActiveScreen('profile')} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
       case 'watchAds': 
         if (appSettings.visibility && !appSettings.visibility.earn) return null; 
         return <WatchAdsScreen user={user} texts={texts} onRewardEarned={handleRewardEarned} earnSettings={appSettings.earnSettings} />;
-      case 'editProfile': return <EditProfileScreen user={user} texts={texts} onNavigate={setActiveScreen} />;
+      case 'editProfile': return <EditProfileScreen user={user} texts={texts} onNavigate={setActiveScreen} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
       case 'notifications': return <NotificationScreen texts={texts} notifications={notifications} onRead={handleMarkNotificationsAsRead} />;
       case 'admin':
           if (user.role !== 'admin') return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} />;

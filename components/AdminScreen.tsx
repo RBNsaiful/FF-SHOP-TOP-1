@@ -147,6 +147,7 @@ const ADMIN_TEXTS = {
         reorder: "Reorder",
         homeAdCode: "Home Screen Ad Code",
         earnAdCode: "Earn Screen Ad Code",
+        profileAdCode: "Profile Pages Ad Code",
         adCodeInstructions: "Paste your HTML/JS ad code here. It will appear at the bottom of the screen.",
     },
     bn: {
@@ -250,6 +251,7 @@ const ADMIN_TEXTS = {
         reorder: "অর্ডার পরিবর্তন",
         homeAdCode: "হোম স্ক্রিন অ্যাড কোড",
         earnAdCode: "আর্ন স্ক্রিন অ্যাড কোড",
+        profileAdCode: "প্রোফাইল পেজ অ্যাড কোড",
         adCodeInstructions: "এখানে আপনার HTML/JS কোড পেস্ট করুন। এটি স্ক্রিনের নিচে দেখাবে।",
     }
 };
@@ -464,6 +466,8 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 homeAdActive: data.appSettings.earnSettings?.homeAdActive ?? true,
                                 earnAdCode: data.appSettings.earnSettings?.earnAdCode || DEFAULT_APP_SETTINGS.earnSettings.earnAdCode,
                                 earnAdActive: data.appSettings.earnSettings?.earnAdActive ?? true,
+                                profileAdCode: data.appSettings.earnSettings?.profileAdCode ?? DEFAULT_APP_SETTINGS.earnSettings.profileAdCode,
+                                profileAdActive: data.appSettings.earnSettings?.profileAdActive ?? true,
                             },
                         };
                         setSettings(mergedSettings);
@@ -1034,6 +1038,41 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                             placeholder={t.adCodeInstructions}
                                         />
                                         <p className="text-[10px] text-gray-400">This ad will appear at the bottom of the Watch Ads screen.</p>
+                                    </div>
+
+                                    {/* NEW: Profile Pages Footer Ads */}
+                                    <div className="mb-6 bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <label className="block text-xs font-bold text-gray-500 uppercase">{t.profileAdCode}</label>
+                                            
+                                            {/* Toggle Switch */}
+                                            <div 
+                                                onClick={() => setSettings({
+                                                    ...settings,
+                                                    earnSettings: {
+                                                        ...settings.earnSettings!,
+                                                        profileAdActive: !settings.earnSettings!.profileAdActive
+                                                    }
+                                                })}
+                                                className={`w-10 h-5 flex items-center rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.profileAdActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                                            >
+                                                <div className={`bg-white w-3 h-3 rounded-full shadow-md transform transition-transform ${settings.earnSettings?.profileAdActive ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                            </div>
+                                        </div>
+
+                                        <textarea 
+                                            value={settings.earnSettings?.profileAdCode || ''} 
+                                            onChange={(e) => setSettings({
+                                                ...settings, 
+                                                earnSettings: { 
+                                                    ...settings.earnSettings!, 
+                                                    profileAdCode: e.target.value 
+                                                }
+                                            })} 
+                                            className={`${inputClass} font-mono text-xs h-32 mb-2`} 
+                                            placeholder={t.adCodeInstructions}
+                                        />
+                                        <p className="text-[10px] text-gray-400">This ad will appear at the bottom of 6 Profile Sub-pages (Orders, Transaction, Add Money, Contact, Password, Edit Profile).</p>
                                     </div>
 
                                     <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full py-3 font-bold rounded-xl shadow-md transition-all ${isSettingsChanged ? 'bg-primary text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>{t.save}</button>
