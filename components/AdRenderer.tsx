@@ -11,8 +11,14 @@ const AdRenderer: FC<AdRendererProps> = ({ code, active = true }) => {
     useEffect(() => {
         if (!code || !active) return;
 
-        // Create a self-contained HTML document for the ad
-        // Inject script inside body to ensure execution
+        // --- ADSTERRA FIX: Protocol & Script Handling ---
+        // 1. Ensure scripts starting with // use https:
+        let processedCode = code.replace(/src="\/\//g, 'src="https://');
+        processedCode = processedCode.replace(/src='\/\//g, "src='https://");
+
+        // 2. Create a self-contained HTML document for the ad
+        // We inject the script inside body.
+        // Added CSS to center content properly and reset margins.
         const adHtml = `
             <!DOCTYPE html>
             <html>
@@ -28,13 +34,15 @@ const AdRenderer: FC<AdRendererProps> = ({ code, active = true }) => {
                             align-items: center; 
                             overflow: hidden; 
                             background-color: transparent; 
+                            width: 100%;
+                            height: 100%;
                         }
-                        /* Ensure images/iframes inside fit */
+                        /* Ensure images/iframes inside fit but don't force restrictive width */
                         img, iframe { max-width: 100%; height: auto; }
                     </style>
                 </head>
                 <body>
-                    ${code}
+                    ${processedCode}
                 </body>
             </html>
         `;
@@ -54,19 +62,21 @@ const AdRenderer: FC<AdRendererProps> = ({ code, active = true }) => {
 
     return (
         <div className="w-full flex justify-center items-center my-4 overflow-hidden">
-            <div className="w-full max-w-[320px] min-h-[50px] bg-transparent flex justify-center items-center">
+            {/* Removed fixed max-width: 320px constraint to allow full banners (e.g. 468px) to show */}
+            <div className="w-full min-h-[60px] bg-transparent flex justify-center items-center">
                 <iframe
                     src={iframeSrc}
                     title="Ad Content"
                     style={{
                         width: '100%', 
-                        maxWidth: '468px',
-                        height: '70px', // Adjusted to fit banner + margins
+                        maxWidth: '100%', // Allow it to take available space
+                        minWidth: '300px', // Ensure at least standard mobile ad width
+                        height: '100px', // Give enough vertical space for banner + margins
                         border: 'none',
                         overflow: 'hidden'
                     }}
                     scrolling="no"
-                    // Important: allow-scripts for JS execution
+                    // Important: allow-scripts for JS execution, allow-popups for ad clicks
                     sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"
                 />
             </div>

@@ -76,7 +76,7 @@ const DEFAULT_AD_SCRIPT = `<script type="text/javascript">
   	'params' : {}
   };
 </script>
-<script type="text/javascript" src="//www.highperformanceformat.com/f85450a96a85b5e7e930f493e0279a95/invoke.js"></script>`;
+<script type="text/javascript" src="https://www.highperformanceformat.com/f85450a96a85b5e7e930f493e0279a95/invoke.js"></script>`;
 
 // NEW APP SETTINGS DEFAULT WITH HYBRID ADS
 export const DEFAULT_APP_SETTINGS = {
