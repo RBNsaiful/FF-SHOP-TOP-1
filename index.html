@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>FF SHOP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Poppins', 'sans-serif'],
+            },
+            colors: {
+              'primary': {
+                DEFAULT: '#7C3AED', // Violet 600
+                light: '#F5F3FF',   // Violet 50
+                dark: '#6D28D9',    // Violet 700
+              },
+              'secondary': {
+                DEFAULT: '#EC4899', // Pink 500
+                dark: '#DB2777',    // Pink 600
+              },
+              'dark-bg': '#0F172A',      // Slate 900
+              'dark-card': '#1E293B',    // Slate 800
+              'dark-text': '#E2E8F0',     // Slate 200
+              'light-bg': '#F8FAFC',     // Slate 50
+              'light-card': '#FFFFFF',
+              'light-text': '#0F172A',     // Slate 900
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.3s ease-in-out',
+              'burst': 'burst 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+              'fade-in-up': 'fadeInUp 0.6s ease-out forwards',
+              'slide-in-down': 'slideInDown 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+              'slide-in-from-top': 'slideInFromTop 0.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards',
+              'reward-burst': 'rewardBurst 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+              'fly-in-left': 'fly-in-left 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+              'fly-in-right': 'fly-in-right 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+              'ripple': 'ripple 0.6s linear',
+              'sparkle-float': 'sparkleFloat 8s ease-in-out infinite',
+              'soft-pulse': 'softPulse 2.5s infinite ease-in-out',
+              'wallet-shake': 'walletShake 0.5s ease-in-out',
+              'gold-sparkle': 'goldSparkle 0.6s ease-out',
+              'fade-in-out': 'fadeInOut 0.6s ease-in-out',
+              'balance-pulse': 'balance-pulse 0.5s ease-in-out',
+              'reward-content-pop': 'reward-content-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+              'coin-fall': 'coinFall 0.8s linear forwards',
+              'smart-slide-up': 'smartSlideUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'smart-slide-down': 'smartSlideDown 1s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'smart-pop-in': 'smartPopIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'smart-fade-in': 'smartFadeIn 1s ease-out forwards',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              burst: {
+                '0%': { transform: 'scale(0.5) rotate(-30deg)', opacity: '0' },
+                '60%': { transform: 'scale(1.1) rotate(10deg)', opacity: '1' },
+                '100%': { transform: 'scale(1) rotate(0deg)', opacity: '1' },
+              },
+              fadeInUp: {
+                '0%': { opacity: '0', transform: 'translateY(20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              slideInDown: {
+                '0%': { opacity: '0', transform: 'translateY(-30px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              slideInFromTop: {
+                '0%': { transform: 'translateY(-50px) scale(0.95)', opacity: '0' },
+                '100%': { transform: 'translateY(0) scale(1)', opacity: '1' },
+              },
+              rewardBurst: {
+                 '0%': { transform: 'scale(0.5)', opacity: '0' },
+                 '70%': { transform: 'scale(1.1)', opacity: '1' },
+                 '100%': { transform: 'scale(1)', opacity: '1' },
+              },
+              'fly-in-left': {
+                '0%': { transform: 'translate(-40vw, 0) scale(0.5) rotate(-360deg)', opacity: '0' },
+                '60%': { transform: 'translate(0, 0) scale(1)', opacity: '1' },
+                '100%': { transform: 'translate(40vw, 0) scale(0.5) rotate(-360deg)', opacity: '0' },
+              },
+              'fly-in-right': {
+                '0%': { transform: 'translate(40vw, 0) scale(0.5) rotate(360deg)', opacity: '0' },
+                '60%': { transform: 'translate(0, 0) scale(1)', opacity: '1' },
+                '100%': { transform: 'translate(-40vw, 0) scale(0.5) rotate(-360deg)', opacity: '0' },
+              },
+              ripple: {
+                'to': {
+                  transform: 'scale(300)',
+                  opacity: '0',
+                },
+              },
+              sparkleFloat: {
+                '0%, 100%': { transform: 'translateY(0) scale(1)', opacity: '0.5' },
+                '50%': { transform: 'translateY(-20px) scale(1.2)', opacity: '1' },
+              },
+              softPulse: {
+                '0%, 100%': { 
+                  boxShadow: '0 0 15px rgba(124, 58, 237, 0.2), 0 0 5px rgba(124, 58, 237, 0.1)'
+                },
+                '50%': { 
+                  boxShadow: '0 0 25px rgba(236, 72, 153, 0.3), 0 0 10px rgba(236, 72, 153, 0.2)'
+                },
+              },
+              walletShake: {
+                '0%, 100%': { transform: 'rotate(0deg)' },
+                '25%': { transform: 'rotate(-5deg)' },
+                '75%': { transform: 'rotate(5deg)' },
+              },
+              goldSparkle: {
+                '0%': { transform: 'scale(0) translateY(-15px)', opacity: '0.5' },
+                '50%': { opacity: '1' },
+                '100%': { transform: 'scale(1.5) translateY(-15px)', opacity: '0' },
+              },
+              fadeInOut: {
+                '0%, 100%': { opacity: '0' },
+                '50%': { opacity: '0.7' },
+              },
+              'balance-pulse': {
+                '0%, 100%': { transform: 'scale(1)' },
+                '50%': { transform: 'scale(1.3)' },
+              },
+              'reward-content-pop': {
+                  '0%': { transform: 'scale(0.8) translateY(20px)', opacity: '0' },
+                  '100%': { transform: 'scale(1) translateY(0)', opacity: '1' }
+              },
+              'coinFall': {
+                  '0%': { transform: 'translateY(-10vh) rotate(0deg)', opacity: '1' },
+                  '100%': { transform: 'translateY(110vh) rotate(720deg)', opacity: '0' }
+              },
+              smartSlideUp: {
+                '0%': { opacity: '0', transform: 'translateY(40px) scale(0.96)' },
+                '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+              },
+              smartSlideDown: {
+                '0%': { opacity: '0', transform: 'translateY(-50px) scale(0.96)' },
+                '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+              },
+              smartPopIn: {
+                '0%': { opacity: '0', transform: 'scale(0.9) translateY(10px)' },
+                '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
+              },
+              smartFadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      /* Overriding browser autofill styles for a consistent look */
+      input:-webkit-autofill,
+      input:-webkit-autofill:hover,
+      input:-webkit-autofill:focus,
+      input:-webkit-autofill:active {
+        -webkit-text-fill-color: #0F172A !important;
+        -webkit-box-shadow: 0 0 0px 1000px #F8FAFC inset !important;
+        transition: background-color 5000s ease-in-out 0s;
+        font-family: 'Poppins', sans-serif !important;
+      }
+
+      .dark input:-webkit-autofill,
+      .dark input:-webkit-autofill:hover,
+      .dark input:-webkit-autofill:focus,
+      .dark input:-webkit-autofill:active {
+        -webkit-text-fill-color: #E2E8F0 !important;
+        -webkit-box-shadow: 0 0 0px 1000px #0F172A inset !important;
+      }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/"
+  }
+}
+</script>
+</head>
+  <body class="bg-gray-100 dark:bg-gray-900 overflow-x-hidden">
+    <div id="root"></div>
+</body>
+</html>

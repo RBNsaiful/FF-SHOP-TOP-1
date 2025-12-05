@@ -1,0 +1,5 @@
+{
+  "name": "FF",
+  "description": "A mobile-first web application for purchasing Free Fire diamonds. Users can manage their accounts, add funds, and buy diamond packs directly. The app is designed with a focus on a simple, attractive, and user-friendly experience for gamers.",
+  "requestFramePermissions": []
+}
