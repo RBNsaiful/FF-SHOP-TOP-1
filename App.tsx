@@ -14,7 +14,7 @@ import AdminScreen from './components/AdminScreen';
 import BottomNav from './components/BottomNav';
 import RewardAnimation from './components/RewardAnimation';
 import { TEXTS, DIAMOND_OFFERS as initialDiamondOffers, LEVEL_UP_PACKAGES as initialLevelUpPackages, MEMBERSHIPS as initialMemberships, PREMIUM_APPS as initialPremiumApps, APP_LOGO_URL, DEFAULT_APP_SETTINGS, PAYMENT_METHODS as initialPaymentMethods, BANNER_IMAGES as initialBanners, SUPPORT_CONTACTS as initialContacts } from './constants';
-import type { User, Language, Theme, Screen, DiamondOffer, LevelUpPackage, Membership, PremiumApp, Notification, AppSettings, PaymentMethod, SupportContact, AdUnit, Banner } from './types';
+import type { User, Language, Theme, Screen, DiamondOffer, LevelUpPackage, Membership, PremiumApp, Notification, AppSettings, PaymentMethod, SupportContact, Banner } from './types';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { ref, onValue } from 'firebase/database';
@@ -192,7 +192,7 @@ const App: FC = () => {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(initialPaymentMethods);
   const [banners, setBanners] = useState<Banner[]>(initialBanners);
   const [supportContacts, setSupportContacts] = useState<SupportContact[]>(initialContacts);
-  const [adUnits, setAdUnits] = useState<AdUnit[]>([]);
+  // Removed old adUnits state
 
   const [isBalancePulsing, setIsBalancePulsing] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -248,8 +248,7 @@ const App: FC = () => {
                   setBanners(formattedBanners);
               }
               if (data.supportContacts) setSupportContacts(Object.values(data.supportContacts));
-              if (data.adUnits) setAdUnits(Object.values(data.adUnits));
-              else setAdUnits([]);
+              // Removed old adUnits logic
           }
       }, (error) => {
           console.error("Config fetch error:", error);
@@ -391,7 +390,7 @@ const App: FC = () => {
 
   const renderScreen = () => {
     switch (activeScreen) {
-      case 'home': return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} adUnits={adUnits} />;
+      case 'home': return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} />;
       case 'wallet': return <WalletScreen user={user} texts={texts} onNavigate={handleSuccessNavigate} paymentMethods={paymentMethods} />;
       case 'profile': return <ProfileScreen user={user} texts={texts} onLogout={handleLogout} setActiveScreen={setActiveScreen} theme={theme} setTheme={setTheme} language={language} setLanguage={setLanguage} appSettings={appSettings} />;
       case 'myOrders': return <MyOrdersScreen user={user} texts={texts} />;
@@ -404,9 +403,9 @@ const App: FC = () => {
       case 'editProfile': return <EditProfileScreen user={user} texts={texts} onNavigate={setActiveScreen} />;
       case 'notifications': return <NotificationScreen texts={texts} notifications={notifications} onRead={handleMarkNotificationsAsRead} />;
       case 'admin':
-          if (user.role !== 'admin') return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} adUnits={adUnits} />;
+          if (user.role !== 'admin') return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} />;
           return <AdminScreen user={user} texts={texts} onNavigate={handleSuccessNavigate} onLogout={handleLogout} language={language} setLanguage={setLanguage} appSettings={appSettings} />;
-      default: return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} adUnits={adUnits} />;
+      default: return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} />;
     }
   };
 

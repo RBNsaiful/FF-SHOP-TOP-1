@@ -4,6 +4,7 @@ import type { User, EarnSettings } from '../types';
 import { db } from '../firebase';
 import { ref, update, runTransaction } from 'firebase/database';
 import VideoAdPlayer from './VideoAdPlayer';
+import AdRenderer from './AdRenderer'; // Import AdRenderer
 
 // Icons
 const PlayCircleIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" /></svg>);
@@ -60,6 +61,10 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
 
     const adMobActive = earnSettings?.adMob?.active ?? false;
     const adMobRewardId = earnSettings?.adMob?.rewardId || '';
+    
+    // New Ad Code
+    const earnAdCode = earnSettings?.earnAdCode || '';
+    const earnAdActive = earnSettings?.earnAdActive ?? true;
 
     // --- Init Local Storage Preference ---
     useEffect(() => {
@@ -377,6 +382,13 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
                         <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${enableAnimations ? 'translate-x-6' : 'translate-x-0'}`}></div>
                     </button>
                 </div>
+
+                {/* --- FOOTER ADVERTISEMENT (Scroll to View) --- */}
+                {earnAdCode && (
+                    <div className="mt-8 animate-fade-in w-full flex justify-center">
+                        <AdRenderer code={earnAdCode} active={earnAdActive} />
+                    </div>
+                )}
 
             </main>
         </div>

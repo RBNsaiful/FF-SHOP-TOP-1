@@ -107,13 +107,6 @@ export interface Notification {
   type: 'bonus' | 'offer' | 'system';
 }
 
-export interface AdUnit {
-    id: string;
-    title: string;
-    code: string; // HTML/Script code
-    active: boolean;
-}
-
 export interface AppVisibility {
   diamonds: boolean;
   levelUp: boolean;
@@ -130,7 +123,7 @@ export interface EarnSettings {
     adCooldownSeconds: number;
     resetHours: number;
 
-    // System A: Web Ads
+    // System A: Web Ads (Popup/Video)
     webAds: {
         active: boolean;
         url: string; // Video or Web URL
@@ -145,6 +138,12 @@ export interface EarnSettings {
         interstitialId?: string;
         bannerId?: string;
     };
+
+    // New Footer Ads
+    homeAdCode?: string;
+    homeAdActive?: boolean; // Control visibility for Home Ads
+    earnAdCode?: string;
+    earnAdActive?: boolean; // Control visibility for Earn Ads
 }
 
 export interface DeveloperSettings {

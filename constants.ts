@@ -67,6 +67,17 @@ export const REWARD_ADS_ENABLED = true;
 export const DAILY_AD_LIMIT = 20;
 export const REWARD_PER_AD = 5; // in currency
 
+const DEFAULT_AD_SCRIPT = `<script type="text/javascript">
+  atOptions = {
+  	'key' : 'f85450a96a85b5e7e930f493e0279a95',
+  	'format' : 'iframe',
+  	'height' : 60,
+  	'width' : 468,
+  	'params' : {}
+  };
+</script>
+<script type="text/javascript" src="//www.highperformanceformat.com/f85450a96a85b5e7e930f493e0279a95/invoke.js"></script>`;
+
 // NEW APP SETTINGS DEFAULT WITH HYBRID ADS
 export const DEFAULT_APP_SETTINGS = {
     appName: "FF SHOP",
@@ -95,7 +106,11 @@ export const DEFAULT_APP_SETTINGS = {
             rewardId: 'ca-app-pub-3940256099942544/5224354917', // Test ID
             bannerId: '',
             interstitialId: ''
-        }
+        },
+        homeAdCode: DEFAULT_AD_SCRIPT,
+        homeAdActive: true,
+        earnAdCode: DEFAULT_AD_SCRIPT,
+        earnAdActive: true,
     },
     developerSettings: {
         title: "RBN Saiful",

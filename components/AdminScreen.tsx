@@ -1,5 +1,5 @@
 import React, { useState, useEffect, FC, FormEvent, useMemo } from 'react';
-import { User, Screen, Transaction, Purchase, AppSettings, Language, PaymentMethod, AppVisibility, Notification, AdUnit, DeveloperSettings, Banner } from '../types';
+import { User, Screen, Transaction, Purchase, AppSettings, Language, PaymentMethod, AppVisibility, Notification, DeveloperSettings, Banner } from '../types';
 import { db } from '../firebase';
 import { ref, update, onValue, get, remove, push, set, runTransaction } from 'firebase/database';
 import { 
@@ -145,6 +145,9 @@ const ADMIN_TEXTS = {
         unlock: "Unlock",
         editBanner: "Edit Banner",
         reorder: "Reorder",
+        homeAdCode: "Home Screen Ad Code",
+        earnAdCode: "Earn Screen Ad Code",
+        adCodeInstructions: "Paste your HTML/JS ad code here. It will appear at the bottom of the screen.",
     },
     bn: {
         dashboard: "ড্যাশবোর্ড",
@@ -245,6 +248,9 @@ const ADMIN_TEXTS = {
         unlock: "আনলক",
         editBanner: "ব্যানার এডিট করুন",
         reorder: "অর্ডার পরিবর্তন",
+        homeAdCode: "হোম স্ক্রিন অ্যাড কোড",
+        earnAdCode: "আর্ন স্ক্রিন অ্যাড কোড",
+        adCodeInstructions: "এখানে আপনার HTML/JS কোড পেস্ট করুন। এটি স্ক্রিনের নিচে দেখাবে।",
     }
 };
 
@@ -365,12 +371,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const [editingContactIndex, setEditingContactIndex] = useState<number | null>(null);
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
-    // Ads Manager State (HTML/Script)
-    const [adUnits, setAdUnits] = useState<AdUnit[]>([]);
-    const [editingAd, setEditingAd] = useState<AdUnit | null>(null);
-    const [isAdModalOpen, setIsAdModalOpen] = useState(false);
-    const [previewCode, setPreviewCode] = useState<string>('');
-    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+    // Ads Manager State - NO LOCAL STATE, USE SETTINGS DIRECTLY
 
     // Balance Modal State
     const [balanceModalUser, setBalanceModalUser] = useState<User | null>(null);
@@ -458,8 +459,12 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 ...(data.appSettings.earnSettings || {}),
                                 webAds: { ...DEFAULT_APP_SETTINGS.earnSettings.webAds, ...(data.appSettings.earnSettings?.webAds || {}) },
                                 adMob: { ...DEFAULT_APP_SETTINGS.earnSettings.adMob, ...(data.appSettings.earnSettings?.adMob || {}) },
+                                // Ensure these fields exist and default to true if undefined
+                                homeAdCode: data.appSettings.earnSettings?.homeAdCode || DEFAULT_APP_SETTINGS.earnSettings.homeAdCode,
+                                homeAdActive: data.appSettings.earnSettings?.homeAdActive ?? true,
+                                earnAdCode: data.appSettings.earnSettings?.earnAdCode || DEFAULT_APP_SETTINGS.earnSettings.earnAdCode,
+                                earnAdActive: data.appSettings.earnSettings?.earnAdActive ?? true,
                             },
-                            // Referral settings removed
                         };
                         setSettings(mergedSettings);
                         setOriginalSettings(mergedSettings); 
@@ -491,11 +496,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                         setContacts(Object.values(data.supportContacts));
                     } else {
                         setContacts([]);
-                    }
-                    if (data.adUnits) {
-                        setAdUnits(Object.values(data.adUnits));
-                    } else {
-                        setAdUnits([]);
                     }
                 }
             });
@@ -630,7 +630,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         }, `Confirm ${action}?`);
     };
 
-    // --- TRANSACTION APPROVAL (Referral Logic Removed) ---
     const handleTxnAction = (txn: Transaction, action: 'Completed' | 'Failed') => {
         requestConfirmation(async () => {
             if (txn.key && txn.userId) {
@@ -740,20 +739,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     });
     const openAddContactModal = () => { setEditingContact({ type: 'phone', title: '', link: '', labelKey: '' }); setEditingContactIndex(null); setIsContactModalOpen(true); };
     const openEditContactModal = (contact: any, index: number) => { setEditingContact({ ...contact, title: contact.title || contact.labelKey }); setEditingContactIndex(index); setIsContactModalOpen(true); };
-
-    const handleSaveAd = async (e: FormEvent) => {
-        e.preventDefault();
-        if (!editingAd) return;
-        let newAd = { ...editingAd };
-        if (!newAd.id) newAd.id = Date.now().toString();
-        if (typeof newAd.active === 'undefined') newAd.active = true;
-        const updatedAds = adUnits.some(ad => ad.id === newAd.id) ? adUnits.map(ad => ad.id === newAd.id ? newAd : ad) : [...adUnits, newAd];
-        await set(ref(db, 'config/adUnits'), updatedAds); setIsAdModalOpen(false); setEditingAd(null);
-    };
-    const handleDeleteAd = (id: string) => requestConfirmation(async () => { const updatedAds = adUnits.filter(ad => ad.id !== id); await set(ref(db, 'config/adUnits'), updatedAds); });
-    const openAddAdModal = () => { setEditingAd({ id: '', title: '', code: '', active: true }); setIsAdModalOpen(true); };
-    const openEditAdModal = (ad: AdUnit) => { setEditingAd(ad); setIsAdModalOpen(true); };
-    const openPreviewAd = (code: string) => { setPreviewCode(code); setIsPreviewModalOpen(true); };
 
     const handleSendNotification = async (e: FormEvent) => { e.preventDefault(); await push(ref(db, 'notifications'), { ...newNotif, timestamp: Date.now() }); setNewNotif({ title: '', message: '', type: 'system' }); setIsNotifModalOpen(false); };
     const handleDeleteNotification = (id: string) => requestConfirmation(async () => { await remove(ref(db, `notifications/${id}`)); });
@@ -976,19 +961,82 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 </div>
                             )}
 
-                            {/* ADS MANAGER TOOL (Simple) */}
+                            {/* NEW ADS MANAGER TOOL */}
                             {activeTool === 'ads' && (
                                 <div>
-                                    <button onClick={openAddAdModal} className="w-full py-3 mb-4 bg-orange-100 text-orange-600 rounded-xl font-bold border-2 border-orange-200 hover:bg-orange-200 transition-colors">+ {t.add} New Ad Unit</button>
-                                    <div className="space-y-3">
-                                        {adUnits.map((ad) => (
-                                            <div key={ad.id} className="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                                                <div><p className="font-bold text-sm">{ad.title}</p><span className={`text-[10px] font-bold px-2 py-0.5 rounded ${ad.active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>{ad.active ? t.active : t.inactive}</span></div>
-                                                <div className="flex gap-2"><button onClick={() => openPreviewAd(ad.code)} className="p-1.5 bg-indigo-100 text-indigo-600 rounded" title="Preview"><EyeIcon className="w-4 h-4"/></button><button onClick={() => openEditAdModal(ad)} className="p-1.5 bg-blue-100 text-blue-600 rounded"><EditIcon className="w-4 h-4"/></button><button onClick={() => handleDeleteAd(ad.id)} className="p-1.5 bg-red-100 text-red-600 rounded"><TrashIcon className="w-4 h-4"/></button></div>
+                                    <h4 className="font-bold text-sm mb-3 uppercase text-purple-600">{t.adsConfig}</h4>
+                                    
+                                    {/* Home Screen Ads */}
+                                    <div className="mb-6 bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <label className="block text-xs font-bold text-gray-500 uppercase">{t.homeAdCode}</label>
+                                            
+                                            {/* Toggle Switch */}
+                                            <div 
+                                                onClick={() => setSettings({
+                                                    ...settings,
+                                                    earnSettings: {
+                                                        ...settings.earnSettings!,
+                                                        homeAdActive: !settings.earnSettings!.homeAdActive
+                                                    }
+                                                })}
+                                                className={`w-10 h-5 flex items-center rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.homeAdActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                                            >
+                                                <div className={`bg-white w-3 h-3 rounded-full shadow-md transform transition-transform ${settings.earnSettings?.homeAdActive ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                             </div>
-                                        ))}
-                                        {adUnits.length === 0 && <p className="text-center text-gray-400 text-xs py-4">No ads configured.</p>}
+                                        </div>
+
+                                        <textarea 
+                                            value={settings.earnSettings?.homeAdCode || ''} 
+                                            onChange={(e) => setSettings({
+                                                ...settings, 
+                                                earnSettings: { 
+                                                    ...settings.earnSettings!, 
+                                                    homeAdCode: e.target.value 
+                                                }
+                                            })} 
+                                            className={`${inputClass} font-mono text-xs h-32 mb-2`} 
+                                            placeholder={t.adCodeInstructions}
+                                        />
+                                        <p className="text-[10px] text-gray-400">This ad will appear at the bottom of the Home screen.</p>
                                     </div>
+
+                                    {/* Earn Screen Ads */}
+                                    <div className="mb-6 bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <label className="block text-xs font-bold text-gray-500 uppercase">{t.earnAdCode}</label>
+                                            
+                                            {/* Toggle Switch */}
+                                            <div 
+                                                onClick={() => setSettings({
+                                                    ...settings,
+                                                    earnSettings: {
+                                                        ...settings.earnSettings!,
+                                                        earnAdActive: !settings.earnSettings!.earnAdActive
+                                                    }
+                                                })}
+                                                className={`w-10 h-5 flex items-center rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.earnAdActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                                            >
+                                                <div className={`bg-white w-3 h-3 rounded-full shadow-md transform transition-transform ${settings.earnSettings?.earnAdActive ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                            </div>
+                                        </div>
+
+                                        <textarea 
+                                            value={settings.earnSettings?.earnAdCode || ''} 
+                                            onChange={(e) => setSettings({
+                                                ...settings, 
+                                                earnSettings: { 
+                                                    ...settings.earnSettings!, 
+                                                    earnAdCode: e.target.value 
+                                                }
+                                            })} 
+                                            className={`${inputClass} font-mono text-xs h-32 mb-2`} 
+                                            placeholder={t.adCodeInstructions}
+                                        />
+                                        <p className="text-[10px] text-gray-400">This ad will appear at the bottom of the Watch Ads screen.</p>
+                                    </div>
+
+                                    <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full py-3 font-bold rounded-xl shadow-md transition-all ${isSettingsChanged ? 'bg-primary text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>{t.save}</button>
                                 </div>
                             )}
 
@@ -1060,9 +1108,9 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                         </div>
                                     </div>
 
-                                    {/* ADS CONFIGURATION (Hybrid) */}
+                                    {/* ADS CONFIGURATION (Hybrid) - Still kept for backward compat or if needed */}
                                     <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                                        <h4 className="font-bold text-sm mb-3 uppercase text-purple-600">{t.adsConfig}</h4>
+                                        <h4 className="font-bold text-sm mb-3 uppercase text-purple-600">Video/Reward Ads</h4>
                                         
                                         {/* SYSTEM 1: WEB ADS */}
                                         <div className="mb-4 bg-white dark:bg-dark-card p-3 rounded-lg border border-blue-200 dark:border-blue-900/30 shadow-sm">
@@ -1096,44 +1144,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                                         value={settings.earnSettings?.webAds?.duration || 15} 
                                                         onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, duration: Number(e.target.value) } }})} 
                                                         className={inputClass} 
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* SYSTEM 2: ADMOB ADS */}
-                                        <div className="bg-white dark:bg-dark-card p-3 rounded-lg border border-yellow-200 dark:border-yellow-900/30 shadow-sm">
-                                            <div className="flex justify-between items-center mb-2 border-b pb-2 border-gray-100 dark:border-gray-700">
-                                                <h5 className="text-xs font-bold text-yellow-600 uppercase">{t.adMob}</h5>
-                                                <div onClick={() => setSettings({
-                                                    ...settings, 
-                                                    earnSettings: { 
-                                                        ...settings.earnSettings!, 
-                                                        adMob: { ...settings.earnSettings!.adMob, active: !settings.earnSettings!.adMob.active }
-                                                    }
-                                                })} className={`w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.adMob?.active ? 'bg-yellow-500' : 'bg-gray-300'}`}>
-                                                    <div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.earnSettings?.adMob?.active ? 'translate-x-4' : ''}`}></div>
-                                                </div>
-                                            </div>
-                                            <div className={`space-y-2 text-xs transition-opacity ${settings.earnSettings?.adMob?.active ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
-                                                <div>
-                                                    <label className="block mb-1 text-gray-500">{t.appId}</label>
-                                                    <input 
-                                                        type="text" 
-                                                        value={settings.earnSettings?.adMob?.appId || ''} 
-                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, appId: e.target.value } }})} 
-                                                        className={inputClass} 
-                                                        placeholder="ca-app-pub..." 
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block mb-1 text-gray-500">{t.rewardId}</label>
-                                                    <input 
-                                                        type="text" 
-                                                        value={settings.earnSettings?.adMob?.rewardId || ''} 
-                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, rewardId: e.target.value } }})} 
-                                                        className={inputClass} 
-                                                        placeholder="ca-app-pub..." 
                                                     />
                                                 </div>
                                             </div>
@@ -1401,37 +1411,12 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 </div>
             )}
 
-            {/* Ad Modal */}
-            {isAdModalOpen && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-dark-card w-full max-w-sm p-6 rounded-2xl shadow-xl animate-smart-pop-in flex flex-col max-h-[85vh]">
-                        <h3 className="font-bold text-lg mb-4">{editingAd?.id ? t.edit : t.add} Ad Unit</h3>
-                        <form onSubmit={handleSaveAd} className="space-y-3 flex-1 overflow-y-auto">
-                            <div><label className="text-xs font-bold uppercase text-gray-500">{t.adTitle}</label><input required value={editingAd?.title || ''} onChange={e => setEditingAd({...editingAd!, title: e.target.value})} className={inputClass} /></div>
-                            <div><label className="text-xs font-bold uppercase text-gray-500">{t.adCode}</label><textarea required value={editingAd?.code || ''} onChange={e => setEditingAd({...editingAd!, code: e.target.value})} className={`${inputClass} font-mono text-xs`} rows={6} placeholder="<script>...</script>" /></div>
-                            <div className="flex items-center gap-2"><input type="checkbox" checked={editingAd?.active || false} onChange={e => setEditingAd({...editingAd!, active: e.target.checked})} id="adActive" /><label htmlFor="adActive" className="text-sm font-bold">{t.active}</label></div>
-                            <div className="flex gap-2 mt-4 pt-2"><button type="button" onClick={() => setIsAdModalOpen(false)} className="flex-1 py-2 bg-gray-200 rounded-lg font-bold">{t.cancel}</button><button type="submit" className="flex-1 py-2 bg-primary text-white rounded-lg font-bold">{t.save}</button></div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Preview Modal */}
-            {isPreviewModalOpen && (
-                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[70] p-4 animate-fade-in">
-                    <div className="bg-white w-full max-w-md p-2 rounded-xl relative">
-                        <button onClick={() => setIsPreviewModalOpen(false)} className="absolute -top-10 right-0 text-white font-bold p-2">CLOSE</button>
-                        <div dangerouslySetInnerHTML={{ __html: previewCode }} className="overflow-hidden flex justify-center bg-gray-100 rounded min-h-[100px]" />
-                    </div>
-                </div>
-            )}
-
             {/* Notification Modal */}
             {isNotifModalOpen && (
                 <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-dark-card w-full max-w-sm p-6 rounded-2xl shadow-xl animate-smart-pop-in">
+                    <div className="bg-white dark:bg-dark-card w-full max-w-sm p-6 rounded-2xl shadow-xl animate-smart-pop-in flex flex-col max-h-[85vh]">
                         <h3 className="font-bold text-lg mb-4">Send Notification</h3>
-                        <form onSubmit={handleSendNotification} className="space-y-3">
+                        <form onSubmit={handleSendNotification} className="space-y-3 flex-1 overflow-y-auto">
                             <div><label className="text-xs font-bold uppercase text-gray-500">{t.notifTitle}</label><input required value={newNotif.title} onChange={e => setNewNotif({...newNotif, title: e.target.value})} className={inputClass} /></div>
                             <div><label className="text-xs font-bold uppercase text-gray-500">{t.notifBody}</label><textarea required value={newNotif.message} onChange={e => setNewNotif({...newNotif, message: e.target.value})} className={inputClass} rows={3} /></div>
                             <div>

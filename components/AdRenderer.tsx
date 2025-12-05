@@ -1,17 +1,18 @@
-
 import React, { FC, useEffect, useState } from 'react';
 
 interface AdRendererProps {
     code: string;
+    active?: boolean;
 }
 
-const AdRenderer: FC<AdRendererProps> = ({ code }) => {
+const AdRenderer: FC<AdRendererProps> = ({ code, active = true }) => {
     const [iframeSrc, setIframeSrc] = useState<string>('');
 
     useEffect(() => {
-        if (!code) return;
+        if (!code || !active) return;
 
         // Create a self-contained HTML document for the ad
+        // Inject script inside body to ensure execution
         const adHtml = `
             <!DOCTYPE html>
             <html>
@@ -47,9 +48,9 @@ const AdRenderer: FC<AdRendererProps> = ({ code }) => {
         return () => {
             URL.revokeObjectURL(url);
         };
-    }, [code]);
+    }, [code, active]);
 
-    if (!code) return null;
+    if (!code || !active) return null;
 
     return (
         <div className="w-full flex justify-center items-center my-4 overflow-hidden">
@@ -58,14 +59,15 @@ const AdRenderer: FC<AdRendererProps> = ({ code }) => {
                     src={iframeSrc}
                     title="Ad Content"
                     style={{
-                        width: '300px', // Standard Mobile Ad Width
-                        height: '250px', // Standard Rectangle Height
+                        width: '100%', 
+                        maxWidth: '468px',
+                        height: '70px', // Adjusted to fit banner + margins
                         border: 'none',
                         overflow: 'hidden'
                     }}
                     scrolling="no"
-                    // Removed 'allow-same-origin' to prevent ad from accessing parent, added it back if ad needs cookies
-                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                    // Important: allow-scripts for JS execution
+                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"
                 />
             </div>
         </div>

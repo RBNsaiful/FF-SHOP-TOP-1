@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, FC } from 'react';
-import type { User, DiamondOffer, LevelUpPackage, Membership, GenericOffer, PremiumApp, Screen, AppVisibility, AdUnit, Banner } from '../types';
+import type { User, DiamondOffer, LevelUpPackage, Membership, GenericOffer, PremiumApp, Screen, AppVisibility, Banner } from '../types';
 import PurchaseModal from './PurchaseModal';
 import { db } from '../firebase';
 import { ref, push, runTransaction } from 'firebase/database';
@@ -16,7 +16,8 @@ interface HomeScreenProps {
   onNavigate: (screen: Screen) => void;
   bannerImages: Banner[];
   visibility?: AppVisibility;
-  adUnits?: AdUnit[];
+  homeAdCode?: string;
+  homeAdActive?: boolean;
 }
 
 const DiamondIcon: FC<{className?: string}> = ({className}) => (
@@ -134,7 +135,7 @@ const PackageCard: FC<{ name: string; price: number; texts: any; onBuy: () => vo
   </div>
 );
 
-const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffers, levelUpPackages, memberships, premiumApps, onNavigate, bannerImages, visibility, adUnits }) => {
+const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffers, levelUpPackages, memberships, premiumApps, onNavigate, bannerImages, visibility, homeAdCode, homeAdActive }) => {
   const [selectedOffer, setSelectedOffer] = useState<GenericOffer | null>(null);
   const [activeTab, setActiveTab] = useState('');
 
@@ -150,9 +151,6 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
       { id: 'memberships', label: texts.memberships, visible: showMembership },
       { id: 'premium-apps', label: texts.premiumApps, visible: showPremium && premiumApps && premiumApps.length > 0 },
   ].filter(t => t.visible);
-
-  // Filter Active Ads
-  const activeAd = adUnits && adUnits.length > 0 ? adUnits.find(ad => ad.active) : null;
 
   // Set initial active tab based on visibility
   useEffect(() => {
@@ -303,13 +301,6 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
         <div className="opacity-0 animate-smart-slide-down" style={{ animationDelay: '100ms' }}>
             <BannerCarousel images={bannerImages} />
         </div>
-
-        {/* --- AD DISPLAY SECTION --- */}
-        {activeAd && (
-            <div className="animate-fade-in mb-4 flex justify-center">
-                <AdRenderer code={activeAd.code} />
-            </div>
-        )}
         
         {visibleTabs.length > 0 ? (
             <>
@@ -350,6 +341,14 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
                 <p className="text-center text-gray-500 dark:text-gray-400">{texts.noOffersFound}</p>
             </div>
         )}
+
+        {/* --- FOOTER ADVERTISEMENT (Scroll to View) --- */}
+        <div className="mt-8 animate-fade-in w-full flex justify-center min-h-[60px]">
+            {homeAdActive ? (
+                <AdRenderer code={homeAdCode || ''} active={homeAdActive} />
+            ) : null}
+        </div>
+
       </main>
       {selectedOffer && (
         <PurchaseModal 
