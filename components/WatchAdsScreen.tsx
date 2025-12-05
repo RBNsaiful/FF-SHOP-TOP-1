@@ -20,7 +20,6 @@ interface WatchAdsScreenProps {
     texts: any;
     onRewardEarned: (amount: number, showAnim: boolean) => void;
     earnSettings?: EarnSettings;
-    onUpdateUser: (updatedData: Partial<User>) => void;
 }
 
 const InfoItem: FC<{ icon: FC<{className?: string}>, label: string, value: string | number }> = ({ icon: Icon, label, value }) => (
@@ -36,7 +35,7 @@ const InfoItem: FC<{ icon: FC<{className?: string}>, label: string, value: strin
 );
 
 
-const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, earnSettings, onUpdateUser }) => {
+const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, earnSettings }) => {
     // UI States
     const [showWebAd, setShowWebAd] = useState(false);
     const [showAdMobSimulator, setShowAdMobSimulator] = useState(false); // For Web Preview of AdMob flow
@@ -193,38 +192,6 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
     // --- REWARD PROCESSING (Atomic Transaction) ---
     const handleRewardClaim = async () => {
         if (!user.uid) return;
-
-        // Guest User Logic (Bypass Firebase)
-        if (user.uid.startsWith("guest_") || user.role === 'admin' && user.uid === 'guest_demo_123') {
-             const today = new Date().toISOString().split('T')[0];
-             const currentInfo = user.adsWatchedInfo && user.adsWatchedInfo.date === today 
-                ? user.adsWatchedInfo 
-                : { count: 0, date: today };
-             
-             if ((currentInfo.count || 0) < dailyLimit) {
-                 const newCount = (currentInfo.count || 0) + 1;
-                 const newBalance = (user.balance || 0) + rewardAmount;
-                 
-                 const updatedInfo = {
-                     count: newCount,
-                     date: today,
-                     lastAdTimestamp: Date.now(),
-                     limitReachedAt: newCount >= dailyLimit ? Date.now() : undefined
-                 };
-
-                 // Update Local State via Parent Wrapper
-                 onUpdateUser({
-                     balance: newBalance,
-                     totalEarned: (user.totalEarned || 0) + rewardAmount,
-                     totalAdsWatched: (user.totalAdsWatched || 0) + 1,
-                     adsWatchedInfo: updatedInfo
-                 });
-                 
-                 onRewardEarned(rewardAmount, enableAnimations);
-                 setAdCooldown(cooldownTime);
-             }
-             return;
-        }
 
         // Firebase Logic
         const userRef = ref(db, 'users/' + user.uid);

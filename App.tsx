@@ -244,6 +244,8 @@ const App: FC = () => {
               if (data.adUnits) setAdUnits(Object.values(data.adUnits));
               else setAdUnits([]);
           }
+      }, (error) => {
+          console.error("Config fetch error:", error);
       });
       return () => unsubscribeConfig();
   }, []);
@@ -262,6 +264,9 @@ const App: FC = () => {
                 } else {
                     setUser({ name: firebaseUser.displayName || 'User', email: firebaseUser.email || '', balance: 0, uid: firebaseUser.uid, playerUid: '', avatarUrl: firebaseUser.photoURL || undefined, totalAdsWatched: 0, totalEarned: 0, role: 'user', isBanned: false });
                 }
+                setLoading(false);
+            }, (error) => {
+                console.error("User data fetch error:", error);
                 setLoading(false);
             });
             return () => unsubscribeData();
@@ -333,31 +338,12 @@ const App: FC = () => {
       setIsBalancePulsing(true); 
   };
   const handlePurchase = (price: number) => { setIsBalancePulsing(true); };
-  
-  const handleUpdateUser = (updatedData: Partial<User>) => {
-      setUser(prev => prev ? { ...prev, ...updatedData } : null);
-  };
 
   const texts = useMemo(() => TEXTS[language], [language]);
   const handleBack = () => {
       if (activeScreen === 'wallet' || activeScreen === 'notifications') { setActiveScreen('home'); } else if((['myOrders', 'myTransaction', 'contactUs', 'changePassword', 'editProfile'] as Screen[]).includes(activeScreen)) { setActiveScreen('profile'); } else if (activeScreen === 'admin') { setActiveScreen('profile'); }
   }
   const handleSuccessNavigate = (screen: Screen) => { setActiveScreen(screen); };
-
-  const handleDemoLogin = () => {
-    setUser({
-        name: "Guest User",
-        email: "guest@example.com",
-        balance: 500,
-        uid: "guest_demo_123",
-        playerUid: "12345678",
-        avatarUrl: "https://i.pravatar.cc/150?img=3",
-        totalAdsWatched: 0,
-        totalEarned: 0,
-        role: 'admin', // Demo as Admin to show all features
-        isBanned: false
-    });
-  };
 
   if (loading) return (<div className="min-h-screen w-full flex items-center justify-center bg-gray-100 dark:bg-gray-900"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>);
 
@@ -369,7 +355,6 @@ const App: FC = () => {
                 texts={texts} 
                 appName={appSettings.appName} 
                 logoUrl={appSettings.logoUrl || APP_LOGO_URL} 
-                onDemoLogin={handleDemoLogin}
             />
         </div>
       </div>
@@ -408,8 +393,8 @@ const App: FC = () => {
       case 'changePassword': return <ChangePasswordScreen texts={texts} onPasswordChanged={() => setActiveScreen('profile')} />;
       case 'watchAds': 
         if (appSettings.visibility && !appSettings.visibility.earn) return null; 
-        return <WatchAdsScreen user={user} texts={texts} onRewardEarned={handleRewardEarned} earnSettings={appSettings.earnSettings} onUpdateUser={handleUpdateUser} />;
-      case 'editProfile': return <EditProfileScreen user={user} texts={texts} onUpdateUser={handleUpdateUser} onNavigate={setActiveScreen} />;
+        return <WatchAdsScreen user={user} texts={texts} onRewardEarned={handleRewardEarned} earnSettings={appSettings.earnSettings} />;
+      case 'editProfile': return <EditProfileScreen user={user} texts={texts} onNavigate={setActiveScreen} />;
       case 'notifications': return <NotificationScreen texts={texts} notifications={notifications} onRead={handleMarkNotificationsAsRead} />;
       case 'admin':
           if (user.role !== 'admin') return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} adUnits={adUnits} />;

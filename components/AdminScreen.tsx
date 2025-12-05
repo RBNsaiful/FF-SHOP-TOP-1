@@ -388,23 +388,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     // Fetch Data
     useEffect(() => {
         const fetchData = () => {
-            // Check for Guest Admin (Demo Mode)
-            if (user.uid === "guest_demo_123") {
-                // Load Dummy Data for Demo Admin
-                setUsers([
-                    { name: "Demo User 1", email: "user1@demo.com", balance: 150, uid: "u1", role: 'user', totalEarned: 50, totalAdsWatched: 10 },
-                    { name: "Demo User 2", email: "user2@demo.com", balance: 500, uid: "u2", role: 'user', totalEarned: 200, totalAdsWatched: 40 },
-                ]);
-                setOrders([
-                    { id: "ORD-101", key: "o1", offer: { id: 1, name: "100 Diamonds", price: 85, diamonds: 100 }, date: new Date().toISOString(), status: 'Pending', uid: "12345678", userId: "u1" },
-                    { id: "ORD-102", key: "o2", offer: { id: 2, name: "Weekly Membership", price: 175 }, date: new Date(Date.now() - 86400000).toISOString(), status: 'Completed', uid: "87654321", userId: "u2" },
-                ]);
-                setTransactions([
-                    { id: "TRX-ABC", key: "t1", amount: 500, date: new Date().toISOString(), method: "bKash", status: 'Pending', userId: "u2", transactionId: "TRX-ABC" },
-                ]);
-                return;
-            }
-
             // Normal Firebase Data Fetching
             onValue(ref(db, 'users'), (snap) => {
                 if(snap.exists()) {
