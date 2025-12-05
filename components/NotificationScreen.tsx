@@ -53,7 +53,7 @@ const NotificationItem: FC<{ notification: Notification, isNew: boolean, index: 
     return (
         <div 
             className={`
-                group relative flex gap-4 p-5 rounded-3xl transition-all duration-500 ease-out
+                group relative flex flex-col sm:flex-row gap-4 p-5 rounded-3xl transition-all duration-500 ease-out
                 bg-gradient-to-br border shadow-sm hover:shadow-md hover:-translate-y-1
                 opacity-0 animate-smart-slide-up overflow-hidden
                 ${containerClass}
@@ -68,21 +68,25 @@ const NotificationItem: FC<{ notification: Notification, isNew: boolean, index: 
                 </div>
             )}
 
-            {/* Icon Container */}
-            <div className={`shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg text-white ${iconBgClass}`}>
-                <Icon className="w-7 h-7 drop-shadow-md" />
+            <div className="flex-shrink-0 flex sm:block">
+                 {/* Icon Container */}
+                <div className={`shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-lg text-white ${iconBgClass}`}>
+                    <Icon className="w-6 h-6 sm:w-7 sm:h-7 drop-shadow-md" />
+                </div>
             </div>
             
             <div className="flex-grow min-w-0 flex flex-col justify-center">
-                <h3 className={`text-base font-bold truncate mb-1 text-gray-900 dark:text-white`}>
+                {/* Removed truncate to allow full title visibility if needed */}
+                <h3 className={`text-base font-bold mb-1.5 text-gray-900 dark:text-white break-words leading-tight`}>
                     {notification.title}
                 </h3>
                 
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2 mb-2">
+                {/* Removed line-clamp-2 to show full message */}
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-3 break-words whitespace-pre-wrap">
                     {notification.message}
                 </p>
                 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-200/50 dark:border-gray-700/50">
                     <span className={`text-[10px] font-bold uppercase tracking-wider ${accentTextClass}`}>
                         {notification.type}
                     </span>
