@@ -1,5 +1,5 @@
 import React, { useState, useEffect, FC, FormEvent, useMemo } from 'react';
-import { User, Screen, Transaction, Purchase, AppSettings, Language, PaymentMethod, AppVisibility, Notification, AdUnit, DeveloperSettings } from '../types';
+import { User, Screen, Transaction, Purchase, AppSettings, Language, PaymentMethod, AppVisibility, Notification, AdUnit, DeveloperSettings, Banner } from '../types';
 import { db } from '../firebase';
 import { ref, update, onValue, get, remove, push, set, runTransaction } from 'firebase/database';
 import { 
@@ -34,6 +34,9 @@ const CodeIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://
 const UnlockIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>);
 const PlusIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>);
 const MinusIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="5" y1="12" x2="19" y2="12"/></svg>);
+const LinkIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>);
+const ArrowUpIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>);
+const ArrowDownIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg>);
 
 // Offer Icons
 const DiamondIcon: FC<{className?: string}> = ({className}) => (<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className={className}><path d="M12 2L2 8.5l10 13.5L22 8.5 12 2z" /></svg>);
@@ -78,6 +81,7 @@ const ADMIN_TEXTS = {
         deductBalance: "Deduct Balance",
         amount: "Amount",
         bannerUrl: "Banner Image URL",
+        actionUrl: "Click Action URL",
         appLogo: "App Logo URL",
         visibility: "Visibility Control",
         appControl: "App Access & Control",
@@ -140,6 +144,7 @@ const ADMIN_TEXTS = {
         enterKey: "Enter Secret Key",
         unlock: "Unlock",
         editBanner: "Edit Banner",
+        reorder: "Reorder",
     },
     bn: {
         dashboard: "ড্যাশবোর্ড",
@@ -176,6 +181,7 @@ const ADMIN_TEXTS = {
         deductBalance: "টাকা কর্তন",
         amount: "পরিমাণ",
         bannerUrl: "ব্যানার লিংক",
+        actionUrl: "ক্লিক অ্যাকশন লিংক",
         appLogo: "অ্যাপ লোগো লিংক",
         visibility: "দৃশ্যমানতা",
         appControl: "অ্যাপ এক্সেস এবং কন্ট্রোল",
@@ -238,6 +244,7 @@ const ADMIN_TEXTS = {
         enterKey: "গোপন কী লিখুন",
         unlock: "আনলক",
         editBanner: "ব্যানার এডিট করুন",
+        reorder: "অর্ডার পরিবর্তন",
     }
 };
 
@@ -324,6 +331,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
     const [editingBannerIndex, setEditingBannerIndex] = useState<number | null>(null);
     const [tempBannerUrl, setTempBannerUrl] = useState('');
+    const [tempActionUrl, setTempActionUrl] = useState('');
 
     // Other UI States
     const [permissionError, setPermissionError] = useState(false);
@@ -342,8 +350,9 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const [isMethodModalOpen, setIsMethodModalOpen] = useState(false);
 
     // Graphics State
-    const [banners, setBanners] = useState<string[]>([]);
+    const [banners, setBanners] = useState<Banner[]>([]);
     const [newBannerUrl, setNewBannerUrl] = useState('');
+    const [newActionUrl, setNewActionUrl] = useState('');
 
     // Notifications State
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -467,7 +476,11 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                         });
                     }
                     if(data.banners) {
-                        setBanners(Object.values(data.banners));
+                        const rawBanners = Object.values(data.banners);
+                        const formattedBanners = rawBanners.map((b: any) => 
+                            typeof b === 'string' ? { imageUrl: b, actionUrl: '' } : b
+                        );
+                        setBanners(formattedBanners);
                     }
                     if(data.paymentMethods) {
                         setPaymentMethods(Object.values(data.paymentMethods));
@@ -676,6 +689,25 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         const updatedList = offersData[offerType].filter((o: any) => o.id !== id);
         await set(ref(db, path), updatedList);
     });
+    
+    // --- REORDER OFFER LOGIC ---
+    const handleReorderOffer = async (index: number, direction: 'up' | 'down') => {
+        const currentList = [...offersData[offerType]];
+        if (direction === 'up' && index > 0) {
+            [currentList[index], currentList[index - 1]] = [currentList[index - 1], currentList[index]];
+        } else if (direction === 'down' && index < currentList.length - 1) {
+            [currentList[index], currentList[index + 1]] = [currentList[index + 1], currentList[index]];
+        } else {
+            return;
+        }
+        
+        // Optimistic update
+        setOffersData({ ...offersData, [offerType]: currentList });
+        
+        // Save to DB
+        await set(ref(db, `config/offers/${offerType}`), currentList);
+    };
+
     const openAddOfferModal = () => { setEditingOffer({}); setIsOfferModalOpen(true); };
 
     const handleSaveMethod = async (e: FormEvent) => {
@@ -726,20 +758,21 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const handleSendNotification = async (e: FormEvent) => { e.preventDefault(); await push(ref(db, 'notifications'), { ...newNotif, timestamp: Date.now() }); setNewNotif({ title: '', message: '', type: 'system' }); setIsNotifModalOpen(false); };
     const handleDeleteNotification = (id: string) => requestConfirmation(async () => { await remove(ref(db, `notifications/${id}`)); });
 
-    const handleAddBanner = async () => { if(!newBannerUrl) return; const updatedBanners = [...banners, newBannerUrl]; await set(ref(db, 'config/banners'), updatedBanners); setNewBannerUrl(''); };
+    const handleAddBanner = async () => { if(!newBannerUrl) return; const updatedBanners = [...banners, { imageUrl: newBannerUrl, actionUrl: newActionUrl }]; await set(ref(db, 'config/banners'), updatedBanners); setNewBannerUrl(''); setNewActionUrl(''); };
     const handleDeleteBanner = (index: number) => requestConfirmation(async () => { const updatedBanners = banners.filter((_, i) => i !== index); await set(ref(db, 'config/banners'), updatedBanners); });
     
     // Banner Edit Handlers
-    const openEditBannerModal = (index: number, url: string) => { setEditingBannerIndex(index); setTempBannerUrl(url); setIsBannerModalOpen(true); };
+    const openEditBannerModal = (index: number, banner: Banner) => { setEditingBannerIndex(index); setTempBannerUrl(banner.imageUrl); setTempActionUrl(banner.actionUrl || ''); setIsBannerModalOpen(true); };
     const handleSaveBanner = async (e: FormEvent) => {
         e.preventDefault();
         if (editingBannerIndex !== null && tempBannerUrl) {
             const updatedBanners = [...banners];
-            updatedBanners[editingBannerIndex] = tempBannerUrl;
+            updatedBanners[editingBannerIndex] = { imageUrl: tempBannerUrl, actionUrl: tempActionUrl };
             await set(ref(db, 'config/banners'), updatedBanners);
             setIsBannerModalOpen(false);
             setEditingBannerIndex(null);
             setTempBannerUrl('');
+            setTempActionUrl('');
         }
     };
 
@@ -799,7 +832,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                         </div>
                         <button onClick={openAddOfferModal} className="w-full py-3 mb-4 border-2 border-dashed border-primary text-primary bg-primary/5 rounded-xl font-bold hover:bg-primary/10 transition-colors">+ {t.add} Offer</button>
                         <div className="grid grid-cols-2 gap-3">
-                            {offersData[offerType]?.map((offer: any) => (
+                            {offersData[offerType]?.map((offer: any, index: number) => (
                                 <div key={offer.id} className="relative p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 flex flex-col justify-between h-full">
                                     <div>
                                         <div className="bg-white dark:bg-dark-card w-8 h-8 rounded-full flex items-center justify-center mb-2 shadow-sm text-primary font-bold text-xs">
@@ -813,7 +846,14 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                     </div>
                                     <div className="mt-3 pt-3 border-t dark:border-gray-700 flex justify-between items-center">
                                         <span className="font-black text-primary">৳{offer.price}</span>
-                                        <div className="flex gap-1"><button onClick={() => { setEditingOffer(offer); setIsOfferModalOpen(true); }} className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200"><EditIcon className="w-3 h-3"/></button><button onClick={() => handleDeleteOffer(offer.id)} className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200"><TrashIcon className="w-3 h-3"/></button></div>
+                                        <div className="flex gap-1">
+                                            {/* Reorder Buttons */}
+                                            <button onClick={() => handleReorderOffer(index, 'up')} disabled={index === 0} className="p-1 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 disabled:opacity-30"><ArrowUpIcon className="w-3 h-3"/></button>
+                                            <button onClick={() => handleReorderOffer(index, 'down')} disabled={index === offersData[offerType].length - 1} className="p-1 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 disabled:opacity-30"><ArrowDownIcon className="w-3 h-3"/></button>
+                                            
+                                            <button onClick={() => { setEditingOffer(offer); setIsOfferModalOpen(true); }} className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 ml-1"><EditIcon className="w-3 h-3"/></button>
+                                            <button onClick={() => handleDeleteOffer(offer.id)} className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200"><TrashIcon className="w-3 h-3"/></button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -962,13 +1002,22 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                     </div>
                                     <div>
                                         <h3 className="font-bold mb-2 text-sm uppercase text-gray-500">Banners</h3>
-                                        <div className="flex gap-2 mb-3"><input type="text" value={newBannerUrl} onChange={(e) => setNewBannerUrl(e.target.value)} className={inputClass} placeholder="New Banner URL" /><button onClick={handleAddBanner} className="bg-green-500 text-white px-3 rounded font-bold text-xs">{t.add}</button></div>
+                                        <div className="flex gap-2 mb-3">
+                                            <input type="text" value={newBannerUrl} onChange={(e) => setNewBannerUrl(e.target.value)} className={inputClass} placeholder="Image URL" />
+                                            <input type="text" value={newActionUrl} onChange={(e) => setNewActionUrl(e.target.value)} className={inputClass} placeholder="Action URL (Optional)" />
+                                            <button onClick={handleAddBanner} className="bg-green-500 text-white px-3 rounded font-bold text-xs">{t.add}</button>
+                                        </div>
                                         <div className="space-y-2">
-                                            {banners.map((url, index) => (
+                                            {banners.map((banner, index) => (
                                                 <div key={index} className="relative h-24 rounded-lg overflow-hidden group">
-                                                    <img src={url} className="w-full h-full object-cover" />
+                                                    <img src={banner.imageUrl} className="w-full h-full object-cover" />
+                                                    {banner.actionUrl && (
+                                                        <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm flex items-center gap-1">
+                                                            <LinkIcon className="w-3 h-3"/> Link
+                                                        </div>
+                                                    )}
                                                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button onClick={() => openEditBannerModal(index, url)} className="bg-blue-600 text-white p-1.5 rounded-full shadow-md hover:bg-blue-700">
+                                                        <button onClick={() => openEditBannerModal(index, banner)} className="bg-blue-600 text-white p-1.5 rounded-full shadow-md hover:bg-blue-700">
                                                             <EditIcon className="w-3 h-3" />
                                                         </button>
                                                         <button onClick={() => handleDeleteBanner(index)} className="bg-red-600 text-white p-1.5 rounded-full shadow-md hover:bg-red-700">
@@ -1319,8 +1368,34 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                     <div className="bg-white dark:bg-dark-card w-full max-w-sm p-6 rounded-2xl shadow-xl animate-smart-pop-in">
                         <h3 className="font-bold text-lg mb-4">{t.editBanner}</h3>
                         <form onSubmit={handleSaveBanner} className="space-y-3">
-                            <input type="text" value={tempBannerUrl} onChange={(e) => setTempBannerUrl(e.target.value)} className={inputClass} placeholder="Image URL" required />
-                            <div className="flex gap-2 mt-4"><button type="button" onClick={() => setIsBannerModalOpen(false)} className="flex-1 py-2 bg-gray-200 rounded-lg font-bold">{t.cancel}</button><button type="submit" className="flex-1 py-2 bg-primary text-white rounded-lg font-bold">{t.save}</button></div>
+                            <div>
+                                <label className="text-xs font-bold uppercase text-gray-500">{t.bannerUrl}</label>
+                                <input 
+                                    required 
+                                    value={tempBannerUrl} 
+                                    onChange={(e) => setTempBannerUrl(e.target.value)} 
+                                    className={inputClass} 
+                                    placeholder="Image URL" 
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold uppercase text-gray-500">{t.actionUrl}</label>
+                                <input 
+                                    value={tempActionUrl} 
+                                    onChange={(e) => setTempActionUrl(e.target.value)} 
+                                    className={inputClass} 
+                                    placeholder="https://... (Optional)" 
+                                />
+                            </div>
+                            {tempBannerUrl && (
+                                <div className="mt-2 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 h-24 w-full">
+                                    <img src={tempBannerUrl} alt="Preview" className="w-full h-full object-cover" />
+                                </div>
+                            )}
+                            <div className="flex gap-2 mt-4 pt-2">
+                                <button type="button" onClick={() => setIsBannerModalOpen(false)} className="flex-1 py-2 bg-gray-200 rounded-lg font-bold text-gray-700">{t.cancel}</button>
+                                <button type="submit" className="flex-1 py-2 bg-primary text-white rounded-lg font-bold">{t.save}</button>
+                            </div>
                         </form>
                     </div>
                 </div>

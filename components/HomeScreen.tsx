@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, FC } from 'react';
-import type { User, DiamondOffer, LevelUpPackage, Membership, GenericOffer, PremiumApp, Screen, AppVisibility, AdUnit } from '../types';
+import type { User, DiamondOffer, LevelUpPackage, Membership, GenericOffer, PremiumApp, Screen, AppVisibility, AdUnit, Banner } from '../types';
 import PurchaseModal from './PurchaseModal';
 import { db } from '../firebase';
 import { ref, push, runTransaction } from 'firebase/database';
@@ -14,7 +14,7 @@ interface HomeScreenProps {
   memberships: Membership[];
   premiumApps: PremiumApp[];
   onNavigate: (screen: Screen) => void;
-  bannerImages: string[];
+  bannerImages: Banner[];
   visibility?: AppVisibility;
   adUnits?: AdUnit[];
 }
@@ -29,7 +29,7 @@ const IdCardIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http:
 const CrownIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>);
 
 
-const BannerCarousel: FC<{ images: string[] }> = ({ images }) => {
+const BannerCarousel: FC<{ images: Banner[] }> = ({ images }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const timeoutRef = useRef<number | null>(null);
 
@@ -58,22 +58,36 @@ const BannerCarousel: FC<{ images: string[] }> = ({ images }) => {
         setCurrentIndex(slideIndex);
     };
 
-    if (images.length === 0) return null;
+    if (!images || images.length === 0) return null;
 
     return (
         <div className="relative h-40 md:h-64 lg:h-80 w-full overflow-hidden rounded-2xl shadow-lg mb-6 group">
-            {images.map((src, index) => (
-                <img
+            {images.map((banner, index) => (
+                <div
                     key={index}
-                    src={src}
-                    alt={`Banner ${index + 1}`}
-                    className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-in-out ${
-                        currentIndex === index ? 'opacity-100' : 'opacity-0'
+                    className={`absolute inset-0 h-full w-full transition-opacity duration-1000 ease-in-out ${
+                        currentIndex === index ? 'opacity-100 z-10' : 'opacity-0 z-0'
                     }`}
-                />
+                >
+                    {banner.actionUrl ? (
+                        <a href={banner.actionUrl} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+                            <img
+                                src={banner.imageUrl}
+                                alt={`Banner ${index + 1}`}
+                                className="h-full w-full object-cover"
+                            />
+                        </a>
+                    ) : (
+                        <img
+                            src={banner.imageUrl}
+                            alt={`Banner ${index + 1}`}
+                            className="h-full w-full object-cover"
+                        />
+                    )}
+                </div>
             ))}
 
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-2 z-10">
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
                 {images.map((_, index) => (
                     <button
                         key={index}

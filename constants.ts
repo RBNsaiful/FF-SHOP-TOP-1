@@ -1,4 +1,4 @@
-import type { DiamondOffer, PaymentMethod, SupportContact, LevelUpPackage, Membership, PremiumApp } from './types';
+import type { DiamondOffer, PaymentMethod, SupportContact, LevelUpPackage, Membership, PremiumApp, Banner } from './types';
 
 export const APP_LOGO_URL = 'https://i.ibb.co/k2nGxqwY/1763225878291.jpg';
 export const DEFAULT_AVATAR_URL = 'https://i.ibb.co/k2nGxqwY/1763225878291.jpg';
@@ -40,11 +40,11 @@ export const PREMIUM_APPS: PremiumApp[] = [
 ];
 
 
-export const BANNER_IMAGES: string[] = [
-  'https://i.ibb.co/ZJ4z147/image.png',
-  'https://i.ibb.co/kH77V5X/image.png',
-  'https://i.ibb.co/b3S0S16/image.png',
-  'https://i.ibb.co/VMyXgG3/image.png'
+export const BANNER_IMAGES: Banner[] = [
+  { imageUrl: 'https://i.ibb.co/ZJ4z147/image.png', actionUrl: '' },
+  { imageUrl: 'https://i.ibb.co/kH77V5X/image.png', actionUrl: '' },
+  { imageUrl: 'https://i.ibb.co/b3S0S16/image.png', actionUrl: '' },
+  { imageUrl: 'https://i.ibb.co/VMyXgG3/image.png', actionUrl: '' }
 ];
 
 export const MIN_DEPOSIT_AMOUNT = 20;

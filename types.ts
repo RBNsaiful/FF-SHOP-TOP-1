@@ -22,6 +22,12 @@ export interface User {
   };
 }
 
+export interface Banner {
+  id?: string;
+  imageUrl: string;
+  actionUrl?: string;
+}
+
 export interface DiamondOffer {
   id: number;
   diamonds: number;

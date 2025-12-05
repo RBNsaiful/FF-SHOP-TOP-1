@@ -14,7 +14,7 @@ import AdminScreen from './components/AdminScreen';
 import BottomNav from './components/BottomNav';
 import RewardAnimation from './components/RewardAnimation';
 import { TEXTS, DIAMOND_OFFERS as initialDiamondOffers, LEVEL_UP_PACKAGES as initialLevelUpPackages, MEMBERSHIPS as initialMemberships, PREMIUM_APPS as initialPremiumApps, APP_LOGO_URL, DEFAULT_APP_SETTINGS, PAYMENT_METHODS as initialPaymentMethods, BANNER_IMAGES as initialBanners, SUPPORT_CONTACTS as initialContacts } from './constants';
-import type { User, Language, Theme, Screen, DiamondOffer, LevelUpPackage, Membership, PremiumApp, Notification, AppSettings, PaymentMethod, SupportContact, AdUnit } from './types';
+import type { User, Language, Theme, Screen, DiamondOffer, LevelUpPackage, Membership, PremiumApp, Notification, AppSettings, PaymentMethod, SupportContact, AdUnit, Banner } from './types';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { ref, onValue } from 'firebase/database';
@@ -190,7 +190,7 @@ const App: FC = () => {
   const [memberships, setMemberships] = useState<Membership[]>(initialMemberships);
   const [premiumApps, setPremiumApps] = useState<PremiumApp[]>(initialPremiumApps);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(initialPaymentMethods);
-  const [banners, setBanners] = useState<string[]>(initialBanners);
+  const [banners, setBanners] = useState<Banner[]>(initialBanners);
   const [supportContacts, setSupportContacts] = useState<SupportContact[]>(initialContacts);
   const [adUnits, setAdUnits] = useState<AdUnit[]>([]);
 
@@ -239,7 +239,14 @@ const App: FC = () => {
                   if (data.offers.premium) setPremiumApps(Object.values(data.offers.premium));
               }
               if (data.paymentMethods) setPaymentMethods(Object.values(data.paymentMethods));
-              if (data.banners) setBanners(Object.values(data.banners));
+              if (data.banners) {
+                  const rawBanners = Object.values(data.banners);
+                  // Ensure backwards compatibility with old string[] banners
+                  const formattedBanners = rawBanners.map((b: any) => 
+                      typeof b === 'string' ? { imageUrl: b, actionUrl: '' } : b
+                  );
+                  setBanners(formattedBanners);
+              }
               if (data.supportContacts) setSupportContacts(Object.values(data.supportContacts));
               if (data.adUnits) setAdUnits(Object.values(data.adUnits));
               else setAdUnits([]);

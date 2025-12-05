@@ -1,7 +1,7 @@
 import React, { useState, FC, FormEvent } from 'react';
 import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { ref, set } from 'firebase/database';
+import { ref, set, get } from 'firebase/database';
 
 interface AuthScreenProps {
   texts: any;
@@ -14,7 +14,7 @@ const MailIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://
 const LockIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>);
 const UserIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>);
 const EyeIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>);
-const EyeOffIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>);
+const EyeOffIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x="1" y1="1" x2="23" y2="23"/></svg>);
 
 const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -37,11 +37,45 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
 
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
+    setLoading(true);
     try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Login failed", error);
-      setError("Google Login Failed. Please try again.");
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // DATABASE CHECK: Prevent overwriting existing user data
+      // This ensures if an Email/Pass user logs in with Google (same email), their balance/data is preserved.
+      const userRef = ref(db, 'users/' + user.uid);
+      const snapshot = await get(userRef);
+
+      if (snapshot.exists()) {
+          // Data already exists. Do nothing. The App.tsx listener will load it.
+          console.log("Existing user logged in via Google. Data preserved.");
+      } else {
+          // New user (or new UID), create default entry
+          await set(userRef, {
+            name: user.displayName || 'User',
+            email: user.email || '',
+            balance: 0,
+            role: 'user',
+            uid: user.uid,
+            totalEarned: 0,
+            totalAdsWatched: 0,
+            isBanned: false
+        });
+      }
+    } catch (error: any) {
+      console.error("Google Login failed", error);
+      let msg = "Google Login Failed.";
+      if (error.code === 'auth/popup-closed-by-user') {
+          msg = "Login canceled.";
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
+          msg = "An account already exists with this email. Please sign in with your Password.";
+      } else if (error.code === 'auth/unauthorized-domain') {
+          msg = "Domain not authorized. Add to Firebase Console.";
+      }
+      setError(msg);
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -69,7 +103,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
         // Update Profile Name
         await updateProfile(user, { displayName: name });
 
-        // Initialize User in Database
+        // Initialize User in Database (Use set because it's a fresh auth creation)
         await set(ref(db, 'users/' + user.uid), {
             name: name,
             email: email,
@@ -89,6 +123,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
       if (err.code === 'auth/wrong-password') msg = texts.incorrectCurrentPassword;
       if (err.code === 'auth/email-already-in-use') msg = "Email already in use.";
       if (err.code === 'auth/weak-password') msg = "Password too weak (min 6 chars).";
+      if (err.code === 'auth/invalid-credential') msg = "Invalid email or password.";
       if (err.message === texts.passwordsDoNotMatch) msg = texts.passwordsDoNotMatch;
       setError(msg);
     } finally {
@@ -263,7 +298,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
           <div className="w-full space-y-3 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
              <button
               onClick={handleGoogleLogin}
-              className="w-full py-3.5 bg-white dark:bg-dark-card text-gray-700 dark:text-gray-200 font-bold rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all active:scale-95 group"
+              disabled={loading}
+              className="w-full py-3.5 bg-white dark:bg-dark-card text-gray-700 dark:text-gray-200 font-bold rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all active:scale-95 group disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5 group-hover:scale-110 transition-transform" alt="Google" />
               <span>Google</span>
