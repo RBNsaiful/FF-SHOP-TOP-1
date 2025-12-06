@@ -37,6 +37,7 @@ const MinusIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http:/
 const LinkIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>);
 const ArrowUpIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>);
 const ArrowDownIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg>);
+const FireIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.2-2.2.5-3.3.3 1.3 1 2 2.5 2.8z"/></svg>);
 
 // Offer Icons
 const DiamondIcon: FC<{className?: string}> = ({className}) => (<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className={className}><path d="M12 2L2 8.5l10 13.5L22 8.5 12 2z" /></svg>);
@@ -89,6 +90,7 @@ const ADMIN_TEXTS = {
         levelUp: "Level Up",
         membership: "Membership",
         premium: "Premium Apps",
+        special: "Special Event",
         earn: "Earn Section",
         permissionDenied: "Permission Denied. Check DB Rules.",
         methodName: "Method Name",
@@ -193,6 +195,7 @@ const ADMIN_TEXTS = {
         levelUp: "লেভেল আপ",
         membership: "মেম্বারশিপ",
         premium: "প্রিমিয়াম অ্যাপ",
+        special: "স্পেশাল অফার",
         earn: "আয়ের সেকশন",
         permissionDenied: "পারমিশন নেই। রুলস চেক করুন।",
         methodName: "পদ্ধতির নাম",
@@ -346,8 +349,8 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const [confirmDialog, setConfirmDialog] = useState<{ show: boolean; title: string; message: string; onConfirm: () => void } | null>(null);
 
     // Offer State
-    const [offerType, setOfferType] = useState<'diamond' | 'levelUp' | 'membership' | 'premium'>('diamond');
-    const [offersData, setOffersData] = useState<any>({ diamond: [], levelUp: [], membership: [], premium: [] });
+    const [offerType, setOfferType] = useState<'diamond' | 'levelUp' | 'membership' | 'premium' | 'special'>('diamond');
+    const [offersData, setOffersData] = useState<any>({ diamond: [], levelUp: [], membership: [], premium: [], special: [] });
     const [editingOffer, setEditingOffer] = useState<any>(null);
     const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
 
@@ -482,6 +485,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                             levelUp: data.offers.levelUp ? Object.values(data.offers.levelUp) : [],
                             membership: data.offers.membership ? Object.values(data.offers.membership) : [],
                             premium: data.offers.premium ? Object.values(data.offers.premium) : [],
+                            special: data.offers.special ? Object.values(data.offers.special) : [],
                         });
                     }
                     if(data.banners) {
@@ -681,6 +685,9 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         if (!newOffer.id) newOffer.id = Date.now();
         if (newOffer.price) newOffer.price = Number(newOffer.price);
         if (newOffer.diamonds) newOffer.diamonds = Number(newOffer.diamonds);
+        // Default isActive to true for new offers if not set
+        if (offerType === 'special' && newOffer.isActive === undefined) newOffer.isActive = true;
+
         let updatedList = [...offersData[offerType]];
         if (editingOffer.id && offersData[offerType].find((o: any) => o.id === editingOffer.id)) {
             updatedList = updatedList.map((o: any) => o.id === editingOffer.id ? newOffer : o);
@@ -815,7 +822,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 {activeTab === 'offers' && (
                     <div className="animate-fade-in">
                         <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-                            {['diamond', 'levelUp', 'membership', 'premium'].map((type) => (
+                            {['diamond', 'levelUp', 'membership', 'premium', 'special'].map((type) => (
                                 <button key={type} onClick={() => setOfferType(type as any)} className={`px-3 py-1.5 rounded-lg font-bold text-xs uppercase whitespace-nowrap transition-colors border ${offerType === type ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'text-gray-500 border-gray-200'}`}>{t[type as keyof typeof t] || type}</button>
                             ))}
                         </div>
@@ -823,15 +830,19 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                         <div className="grid grid-cols-2 gap-3">
                             {offersData[offerType]?.map((offer: any, index: number) => (
                                 <div key={offer.id} className="relative p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 flex flex-col justify-between h-full">
+                                    {offerType === 'special' && (
+                                        <div className={`absolute top-2 right-2 w-2 h-2 rounded-full ${offer.isActive ? 'bg-green-500' : 'bg-red-500'}`} title={offer.isActive ? 'Active' : 'Inactive'}></div>
+                                    )}
                                     <div>
                                         <div className="bg-white dark:bg-dark-card w-8 h-8 rounded-full flex items-center justify-center mb-2 shadow-sm text-primary font-bold text-xs">
                                             {offerType === 'diamond' && <DiamondIcon className="w-5 h-5" />}
                                             {offerType === 'levelUp' && <StarIcon className="w-5 h-5" />}
                                             {offerType === 'membership' && <IdCardIcon className="w-5 h-5" />}
                                             {offerType === 'premium' && <CrownIcon className="w-5 h-5" />}
+                                            {offerType === 'special' && <TagIcon className="w-5 h-5" />}
                                         </div>
                                         <p className="font-bold text-sm leading-tight mb-1">{offer.name || `${offer.diamonds} Diamonds`}</p>
-                                        <p className="text-xs text-gray-500">{offerType === 'diamond' ? `${offer.diamonds} DM` : 'Package'}</p>
+                                        <p className="text-xs text-gray-500">{offerType === 'diamond' || offerType === 'special' ? `${offer.diamonds} DM` : 'Package'}</p>
                                     </div>
                                     <div className="mt-3 pt-3 border-t dark:border-gray-700 flex justify-between items-center">
                                         <span className="font-black text-primary">৳{offer.price}</span>
@@ -1379,16 +1390,39 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                     <div className="bg-white dark:bg-dark-card w-full max-w-sm p-6 rounded-2xl shadow-xl animate-smart-pop-in flex flex-col max-h-[85vh]">
                         <h3 className="font-bold text-lg mb-4">{editingOffer?.id ? t.edit : t.add} Offer</h3>
                         <form onSubmit={handleSaveOffer} className="space-y-3 flex-1 overflow-y-auto">
-                            {offerType !== 'diamond' && (
-                                <div><label className="text-xs font-bold uppercase text-gray-500">Name</label><input required value={editingOffer?.name || ''} onChange={e => setEditingOffer({...editingOffer, name: e.target.value})} className={inputClass} /></div>
+                            
+                            {/* Special Offer Toggle */}
+                            {offerType === 'special' && (
+                                <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700 p-3 rounded-lg border border-gray-200 dark:border-gray-600 mb-2">
+                                    <label className="text-xs font-bold uppercase text-gray-600 dark:text-gray-300">Active Status</label>
+                                    <div 
+                                        onClick={() => setEditingOffer({...editingOffer, isActive: !editingOffer.isActive})}
+                                        className={`w-10 h-6 rounded-full p-1 cursor-pointer transition-colors ${editingOffer.isActive ? 'bg-green-500' : 'bg-gray-400'}`}
+                                    >
+                                        <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${editingOffer.isActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                    </div>
+                                </div>
                             )}
-                            {offerType === 'diamond' && (
+
+                            {offerType !== 'diamond' && (
+                                <div><label className="text-xs font-bold uppercase text-gray-500">Name</label><input required value={editingOffer?.name || ''} onChange={e => setEditingOffer({...editingOffer, name: e.target.value})} className={inputClass} placeholder="e.g. Winter Offer" /></div>
+                            )}
+                            
+                            {/* Specific Field for Special Offers: Title */}
+                            {offerType === 'special' && (
+                                <div><label className="text-xs font-bold uppercase text-gray-500">Title</label><input required value={editingOffer?.title || ''} onChange={e => setEditingOffer({...editingOffer, title: e.target.value})} className={inputClass} placeholder="e.g. 100 Diamond 50 Taka" /></div>
+                            )}
+
+                            {(offerType === 'diamond' || offerType === 'special') && (
                                 <div><label className="text-xs font-bold uppercase text-gray-500">Diamonds</label><input required type="number" value={editingOffer?.diamonds || ''} onChange={e => setEditingOffer({...editingOffer, diamonds: e.target.value})} className={inputClass} /></div>
                             )}
+                            
                             <div><label className="text-xs font-bold uppercase text-gray-500">Price</label><input required type="number" value={editingOffer?.price || ''} onChange={e => setEditingOffer({...editingOffer, price: e.target.value})} className={inputClass} /></div>
+                            
                             {offerType === 'premium' && (
                                 <div><label className="text-xs font-bold uppercase text-gray-500">Description</label><input value={editingOffer?.description || ''} onChange={e => setEditingOffer({...editingOffer, description: e.target.value})} className={inputClass} /></div>
                             )}
+                            
                             <div className="flex gap-2 mt-4 pt-2"><button type="button" onClick={() => setIsOfferModalOpen(false)} className="flex-1 py-2 bg-gray-200 rounded-lg font-bold">{t.cancel}</button><button type="submit" className="flex-1 py-2 bg-primary text-white rounded-lg font-bold">{t.save}</button></div>
                         </form>
                     </div>

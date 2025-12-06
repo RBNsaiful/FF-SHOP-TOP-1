@@ -54,6 +54,15 @@ export interface PremiumApp {
   description?: string;
 }
 
+export interface SpecialOffer {
+  id: number;
+  name: string; // Internal name (e.g. Winter Offer)
+  title: string; // Display title (e.g. 100 Diamond 50 Taka)
+  price: number;
+  diamonds: number;
+  isActive: boolean;
+}
+
 export interface GenericOffer {
   id: number;
   name: string;

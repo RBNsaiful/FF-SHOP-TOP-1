@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, FC } from 'react';
-import type { User, DiamondOffer, LevelUpPackage, Membership, GenericOffer, PremiumApp, Screen, AppVisibility, Banner } from '../types';
+import type { User, DiamondOffer, LevelUpPackage, Membership, GenericOffer, PremiumApp, Screen, AppVisibility, Banner, SpecialOffer } from '../types';
 import PurchaseModal from './PurchaseModal';
 import { db } from '../firebase';
 import { ref, push, runTransaction } from 'firebase/database';
@@ -13,6 +13,7 @@ interface HomeScreenProps {
   levelUpPackages: LevelUpPackage[];
   memberships: Membership[];
   premiumApps: PremiumApp[];
+  specialOffers?: SpecialOffer[];
   onNavigate: (screen: Screen) => void;
   bannerImages: Banner[];
   visibility?: AppVisibility;
@@ -28,6 +29,7 @@ const DiamondIcon: FC<{className?: string}> = ({className}) => (
 const StarIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>);
 const IdCardIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="6" y1="9" x2="10" y2="9"/><line x1="6" y1="12" x2="10" y2="12"/><line x1="6" y1="15" x2="10" y2="15"/><line x1="14" y1="9" x2="18" y2="9"/><line x1="14" y1="12" x2="18" y2="12"/><line x1="14" y1="15" x2="18" y2="15"/></svg>);
 const CrownIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>);
+const FireIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.2-2.2.5-3.3.3 1.3 1 2 2.5 2.8z"/></svg>);
 
 
 const BannerCarousel: FC<{ images: Banner[] }> = ({ images }) => {
@@ -135,7 +137,44 @@ const PackageCard: FC<{ name: string; price: number; texts: any; onBuy: () => vo
   </div>
 );
 
-const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffers, levelUpPackages, memberships, premiumApps, onNavigate, bannerImages, visibility, homeAdCode, homeAdActive }) => {
+const SpecialOfferCard: FC<{ offer: SpecialOffer; texts: any; onBuy: () => void }> = ({ offer, texts, onBuy }) => (
+    <div className="relative group bg-gradient-to-br from-red-600 to-orange-600 rounded-2xl p-4 shadow-xl shadow-red-500/30 overflow-hidden transform transition-all duration-300 hover:scale-[1.02]">
+        {/* Background Decor */}
+        <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-xl -mr-10 -mt-10"></div>
+        <div className="absolute bottom-0 left-0 w-20 h-20 bg-black/10 rounded-full blur-xl -ml-10 -mb-10"></div>
+        
+        <div className="absolute top-2 right-2 bg-yellow-400 text-red-700 text-[10px] font-black px-2 py-0.5 rounded-md shadow-lg uppercase tracking-wider animate-pulse">
+            HOT DEAL
+        </div>
+
+        <div className="flex flex-row items-center justify-between relative z-10 gap-3">
+            <div className="flex-1">
+                <div className="flex items-center gap-1.5 mb-1">
+                    <FireIcon className="w-4 h-4 text-yellow-300" />
+                    <span className="text-xs font-bold text-yellow-100 uppercase tracking-wide">{offer.name}</span>
+                </div>
+                <h3 className="text-lg font-black text-white leading-tight drop-shadow-md">
+                    {offer.title}
+                </h3>
+                <div className="flex items-center gap-2 mt-1">
+                    <span className="text-white/80 text-xs font-medium">{offer.diamonds} Diamonds</span>
+                </div>
+            </div>
+
+            <div className="flex flex-col items-end">
+                <p className="text-2xl font-black text-white drop-shadow-sm mb-2">{texts.currency}{offer.price}</p>
+                <button
+                    onClick={onBuy}
+                    className="bg-white text-red-600 font-bold py-1.5 px-4 rounded-full text-xs shadow-lg hover:bg-gray-100 active:scale-95 transition-all whitespace-nowrap"
+                >
+                    {texts.buyNow}
+                </button>
+            </div>
+        </div>
+    </div>
+);
+
+const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffers, levelUpPackages, memberships, premiumApps, specialOffers = [], onNavigate, bannerImages, visibility, homeAdCode, homeAdActive }) => {
   const [selectedOffer, setSelectedOffer] = useState<GenericOffer | null>(null);
   const [activeTab, setActiveTab] = useState('');
 
@@ -144,6 +183,8 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
   const showLevelUp = visibility?.levelUp ?? true;
   const showMembership = visibility?.membership ?? true;
   const showPremium = visibility?.premium ?? true;
+
+  const activeSpecialOffers = specialOffers.filter(offer => offer.isActive);
 
   const visibleTabs = [
       { id: 'diamonds', label: texts.diamondOffers, visible: showDiamond },
@@ -301,6 +342,29 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
         <div className="opacity-0 animate-smart-slide-down" style={{ animationDelay: '100ms' }}>
             <BannerCarousel images={bannerImages} />
         </div>
+
+        {/* --- SPECIAL EVENT OFFERS SECTION --- */}
+        {activeSpecialOffers.length > 0 && (
+            <div className="mb-6 opacity-0 animate-smart-slide-down" style={{ animationDelay: '150ms' }}>
+                <div className="grid grid-cols-1 gap-3">
+                    {activeSpecialOffers.map((offer) => (
+                        <SpecialOfferCard 
+                            key={offer.id} 
+                            offer={offer} 
+                            texts={texts} 
+                            onBuy={() => handleBuyClick({
+                                id: offer.id, 
+                                name: `${offer.title} (${offer.name})`, 
+                                price: offer.price, 
+                                icon: FireIcon, 
+                                diamonds: offer.diamonds, 
+                                inputType: 'uid'
+                            })} 
+                        />
+                    ))}
+                </div>
+            </div>
+        )}
         
         {visibleTabs.length > 0 ? (
             <>
