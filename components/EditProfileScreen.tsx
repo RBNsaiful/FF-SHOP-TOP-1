@@ -13,7 +13,9 @@ const UserIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://
 const MailIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>);
 const GamepadIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.01.152v3.516a4 4 0 0 0 3.998 3.998c.044.001.087.002.13.002h10.384a4 4 0 0 0 3.998-3.998c.001-.044.002-.087.002-.13V8.742c0-.05-.004-.1-.01-.152A4 4 0 0 0 17.32 5z"/></svg>);
 const PencilIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>);
-const Spinner: FC = () => (<div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>);
+const CheckIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12" /></svg>);
+
+const Spinner: FC = () => (<div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white/30 border-t-white"></div>);
 
 interface EditProfileScreenProps {
   user: User;
@@ -200,6 +202,9 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
                     accept="image/*" 
                     className="hidden" 
                 />
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="text-primary font-bold text-sm mt-3 hover:underline">
+                    {texts.changePhoto}
+                </button>
             </div>
 
             {/* Inputs */}
@@ -282,7 +287,7 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
                 <button 
                     type="submit" 
                     disabled={isSaving || showSuccess || !canSave}
-                    className={`w-full py-3 rounded-xl font-bold text-white shadow-lg transition-all bg-gradient-to-r from-primary to-secondary
+                    className={`w-full py-3 rounded-xl font-bold text-white shadow-lg transition-all bg-gradient-to-r from-primary to-secondary flex items-center justify-center
                         ${showSuccess 
                             ? 'bg-green-500 shadow-green-500/30' 
                             : isSaving 
@@ -295,7 +300,7 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
                     {isSaving ? (
                         <Spinner />
                     ) : showSuccess ? (
-                        texts.changesSaved
+                        <CheckIcon className="w-6 h-6 animate-smart-pop-in" />
                     ) : (
                         texts.saveChanges
                     )}

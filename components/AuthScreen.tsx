@@ -16,6 +16,9 @@ const LockIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://
 const UserIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>);
 const EyeIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>);
 const EyeOffIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x="1" y1="1" x2="23" y2="23"/></svg>);
+const CheckIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12" /></svg>);
+
+const Spinner: FC = () => (<div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>);
 
 const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -28,6 +31,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -36,7 +40,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
   const isPasswordValid = password.length >= 6;
   
   // Name Validation: 6-15 chars
-  // Input sanitization prevents symbols/numbers, so we just check length here.
   const validateName = (val: string) => {
       if (val.length < 6 || val.length > 15) return false;
       return true;
@@ -50,11 +53,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
   // Sanitization Handler
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
-      // Remove numbers and special symbols, allow letters (unicode) and spaces
       const sanitized = raw.replace(/[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/g, '');
       setName(sanitized);
-      // If user is typing, we can opt to hide error until they blur again, or keep showing if it was already touched.
-      // Usually, good UX is to clear error when typing starts.
       if (nameTouched) setNameTouched(false);
   };
 
@@ -86,6 +86,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
             isBanned: false
         });
       }
+      setSuccess(true);
     } catch (error: any) {
       console.error("Google Login failed", error);
       let msg = "Google Login Failed.";
@@ -97,8 +98,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
           msg = "Domain not authorized. Add to Firebase Console.";
       }
       setError(msg);
-    } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -108,7 +108,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
 
     if (!isFormValid) {
         if (!isLogin && !validateName(name)) {
-             // If they submit without blurring, force touch state to show error
              setNameTouched(true);
              return;
         }
@@ -141,8 +140,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
             isBanned: false
         });
       }
+      // Show success state briefly before redirect (handled by auth listener)
+      setLoading(false);
+      setSuccess(true);
     } catch (err: any) {
       console.error(err);
+      setLoading(false);
       let msg = "Authentication failed.";
       if (err.code === 'auth/invalid-email') msg = texts.emailInvalid;
       if (err.code === 'auth/user-not-found') msg = "No account found.";
@@ -152,8 +155,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
       if (err.code === 'auth/invalid-credential') msg = "Invalid email or password.";
       if (err.message === texts.passwordsDoNotMatch) msg = texts.passwordsDoNotMatch;
       setError(msg);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -280,17 +281,19 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
 
             <button
                 type="submit"
-                disabled={loading || !isFormValid}
+                disabled={loading || success || !isFormValid}
                 className={`w-full py-3.5 font-bold rounded-xl flex justify-center items-center transition-all duration-200
                     bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30 hover:opacity-90
-                    ${!isFormValid || loading
-                        ? 'opacity-60 cursor-not-allowed'
+                    ${!isFormValid || loading || success
+                        ? 'opacity-80 cursor-not-allowed'
                         : 'opacity-100 active:scale-[0.98]'
                     }
                 `}
             >
                 {loading ? (
-                    <div className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
+                    <Spinner />
+                ) : success ? (
+                    <CheckIcon className="w-6 h-6 animate-smart-pop-in" />
                 ) : (
                     isLogin ? "Login" : "Register"
                 )}
@@ -298,7 +301,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
             
             {/* Error Message - BELOW BUTTON to prevent layout shift of button */}
             {error && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center border border-red-100 dark:border-red-800">
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center border border-red-100 dark:border-red-800 animate-fade-in">
                     {error}
                 </div>
             )}
@@ -312,7 +315,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
                 <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
           </div>
 
-          {/* Social / Guest Login - Moved UP */}
+          {/* Social / Guest Login */}
           <div className="w-full space-y-3 mb-6">
              <button
               onClick={handleGoogleLogin}
@@ -324,12 +327,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
             </button>
           </div>
 
-          {/* Toggle Login/Register - Moved DOWN */}
+          {/* Toggle Login/Register */}
           <div className="text-center pb-8">
               <p className="text-sm text-gray-600 dark:text-gray-400">
                   {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
                   <button 
-                    onClick={() => { setIsLogin(!isLogin); setError(''); setPassword(''); setConfirmPassword(''); setNameTouched(false); }}
+                    onClick={() => { setIsLogin(!isLogin); setError(''); setPassword(''); setConfirmPassword(''); setNameTouched(false); setSuccess(false); }}
                     className="text-primary font-bold hover:underline transition-colors ml-1"
                   >
                       {isLogin ? "Register" : "Login"}

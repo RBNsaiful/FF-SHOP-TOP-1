@@ -13,8 +13,10 @@ interface PurchaseModalProps {
 }
 
 const Spinner: FC = () => (
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white/30 border-t-white"></div>
 );
+
+const CheckIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12" /></svg>);
 
 const DiamondIcon: FC<{className?: string}> = ({className}) => (
     <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className={className}>
@@ -28,7 +30,7 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
   
   const [inputValue, setInputValue] = useState(isEmailType ? '' : (defaultUid || ''));
   const [inputError, setInputError] = useState('');
-  const [status, setStatus] = useState<'idle' | 'processing' | 'success'>('idle');
+  const [status, setStatus] = useState<'idle' | 'processing' | 'button-success' | 'success'>('idle');
 
   const handleInputFocus = (event: React.FocusEvent<HTMLInputElement>) => {
     setTimeout(() => {
@@ -89,17 +91,23 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
     if (!validateInput(inputValue) || insufficientBalance || status === 'processing') return;
     setStatus('processing');
     await onConfirm(inputValue);
-    setStatus('success');
+    
+    // Show checkmark on button briefly before switching to success view
+    setStatus('button-success');
+    
     setTimeout(() => {
-      if (onSuccess) {
-          onSuccess();
-      } else {
-          onClose();
-      }
-    }, 3000); 
+        setStatus('success');
+        setTimeout(() => {
+          if (onSuccess) {
+              onSuccess();
+          } else {
+              onClose();
+          }
+        }, 3000); 
+    }, 500);
   };
 
-  const isConfirmDisabled = !inputValue || !!inputError || status === 'processing' || insufficientBalance;
+  const isConfirmDisabled = !inputValue || !!inputError || status === 'processing' || status === 'button-success' || insufficientBalance;
 
   const OfferIcon = offer.icon || DiamondIcon;
 
@@ -150,7 +158,7 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
                 onFocus={handleInputFocus}
                 placeholder={isEmailType ? texts.enterEmail : texts.enterUID}
                 className={`w-full mt-1 p-3 bg-light-bg dark:bg-dark-bg border rounded-lg focus:outline-none focus:ring-2 ${inputError ? 'border-red-500 focus:ring-red-500/50' : 'border-gray-300 dark:border-gray-600 focus:ring-primary'}`}
-                disabled={status === 'processing'}
+                disabled={status === 'processing' || status === 'button-success'}
                 maxLength={!isEmailType ? 12 : undefined}
               />
               {inputError && <p className="text-red-500 text-xs mt-1">{inputError}</p>}
@@ -162,16 +170,24 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
               <button
                 onClick={onClose}
                 className="w-full bg-gray-200 dark:bg-gray-600 text-light-text dark:text-dark-text font-bold py-3 rounded-lg hover:opacity-80 transition-opacity"
-                disabled={status === 'processing'}
+                disabled={status === 'processing' || status === 'button-success'}
               >
                 {texts.cancel}
               </button>
               <button
                 onClick={handleConfirm}
                 disabled={isConfirmDisabled}
-                className="w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 rounded-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 rounded-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300
+                    ${status === 'button-success' ? 'bg-green-500' : ''}
+                `}
               >
-                {status === 'processing' ? <Spinner /> : texts.confirmPurchase}
+                {status === 'processing' ? (
+                    <Spinner />
+                ) : status === 'button-success' ? (
+                    <CheckIcon className="w-6 h-6 animate-smart-pop-in" />
+                ) : (
+                    texts.confirmPurchase
+                )}
               </button>
             </div>
           </div>
