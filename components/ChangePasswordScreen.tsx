@@ -1,3 +1,4 @@
+
 import React, { useState, FC, FormEvent } from 'react';
 import { auth } from '../firebase';
 import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
@@ -37,20 +38,17 @@ const ChangePasswordScreen: FC<ChangePasswordScreenProps> = ({ texts, onPassword
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
+  // Button Activation Logic
+  const isFormValid = 
+      currentPassword.length > 0 && 
+      newPassword.length >= 6 && 
+      newPassword === confirmNewPassword;
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!isFormValid) return;
+
     setError('');
-    
-    if (newPassword !== confirmNewPassword) {
-      setError(texts.passwordsDoNotMatch);
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -88,30 +86,31 @@ const ChangePasswordScreen: FC<ChangePasswordScreenProps> = ({ texts, onPassword
   return (
     <div className="p-4 animate-smart-fade-in pb-24">
       <div className="max-w-md mx-auto">
-         <form onSubmit={handleSubmit} className="bg-light-card dark:bg-dark-card rounded-2xl shadow-lg p-6 space-y-6">
-            <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+         <form onSubmit={handleSubmit} className="bg-light-card dark:bg-dark-card rounded-2xl shadow-lg p-6 space-y-6 border border-gray-100 dark:border-gray-800">
+            
+            {/* Header Icon Only - Duplicate Text Removed */}
+            <div className="text-center mb-2">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
                     <KeyIcon className="w-8 h-8 text-primary" />
                 </div>
-                <h2 className="text-xl font-bold text-light-text dark:text-dark-text">{texts.changePasswordTitle}</h2>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
                 {/* Current Password */}
                 <div>
-                    <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">{texts.currentPassword}</label>
+                    <label className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-2 block ml-1">{texts.currentPassword}</label>
                     <div className="relative">
                         <input 
                             type={showCurrentPassword ? "text" : "password"}
                             value={currentPassword}
                             onChange={(e) => setCurrentPassword(e.target.value)}
                             required
-                            className="w-full p-3 pr-10 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary outline-none text-light-text dark:text-dark-text transition-all"
+                            className="w-full p-3.5 pr-10 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-primary outline-none text-light-text dark:text-dark-text transition-all font-medium"
                         />
                          <button
                             type="button"
                             onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-primary transition-colors"
+                            className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-primary transition-colors"
                         >
                             {showCurrentPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                         </button>
@@ -120,19 +119,19 @@ const ChangePasswordScreen: FC<ChangePasswordScreenProps> = ({ texts, onPassword
 
                  {/* New Password */}
                 <div>
-                    <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">{texts.newPassword}</label>
+                    <label className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-2 block ml-1">{texts.newPassword}</label>
                     <div className="relative">
                         <input 
                             type={showNewPassword ? "text" : "password"}
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
                             required
-                            className="w-full p-3 pr-10 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary outline-none text-light-text dark:text-dark-text transition-all"
+                            className="w-full p-3.5 pr-10 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-primary outline-none text-light-text dark:text-dark-text transition-all font-medium"
                         />
                          <button
                             type="button"
                             onClick={() => setShowNewPassword(!showNewPassword)}
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-primary transition-colors"
+                            className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-primary transition-colors"
                         >
                             {showNewPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                         </button>
@@ -141,14 +140,14 @@ const ChangePasswordScreen: FC<ChangePasswordScreenProps> = ({ texts, onPassword
 
                  {/* Confirm New Password */}
                 <div>
-                    <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">{texts.confirmNewPassword}</label>
+                    <label className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-2 block ml-1">{texts.confirmNewPassword}</label>
                     <div className="relative">
                         <input 
                             type={showConfirmPassword ? "text" : "password"}
                             value={confirmNewPassword}
                             onChange={(e) => setConfirmNewPassword(e.target.value)}
                             required
-                            className={`w-full p-3 pr-10 bg-gray-50 dark:bg-gray-800 border rounded-xl focus:ring-2 outline-none text-light-text dark:text-dark-text transition-all
+                            className={`w-full p-3.5 pr-10 bg-gray-50 dark:bg-gray-800 border rounded-2xl focus:ring-2 outline-none text-light-text dark:text-dark-text transition-all font-medium
                                 ${confirmNewPassword && newPassword !== confirmNewPassword 
                                     ? 'border-red-500 focus:ring-red-500/50' 
                                     : 'border-gray-200 dark:border-gray-700 focus:ring-primary'
@@ -158,7 +157,7 @@ const ChangePasswordScreen: FC<ChangePasswordScreenProps> = ({ texts, onPassword
                          <button
                             type="button"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-primary transition-colors"
+                            className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-primary transition-colors"
                         >
                             {showConfirmPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                         </button>
@@ -170,13 +169,13 @@ const ChangePasswordScreen: FC<ChangePasswordScreenProps> = ({ texts, onPassword
             </div>
 
             {error && (
-                <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs rounded-lg font-bold text-center animate-pulse">
+                <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs rounded-lg font-bold text-center animate-pulse border border-red-200 dark:border-red-800">
                     {error}
                 </div>
             )}
 
             {success && (
-                <div className="p-3 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs rounded-lg font-bold text-center animate-bounce flex items-center justify-center gap-2">
+                <div className="p-3 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs rounded-lg font-bold text-center animate-bounce flex items-center justify-center gap-2 border border-green-200 dark:border-green-800">
                     <CheckCircleIcon className="w-4 h-4" /> {texts.passwordChangedSuccess}
                 </div>
             )}
@@ -184,11 +183,13 @@ const ChangePasswordScreen: FC<ChangePasswordScreenProps> = ({ texts, onPassword
             <div className="pt-4">
                 <button 
                     type="submit" 
-                    disabled={loading || success}
-                    className={`w-full py-3.5 rounded-xl font-bold text-white shadow-lg flex items-center justify-center transition-all
+                    disabled={loading || success || !isFormValid}
+                    className={`w-full py-4 rounded-2xl font-bold text-white shadow-lg flex items-center justify-center transition-all duration-300
                         ${loading || success
-                            ? 'bg-gray-400 cursor-not-allowed' 
-                            : 'bg-gradient-to-r from-primary to-secondary hover:opacity-90 active:scale-95 shadow-primary/30'
+                            ? 'bg-gray-400 cursor-not-allowed shadow-none' 
+                            : !isFormValid 
+                                ? 'bg-gradient-to-r from-primary to-secondary opacity-50 cursor-not-allowed shadow-none'
+                                : 'bg-gradient-to-r from-primary to-secondary hover:opacity-95 active:scale-95 shadow-primary/30 cursor-pointer'
                         }
                     `}
                 >
@@ -198,9 +199,9 @@ const ChangePasswordScreen: FC<ChangePasswordScreenProps> = ({ texts, onPassword
          </form>
       </div>
 
-        {/* --- FOOTER ADVERTISEMENT (Scroll to View) --- */}
+        {/* --- FOOTER ADVERTISEMENT --- */}
         {adCode && (
-            <div className="mt-8 animate-fade-in w-full flex justify-center">
+            <div className="mt-8 animate-fade-in w-full flex justify-center min-h-[250px]">
                 <AdRenderer code={adCode} active={adActive} />
             </div>
         )}
