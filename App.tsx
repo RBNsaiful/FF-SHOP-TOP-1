@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, FC } from 'react';
+import React, { useState, useEffect, useMemo, FC, useRef } from 'react';
 import AuthScreen from './components/AuthScreen';
 import HomeScreen from './components/HomeScreen';
 import ProfileScreen from './components/ProfileScreen';
@@ -202,6 +202,9 @@ const App: FC = () => {
   const [showRewardAnim, setShowRewardAnim] = useState(false);
   const [earnedAmount, setEarnedAmount] = useState(0);
 
+  // Track previous balance to detect deposits
+  const prevBalanceRef = useRef<number | null>(null);
+
   // --- NAVIGATION FIX: Scroll to Top on Screen Change ---
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -320,6 +323,20 @@ const App: FC = () => {
           setActiveScreen('home');
       }
   }, [activeScreen, appSettings.visibility]);
+
+  // Balance Change Detection for Animations
+  useEffect(() => {
+      if (user) {
+          if (prevBalanceRef.current !== null && user.balance > prevBalanceRef.current) {
+              // Balance Increased (Deposit)
+              document.dispatchEvent(new CustomEvent('wallet-deposit'));
+              setIsBalancePulsing(true);
+          }
+          prevBalanceRef.current = user.balance;
+      } else {
+          prevBalanceRef.current = null;
+      }
+  }, [user?.balance]);
 
   const handleMarkNotificationsAsRead = () => {
       if (notifications.length > 0) {

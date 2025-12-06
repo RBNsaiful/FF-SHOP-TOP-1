@@ -46,6 +46,7 @@
               'sparkle-float': 'sparkleFloat 8s ease-in-out infinite',
               'soft-pulse': 'softPulse 2.5s infinite ease-in-out',
               'wallet-shake': 'walletShake 0.5s ease-in-out',
+              'wallet-scale': 'walletScale 0.6s ease-in-out',
               'gold-sparkle': 'goldSparkle 0.6s ease-out',
               'fade-in-out': 'fadeInOut 0.6s ease-in-out',
               'balance-pulse': 'balance-pulse 0.5s ease-in-out',
@@ -115,6 +116,10 @@
                 '0%, 100%': { transform: 'rotate(0deg)' },
                 '25%': { transform: 'rotate(-5deg)' },
                 '75%': { transform: 'rotate(5deg)' },
+              },
+              walletScale: {
+                '0%, 100%': { transform: 'scale(1)' },
+                '50%': { transform: 'scale(1.2)' },
               },
               goldSparkle: {
                 '0%': { transform: 'scale(0) translateY(-15px)', opacity: '0.5' },

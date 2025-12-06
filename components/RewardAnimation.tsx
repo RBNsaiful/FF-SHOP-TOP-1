@@ -7,129 +7,286 @@ interface RewardAnimationProps {
     onAnimationEnd: () => void;
 }
 
-// Rotating Sunburst/God Rays Effect
-const Sunburst: FC<{ className?: string }> = ({ className }) => (
-    <svg className={className} viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <radialGradient id="grad1" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-                <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
-            </radialGradient>
-        </defs>
-        <g fill="url(#grad1)">
-            {Array.from({ length: 12 }).map((_, i) => (
-                <polygon 
-                    key={i} 
-                    points="100,100 90,0 110,0" 
-                    transform={`rotate(${i * 30} 100 100)`} 
-                />
-            ))}
-        </g>
-    </svg>
-);
-
-// Premium 3D-style Chest Icon
-const PremiumChestIcon: FC<{ className?: string }> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" className={className}>
-        <defs>
-            <linearGradient id="chestGold" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#FDE047" />
-                <stop offset="50%" stopColor="#F59E0B" />
-                <stop offset="100%" stopColor="#B45309" />
-            </linearGradient>
-            <linearGradient id="chestPurple" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#A78BFA" />
-                <stop offset="100%" stopColor="#7C3AED" />
-            </linearGradient>
-        </defs>
-        
-        {/* Chest Body */}
-        <path d="M20 12V22H4V12" fill="url(#chestPurple)" stroke="#4C1D95" strokeWidth="2" strokeLinejoin="round" />
-        <path d="M2 7H22V12H2Z" fill="url(#chestGold)" stroke="#B45309" strokeWidth="2" strokeLinejoin="round" />
-        
-        {/* Straps/Details */}
-        <path d="M12 22V7" stroke="#4C1D95" strokeWidth="2" strokeLinecap="round" />
-        <rect x="10" y="9" width="4" height="6" rx="1" fill="#F59E0B" stroke="#78350F" strokeWidth="1.5" />
-        
-        {/* Lid Highlight */}
-        <path d="M2 7L4.5 4H19.5L22 7" fill="url(#chestGold)" stroke="#B45309" strokeWidth="2" strokeLinejoin="round" />
-    </svg>
-);
-
 const RewardAnimation: FC<RewardAnimationProps> = ({ amount, texts, onAnimationEnd }) => {
-    const [stage, setStage] = useState<'pop' | 'shake' | 'open'>('pop');
+    const [step, setStep] = useState<'idle' | 'shaking' | 'opening' | 'finished'>('idle');
 
     useEffect(() => {
-        // Stage 1: Entrance (0ms)
-        
-        // Stage 2: Suspense Shake (600ms)
-        const timer1 = setTimeout(() => {
-            setStage('shake');
-            if (navigator.vibrate) navigator.vibrate(50); // Small Haptic Tick
-        }, 600);
+        // Load Confetti Script dynamically if not present
+        if (!(window as any).confetti) {
+            const script = document.createElement('script');
+            script.src = "https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js";
+            script.async = true;
+            document.body.appendChild(script);
+        }
 
-        // Stage 3: Reveal Reward (1400ms)
-        const timer2 = setTimeout(() => {
-            setStage('open');
-            if (navigator.vibrate) navigator.vibrate([50, 50, 100]); // Premium Success Haptic
-        }, 1400);
+        // 2. Start Animation Sequence
+        const sequence = async () => {
+            // Initial short delay
+            await new Promise(r => setTimeout(r, 200));
+            
+            // --- STEP 1: SHAKE (Rapid & Strong) ---
+            setStep('shaking');
 
-        // End: Close (3500ms) - slightly longer to enjoy the view
-        const timer3 = setTimeout(onAnimationEnd, 3500);
+            // Shake duration (1.5 seconds)
+            await new Promise(r => setTimeout(r, 1500));
 
-        return () => {
-            clearTimeout(timer1);
-            clearTimeout(timer2);
-            clearTimeout(timer3);
+            // --- STEP 2: OPEN LID ---
+            setStep('opening');
+            
+            // Delay before money pops (0.5s)
+            await new Promise(r => setTimeout(r, 500));
+            
+            // --- STEP 3: MONEY POP & VIBRATION ---
+            
+            // Trigger Vibration (200ms) - Replaces Sound
+            if (navigator.vibrate) {
+                try {
+                    navigator.vibrate(200);
+                } catch (e) {
+                    // Ignore if vibration not supported/allowed
+                }
+            }
+
+            // Fire Confetti
+            if ((window as any).confetti) {
+                 (window as any).confetti({
+                    particleCount: 200,
+                    spread: 100,
+                    origin: { y: 0.6 },
+                    zIndex: 10001,
+                    scalar: 1.2,
+                    colors: ['#FFD700', '#FFA500', '#ffffff'] // Gold & White confetti
+                 });
+            }
+
+            // Visible duration (Money stays for 3 seconds now - INCREASED)
+            await new Promise(r => setTimeout(r, 3000));
+            
+            // --- STEP 4: FINISH ---
+            setStep('finished');
+            onAnimationEnd();
         };
+
+        sequence();
+
     }, [onAnimationEnd]);
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md animate-fade-in transition-all duration-300">
-            
-            {/* Rotating Sunburst Background */}
-            {stage === 'open' && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-60">
-                    <Sunburst className="w-[150vw] h-[150vw] animate-[spin_10s_linear_infinite] opacity-50" />
-                </div>
-            )}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md overflow-hidden">
+            <style>{`
+                /* 1. SHAKE ANIMATION */
+                @keyframes violent-shake {
+                    0% { transform: translate(0, 0) rotate(0deg); }
+                    10% { transform: translate(-3px, -3px) rotate(-3deg); }
+                    20% { transform: translate(3px, 3px) rotate(3deg); }
+                    30% { transform: translate(-3px, 3px) rotate(-3deg); }
+                    40% { transform: translate(3px, -3px) rotate(3deg); }
+                    50% { transform: translate(-2px, -2px) rotate(-2deg); }
+                    60% { transform: translate(2px, 2px) rotate(2deg); }
+                    70% { transform: translate(-2px, 2px) rotate(-2deg); }
+                    80% { transform: translate(2px, -2px) rotate(2deg); }
+                    90% { transform: translate(-1px, 1px) rotate(-1deg); }
+                    100% { transform: translate(0, 0) rotate(0deg); }
+                }
 
-            {/* Container for Centered Elements */}
-            <div className="relative flex flex-col items-center justify-center w-full">
+                /* 2. LID FLY OFF ANIMATION */
+                @keyframes lid-fly-off {
+                    0% { transform: translateY(0) rotate(0); }
+                    100% { transform: translateY(-300px) rotate(-45deg) scale(0.8); opacity: 0; }
+                }
 
-                {/* --- GIFT BOX STAGE --- */}
-                <div className={`relative transition-all duration-500 ease-in-out transform
-                    ${stage === 'pop' ? 'scale-0 opacity-0 animate-smart-pop-in' : ''}
-                    ${stage === 'shake' ? 'scale-110 animate-wallet-shake' : ''}
-                    ${stage === 'open' ? 'scale-[1.8] -translate-y-12 opacity-0 absolute' : 'opacity-100'}
-                `}>
-                    {/* Glow behind box */}
-                    <div className="absolute inset-0 bg-yellow-500/30 blur-2xl rounded-full animate-pulse"></div>
-                    <PremiumChestIcon className="w-32 h-32 relative z-10 drop-shadow-[0_15px_30px_rgba(245,158,11,0.4)]" />
-                </div>
+                /* 3. MONEY POP UP ANIMATION - Higher pop (Y: -220px) to show full text */
+                @keyframes pop-up-money {
+                    0% { transform: translate(-50%, 50px) scale(0.5); opacity: 0; }
+                    50% { transform: translate(-50%, -220px) scale(1.2); opacity: 1; }
+                    75% { transform: translate(-50%, -200px) scale(1.0); opacity: 1; }
+                    100% { transform: translate(-50%, -210px) scale(1.0); opacity: 1; }
+                }
 
-                {/* --- REVEAL STAGE --- */}
-                {stage === 'open' && (
-                    <div className="flex flex-col items-center justify-center animate-smart-slide-up relative z-20">
-                        
-                        {/* Radiant Background Burst */}
-                        <div className="absolute w-[90vw] h-[90vw] max-w-[450px] max-h-[450px] bg-gradient-to-tr from-purple-600/30 to-yellow-500/30 rounded-full blur-3xl animate-pulse"></div>
-                        
-                        {/* Currency Symbol & Amount */}
-                        <div className="relative z-10 text-center transform scale-110">
-                            <p className="text-yellow-200 font-bold text-lg mb-2 uppercase tracking-[0.2em] drop-shadow-md animate-fade-in-up">Reward Unlocked</p>
-                            <h1 className="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-yellow-300 to-yellow-500 drop-shadow-[0_4px_10px_rgba(234,179,8,0.5)] mb-4 animate-smart-pop-in">
-                                +{amount}
-                            </h1>
-                            <div className="flex items-center justify-center animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-                                <span className="bg-gradient-to-r from-primary to-secondary px-6 py-2 rounded-full border border-white/20 shadow-lg text-white font-bold text-lg tracking-wide flex items-center gap-2">
-                                    <span className="text-yellow-300">{texts.currency}</span> Wallet Updated
-                                </span>
-                            </div>
-                        </div>
+                /* --- CONTAINER --- */
+                .gift-container {
+                    position: relative;
+                    width: 160px;
+                    height: 128px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: flex-end;
+                    perspective: 1000px;
+                    margin-top: 100px; /* Push down slightly to allow money to go up */
+                }
 
+                .gift-container.shaking {
+                    animation: violent-shake 0.08s infinite;
+                }
+
+                /* --- LID (Premium Purple Gradient) --- */
+                .gift-lid {
+                    position: absolute;
+                    top: -12px;
+                    left: -8px;
+                    width: 176px;
+                    height: 44px;
+                    background: linear-gradient(135deg, #7C3AED, #5B21B6, #4C1D95);
+                    border-radius: 8px;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3);
+                    z-index: 30;
+                    transform-origin: center bottom;
+                    border: 1px solid #4C1D95;
+                }
+                
+                .gift-container.opening .gift-lid {
+                    animation: lid-fly-off 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+                }
+
+                /* Ribbon on Lid (Gold) */
+                .gift-lid::before {
+                    content: '';
+                    position: absolute;
+                    left: 50%;
+                    top: 0;
+                    bottom: 0;
+                    width: 28px;
+                    background: linear-gradient(to right, #FCD34D, #F59E0B);
+                    transform: translateX(-50%);
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                }
+                .gift-lid::after {
+                    content: '';
+                    position: absolute;
+                    top: 50%;
+                    left: 0;
+                    right: 0;
+                    height: 28px;
+                    background: linear-gradient(to bottom, #FCD34D, #F59E0B);
+                    transform: translateY(-50%);
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                }
+
+                /* Bow (Gold) */
+                .gift-bow {
+                    position: absolute;
+                    top: -28px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 56px;
+                    height: 28px;
+                    z-index: 35;
+                }
+                .gift-bow::before, .gift-bow::after {
+                    content: '';
+                    position: absolute;
+                    width: 36px;
+                    height: 36px;
+                    border: 8px solid #FCD34D;
+                    border-radius: 50%;
+                    top: 0;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                }
+                .gift-bow::before { left: -18px; transform: rotate(-30deg); border-bottom-color: transparent; border-right-color: transparent; }
+                .gift-bow::after { right: -18px; transform: rotate(30deg); border-bottom-color: transparent; border-left-color: transparent; }
+
+                /* --- BODY (Front - Premium Gold Gradient) --- */
+                .gift-body {
+                    position: relative;
+                    width: 160px;
+                    height: 112px;
+                    background: linear-gradient(135deg, #FFD700 0%, #F59E0B 40%, #D97706 100%);
+                    border-radius: 0 0 12px 12px;
+                    z-index: 20; 
+                    box-shadow: 0 20px 50px rgba(0,0,0,0.7), inset 0 -5px 10px rgba(0,0,0,0.1);
+                    border: 1px solid #B45309;
+                }
+                /* Vertical Ribbon on Body (Purple) */
+                .gift-body::before {
+                    content: '';
+                    position: absolute;
+                    left: 50%;
+                    top: 0;
+                    bottom: 0;
+                    width: 28px;
+                    background: linear-gradient(to right, #7C3AED, #5B21B6);
+                    transform: translateX(-50%);
+                    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+                }
+
+                /* --- BACK (Inside - Dark Gold) --- */
+                .gift-back {
+                    position: absolute;
+                    width: 152px;
+                    height: 104px;
+                    background: #92400E;
+                    border-radius: 0 0 12px 12px;
+                    z-index: 1; 
+                    bottom: 4px;
+                    left: 4px;
+                    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+                }
+
+                /* --- MONEY --- */
+                .money-wrapper {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, 50px); /* Start hidden deep inside */
+                    opacity: 0;
+                    z-index: 10;
+                    pointer-events: none;
+                    width: 300px; /* Wider wrapper to prevent text wrapping */
+                    text-align: center;
+                }
+
+                .gift-container.opening .money-wrapper {
+                    animation: pop-up-money 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+                    animation-delay: 0.5s; 
+                }
+
+                .money-text {
+                    display: inline-block;
+                    font-size: 4.5rem; /* MUCH LARGER TEXT */
+                    font-weight: 900;
+                    color: #fff;
+                    background: linear-gradient(to bottom, #FFD700, #FBBF24);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    text-shadow: 0px 4px 15px rgba(0,0,0,0.6);
+                    filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.9));
+                    font-family: 'Poppins', sans-serif;
+                    white-space: nowrap;
+                    line-height: 1;
+                }
+                
+                .money-label {
+                    display: block;
+                    font-size: 1.2rem;
+                    color: #fff;
+                    margin-top: 5px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 4px;
+                    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+                }
+            `}</style>
+
+            <div className={`gift-container ${step === 'shaking' ? 'shaking' : ''} ${step === 'opening' || step === 'finished' ? 'opening' : ''}`}>
+                
+                {/* 1. Back Face (Inside) */}
+                <div className="gift-back"></div>
+
+                {/* 2. Money (Pops out from middle) */}
+                <div className="money-wrapper">
+                    <div className="money-text">
+                        {texts.currency}{amount}
                     </div>
-                )}
+                    <span className="money-label">Reward</span>
+                </div>
+
+                {/* 3. Front Face */}
+                <div className="gift-body"></div>
+
+                {/* 4. Lid (Flies off) */}
+                <div className="gift-lid">
+                    <div className="gift-bow"></div>
+                </div>
             </div>
         </div>
     );

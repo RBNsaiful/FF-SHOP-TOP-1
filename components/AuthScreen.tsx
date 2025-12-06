@@ -16,7 +16,8 @@ const LockIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://
 const UserIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>);
 const EyeIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>);
 const EyeOffIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x="1" y1="1" x2="23" y2="23"/></svg>);
-const CheckIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12" /></svg>);
+// Bold Check Icon for Success
+const CheckIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12" /></svg>);
 
 const Spinner: FC = () => (<div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>);
 
@@ -164,8 +165,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
       <div className="w-full max-w-md mx-auto z-10">
           
           {/* App Header */}
-          <div className="flex flex-col items-center mb-6 mt-12">
-              <div className="relative mb-4">
+          <div className="flex flex-col items-center mb-6 mt-20">
+              <div className="relative mb-2"> {/* Reduced from mb-4 to bring name closer */}
                   <div className="w-24 h-24 rounded-full bg-white dark:bg-dark-card p-1 shadow-md ring-1 ring-gray-200 dark:ring-gray-700">
                       <img src={logoUrl} alt={appName} className="w-full h-full object-cover rounded-full" />
                   </div>
@@ -194,7 +195,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
                             onChange={handleNameChange}
                             onBlur={handleNameBlur}
                             placeholder="Name"
-                            className={`w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
+                            className={`w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
                                 ${nameTouched && !validateName(name) ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'}
                             `}
                             required={!isLogin}
@@ -215,7 +216,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="Email"
-                        className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-dark-card border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium text-gray-800 dark:text-white"
+                        className="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium text-gray-800 dark:text-white"
                         required
                     />
                 </div>
@@ -232,7 +233,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Password"
-                        className="w-full pl-10 pr-10 py-3 bg-gray-50 dark:bg-dark-card border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium text-gray-800 dark:text-white"
+                        className="w-full pl-10 pr-10 py-3.5 bg-gray-50 dark:bg-dark-card border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium text-gray-800 dark:text-white"
                         required
                     />
                     <button
@@ -257,7 +258,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             placeholder="Confirm Password"
-                            className={`w-full pl-10 pr-10 py-3 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
+                            className={`w-full pl-10 pr-10 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
                                 ${confirmPassword && password !== confirmPassword 
                                     ? 'border-red-500 focus:ring-red-500' 
                                     : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
@@ -282,18 +283,18 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
             <button
                 type="submit"
                 disabled={loading || success || !isFormValid}
-                className={`w-full py-3.5 font-bold rounded-xl flex justify-center items-center transition-all duration-200
-                    bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30 hover:opacity-90
+                className={`w-full h-14 font-bold rounded-xl flex justify-center items-center transition-all duration-200
+                    bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30
                     ${!isFormValid || loading || success
-                        ? 'opacity-80 cursor-not-allowed'
-                        : 'opacity-100 active:scale-[0.98]'
+                        ? 'opacity-50 cursor-not-allowed' // 50% opacity for inactive
+                        : 'opacity-100 hover:opacity-90 active:scale-[0.98]' // 100% opacity for active
                     }
                 `}
             >
                 {loading ? (
                     <Spinner />
                 ) : success ? (
-                    <CheckIcon className="w-6 h-6 animate-smart-pop-in" />
+                    <CheckIcon className="w-8 h-8 text-white drop-shadow-md animate-smart-pop-in" />
                 ) : (
                     isLogin ? "Login" : "Register"
                 )}
@@ -309,7 +310,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
           </form>
 
           {/* Divider */}
-          <div className="relative flex py-6 items-center w-full">
+          <div className="relative flex py-4 items-center w-full"> {/* Reduced spacing to move bottom elements up */}
                 <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
                 <span className="flex-shrink-0 mx-4 text-gray-400 dark:text-gray-500 text-xs font-medium">Or</span>
                 <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>

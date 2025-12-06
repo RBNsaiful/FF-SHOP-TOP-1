@@ -65,7 +65,7 @@ const BottomNav: FC<BottomNavProps> = ({ activeScreen, setActiveScreen, texts, e
                     ? 'bg-gradient-to-br from-primary to-secondary shadow-lg shadow-primary/40' 
                     : 'bg-gray-200 dark:bg-dark-bg group-hover:bg-gray-300 dark:group-hover:bg-slate-700'
                   }
-                  ${isWallet && isAnimatingWallet ? 'animate-wallet-shake' : ''}
+                  ${isWallet && isAnimatingWallet ? 'animate-wallet-scale' : ''}
                   `}
                 >
                     <Icon className={`w-6 h-6 transition-colors duration-300 ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`} />
