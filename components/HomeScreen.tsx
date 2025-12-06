@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect, FC } from 'react';
-import type { User, DiamondOffer, LevelUpPackage, Membership, GenericOffer, PremiumApp, Screen, AppVisibility, Banner, SpecialOffer } from '../types';
+import type { User, DiamondOffer, LevelUpPackage, Membership, GenericOffer, PremiumApp, Screen, AppVisibility, Banner, SpecialOffer, UiSettings } from '../types';
 import PurchaseModal from './PurchaseModal';
 import { db } from '../firebase';
 import { ref, push, runTransaction } from 'firebase/database';
@@ -19,6 +20,7 @@ interface HomeScreenProps {
   visibility?: AppVisibility;
   homeAdCode?: string;
   homeAdActive?: boolean;
+  uiSettings?: UiSettings;
 }
 
 const DiamondIcon: FC<{className?: string}> = ({className}) => (
@@ -107,35 +109,70 @@ const BannerCarousel: FC<{ images: Banner[] }> = ({ images }) => {
 };
 
 
-const PackageCard: FC<{ name: string; price: number; texts: any; onBuy: () => void; icon: FC<{className?: string}>; description?: string; isPremium?: boolean }> = ({ name, price, texts, onBuy, icon: Icon, description, isPremium }) => (
-    <div className={`bg-light-card dark:bg-dark-card rounded-2xl shadow-md p-2 flex flex-col items-center justify-between transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 border border-transparent dark:border-gray-800 text-center relative overflow-hidden h-full ${isPremium ? 'border-primary/30 shadow-lg shadow-primary/10' : 'hover:border-primary/50'}`}>
-        
-        {isPremium && (
-            <div className="absolute -right-5 top-3 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white text-[9px] font-bold px-6 py-1 rotate-45 shadow-sm">
-                PREMIUM
-            </div>
-        )}
+const PackageCard: FC<{ name: string; price: number; texts: any; onBuy: () => void; icon: FC<{className?: string}>; description?: string; isPremium?: boolean; size?: 'small' | 'medium' | 'large' }> = ({ name, price, texts, onBuy, icon: Icon, description, isPremium, size = 'medium' }) => {
+    
+    // Dynamic styles based on size prop
+    const sizeConfig = {
+        small: {
+            padding: 'p-1.5',
+            iconSize: 'w-6 h-6',
+            titleSize: 'text-[9px] leading-tight',
+            descSize: 'text-[7px]',
+            priceSize: 'text-[10px]',
+            btnSize: 'text-[9px] py-0.5 h-6 flex items-center justify-center',
+            minHeight: 'min-h-0'
+        },
+        medium: {
+            padding: 'p-2',
+            iconSize: 'w-10 h-10',
+            titleSize: 'text-xs',
+            descSize: 'text-[9px]',
+            priceSize: 'text-sm',
+            btnSize: 'text-xs py-1.5',
+            minHeight: 'min-h-[1.8rem]'
+        },
+        large: {
+            padding: 'p-4',
+            iconSize: 'w-14 h-14',
+            titleSize: 'text-sm',
+            descSize: 'text-[10px]',
+            priceSize: 'text-base',
+            btnSize: 'text-sm py-2',
+            minHeight: 'min-h-[2.2rem]'
+        }
+    };
 
-        <div className="flex flex-col items-center justify-center flex-grow py-1">
-            {/* Reduced icon size from w-14 to w-10 */}
-            <Icon className={`w-10 h-10 mb-1 ${isPremium ? 'text-yellow-500 drop-shadow-sm' : 'text-primary'}`}/>
-            <h3 className="text-xs font-bold text-light-text dark:text-dark-text tracking-tight leading-tight line-clamp-2 min-h-[1.8rem] flex items-center justify-center">
-                {name}
-            </h3>
-            {description && <p className="text-[9px] text-gray-500 dark:text-gray-400 font-medium mt-0.5 line-clamp-1">{description}</p>}
-        </div>
-        
-        <div className="w-full mt-1 flex flex-col items-center">
-             <p className="text-sm font-bold text-primary mb-1">{texts.currency}{price}</p>
-            <button
-              onClick={onBuy}
-              className={`w-full text-white font-bold py-1.5 text-xs rounded-lg hover:opacity-90 transition-opacity shadow-lg ${isPremium ? 'bg-gradient-to-r from-yellow-500 to-orange-500 shadow-yellow-500/30' : 'bg-gradient-to-r from-primary to-secondary shadow-primary/30'}`}
-            >
-              {texts.buyNow}
-            </button>
-        </div>
-  </div>
-);
+    const s = sizeConfig[size] || sizeConfig.medium;
+
+    return (
+        <div className={`bg-light-card dark:bg-dark-card rounded-2xl shadow-md ${s.padding} flex flex-col items-center justify-between transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 border border-transparent dark:border-gray-800 text-center relative overflow-hidden h-full ${isPremium ? 'border-primary/30 shadow-lg shadow-primary/10' : 'hover:border-primary/50'}`}>
+            
+            {isPremium && (
+                <div className="absolute -right-5 top-3 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white text-[9px] font-bold px-6 py-1 rotate-45 shadow-sm">
+                    PREMIUM
+                </div>
+            )}
+
+            <div className="flex flex-col items-center justify-center flex-grow py-1">
+                <Icon className={`${s.iconSize} mb-1 ${isPremium ? 'text-yellow-500 drop-shadow-sm' : 'text-primary'}`}/>
+                <h3 className={`${s.titleSize} font-bold text-light-text dark:text-dark-text tracking-tight line-clamp-2 ${s.minHeight} flex items-center justify-center`}>
+                    {name}
+                </h3>
+                {description && <p className={`${s.descSize} text-gray-500 dark:text-gray-400 font-medium mt-0.5 line-clamp-1`}>{description}</p>}
+            </div>
+            
+            <div className="w-full mt-1 flex flex-col items-center">
+                <p className={`${s.priceSize} font-bold text-primary mb-1`}>{texts.currency}{price}</p>
+                <button
+                onClick={onBuy}
+                className={`w-full text-white font-bold ${s.btnSize} rounded-lg hover:opacity-90 transition-opacity shadow-lg ${isPremium ? 'bg-gradient-to-r from-yellow-500 to-orange-500 shadow-yellow-500/30' : 'bg-gradient-to-r from-primary to-secondary shadow-primary/30'}`}
+                >
+                {texts.buyNow}
+                </button>
+            </div>
+    </div>
+    );
+};
 
 const SpecialOfferCard: FC<{ offer: SpecialOffer; texts: any; onBuy: () => void }> = ({ offer, texts, onBuy }) => (
     <div className="relative group bg-gradient-to-br from-red-600 to-orange-600 rounded-2xl p-4 shadow-xl shadow-red-500/30 overflow-hidden transform transition-all duration-300 hover:scale-[1.02]">
@@ -174,7 +211,7 @@ const SpecialOfferCard: FC<{ offer: SpecialOffer; texts: any; onBuy: () => void 
     </div>
 );
 
-const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffers, levelUpPackages, memberships, premiumApps, specialOffers = [], onNavigate, bannerImages, visibility, homeAdCode, homeAdActive }) => {
+const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffers, levelUpPackages, memberships, premiumApps, specialOffers = [], onNavigate, bannerImages, visibility, homeAdCode, homeAdActive, uiSettings }) => {
   const [selectedOffer, setSelectedOffer] = useState<GenericOffer | null>(null);
   const [activeTab, setActiveTab] = useState('');
 
@@ -183,6 +220,8 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
   const showLevelUp = visibility?.levelUp ?? true;
   const showMembership = visibility?.membership ?? true;
   const showPremium = visibility?.premium ?? true;
+
+  const cardSize = uiSettings?.cardSize || 'medium';
 
   const activeSpecialOffers = specialOffers.filter(offer => offer.isActive);
 
@@ -276,6 +315,7 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
                     price={offer.price}
                     texts={texts}
                     icon={DiamondIcon}
+                    size={cardSize}
                     onBuy={() => handleBuyClick({id: offer.id, name: `${offer.diamonds} Diamonds`, price: offer.price, icon: DiamondIcon, diamonds: offer.diamonds, inputType: 'uid'})} 
                   />
               </div>
@@ -292,6 +332,7 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
                         price={pkg.price}
                         texts={texts}
                         icon={StarIcon}
+                        size={cardSize}
                         onBuy={() => handleBuyClick({id: pkg.id, name: texts[pkg.name] || pkg.name, price: pkg.price, icon: StarIcon, inputType: 'uid'})} 
                     />
                 </div>
@@ -308,6 +349,7 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
                         price={mem.price}
                         texts={texts}
                         icon={IdCardIcon}
+                        size={cardSize}
                         onBuy={() => handleBuyClick({id: mem.id, name: texts[mem.name] || mem.name, price: mem.price, icon: IdCardIcon, inputType: 'uid'})} 
                     />
                 </div>
@@ -325,6 +367,7 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
                         price={app.price}
                         texts={texts}
                         icon={CrownIcon}
+                        size={cardSize}
                         isPremium={true}
                         onBuy={() => handleBuyClick({id: app.id, name: app.name, price: app.price, icon: CrownIcon, inputType: 'email'})} 
                     />

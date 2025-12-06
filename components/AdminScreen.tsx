@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, FC, FormEvent, useMemo } from 'react';
 import { User, Screen, Transaction, Purchase, AppSettings, Language, PaymentMethod, AppVisibility, Notification, DeveloperSettings, Banner } from '../types';
 import { db } from '../firebase';
@@ -38,6 +39,7 @@ const LinkIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://
 const ArrowUpIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>);
 const ArrowDownIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg>);
 const FireIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.2-2.2.5-3.3.3 1.3 1 2 2.5 2.8z"/></svg>);
+const LayersIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>);
 
 // Offer Icons
 const DiamondIcon: FC<{className?: string}> = ({className}) => (<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className={className}><path d="M12 2L2 8.5l10 13.5L22 8.5 12 2z" /></svg>);
@@ -151,6 +153,12 @@ const ADMIN_TEXTS = {
         earnAdCode: "Earn Screen Ad Code",
         profileAdCode: "Profile Pages Ad Code",
         adCodeInstructions: "Paste your HTML/JS ad code here. It will appear at the bottom of the screen.",
+        uiAppearance: "UI & Appearance",
+        cardSize: "Offer Card Size",
+        globalAnim: "Global Animation",
+        small: "Small",
+        medium: "Medium",
+        large: "Large",
     },
     bn: {
         dashboard: "ড্যাশবোর্ড",
@@ -256,6 +264,12 @@ const ADMIN_TEXTS = {
         earnAdCode: "আর্ন স্ক্রিন অ্যাড কোড",
         profileAdCode: "প্রোফাইল পেজ অ্যাড কোড",
         adCodeInstructions: "এখানে আপনার HTML/JS কোড পেস্ট করুন। এটি স্ক্রিনের নিচে দেখাবে।",
+        uiAppearance: "UI এবং দৃশ্যমানতা",
+        cardSize: "অফার কার্ডের সাইজ",
+        globalAnim: "গ্লোবাল অ্যানিমেশন",
+        small: "ছোট",
+        medium: "মাঝারি",
+        large: "বড়",
     }
 };
 
@@ -472,6 +486,10 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 profileAdCode: data.appSettings.earnSettings?.profileAdCode ?? DEFAULT_APP_SETTINGS.earnSettings.profileAdCode,
                                 profileAdActive: data.appSettings.earnSettings?.profileAdActive ?? true,
                             },
+                            uiSettings: {
+                                ...DEFAULT_APP_SETTINGS.uiSettings,
+                                ...(data.appSettings.uiSettings || {})
+                            }
                         };
                         setSettings(mergedSettings);
                         setOriginalSettings(mergedSettings); 
@@ -1143,6 +1161,48 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                                 {Object.keys(settings.visibility || {}).map((key) => (
                                                     <div key={key} className="flex justify-between items-center p-2 bg-white dark:bg-dark-card rounded border border-transparent hover:border-primary/30 transition-colors"><span className="capitalize text-xs font-bold">{t[key as keyof typeof t] || key}</span><div onClick={() => setSettings({...settings, visibility: {...settings.visibility!, [key]: !settings.visibility![key as keyof AppVisibility]}})} className={`w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.visibility![key as keyof AppVisibility] ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.visibility![key as keyof AppVisibility] ? 'translate-x-4' : ''}`}></div></div></div>
                                                 ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* --- NEW UI & APPEARANCE SECTION --- */}
+                                    <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                                        <h4 className="font-bold text-sm mb-3 uppercase text-blue-600">{t.uiAppearance}</h4>
+                                        
+                                        {/* Card Size Control */}
+                                        <div className="mb-4">
+                                            <label className="block text-xs font-bold text-gray-500 mb-2">{t.cardSize}</label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {['small', 'medium', 'large'].map((size) => (
+                                                    <button
+                                                        key={size}
+                                                        onClick={() => setSettings({
+                                                            ...settings,
+                                                            uiSettings: { ...settings.uiSettings!, cardSize: size as 'small' | 'medium' | 'large' }
+                                                        })}
+                                                        className={`py-2 rounded-lg text-xs font-bold capitalize transition-colors ${
+                                                            settings.uiSettings?.cardSize === size 
+                                                                ? 'bg-blue-500 text-white shadow-md' 
+                                                                : 'bg-white dark:bg-dark-card text-gray-500 border border-gray-200 dark:border-gray-600'
+                                                        }`}
+                                                    >
+                                                        {t[size as keyof typeof t] || size}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Global Animation Toggle */}
+                                        <div className="flex justify-between items-center p-2 bg-white dark:bg-dark-card rounded-lg border border-gray-200 dark:border-gray-700">
+                                            <span className="text-xs font-bold text-gray-600 dark:text-gray-300">{t.globalAnim}</span>
+                                            <div 
+                                                onClick={() => setSettings({
+                                                    ...settings,
+                                                    uiSettings: { ...settings.uiSettings!, animationsEnabled: !settings.uiSettings?.animationsEnabled }
+                                                })}
+                                                className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.uiSettings?.animationsEnabled ? 'bg-green-500' : 'bg-gray-300'}`}
+                                            >
+                                                <div className={`w-3 h-3 bg-white rounded-full shadow-sm transform transition-transform ${settings.uiSettings?.animationsEnabled ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                             </div>
                                         </div>
                                     </div>

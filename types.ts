@@ -1,3 +1,4 @@
+
 import type { FC } from 'react';
 
 export type Language = 'en' | 'bn';
@@ -166,6 +167,11 @@ export interface DeveloperSettings {
     description: string;
 }
 
+export interface UiSettings {
+    cardSize: 'small' | 'medium' | 'large';
+    animationsEnabled: boolean;
+}
+
 export interface AppSettings {
   appName: string;
   maintenanceMode: boolean;
@@ -174,4 +180,5 @@ export interface AppSettings {
   visibility?: AppVisibility;
   earnSettings?: EarnSettings;
   developerSettings?: DeveloperSettings;
+  uiSettings?: UiSettings;
 }
