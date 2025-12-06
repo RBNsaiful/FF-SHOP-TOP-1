@@ -201,6 +201,11 @@ const App: FC = () => {
   const [showRewardAnim, setShowRewardAnim] = useState(false);
   const [earnedAmount, setEarnedAmount] = useState(0);
 
+  // --- NAVIGATION FIX: Scroll to Top on Screen Change ---
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeScreen]);
+
   // Fetch App Config & Content
   useEffect(() => {
       const configRef = ref(db, 'config');

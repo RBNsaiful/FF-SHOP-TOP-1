@@ -1,3 +1,4 @@
+
 import React, { useState, FC } from 'react';
 import type { User, PaymentMethod, Screen } from '../types';
 import { db } from '../firebase';
@@ -146,7 +147,7 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
             <WavyPath />
              <div className="relative z-10 flex flex-col justify-center py-4">
-                <p className="text-[10px] font-bold text-white tracking-widest mb-1 opacity-90">BALANCE</p>
+                <p className="text-base font-bold text-white tracking-widest mb-1 opacity-90">BALANCE</p>
                 <p className="text-4xl font-extrabold text-white tracking-tight mb-2 drop-shadow-lg">
                     {texts.currency}{Math.floor(user.balance)}
                 </p>
