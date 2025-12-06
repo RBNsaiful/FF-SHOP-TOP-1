@@ -22,7 +22,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
   const [name, setName] = useState('');
+  const [nameTouched, setNameTouched] = useState(false); // Track if user left the field
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -32,10 +35,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
   const isEmailValid = email.includes('@') && email.includes('.');
   const isPasswordValid = password.length >= 6;
   
-  // Name Validation: 6-15 chars, no special characters like $:!#
+  // Name Validation: 6-15 chars
+  // Input sanitization prevents symbols/numbers, so we just check length here.
   const validateName = (val: string) => {
       if (val.length < 6 || val.length > 15) return false;
-      if (/[!@#$%^&*(),.?":{}|<>]/.test(val)) return false;
       return true;
   };
 
@@ -43,6 +46,21 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
   const doPasswordsMatch = isLogin || (password === confirmPassword);
   
   const isFormValid = isEmailValid && isPasswordValid && isNameValid && doPasswordsMatch;
+
+  // Sanitization Handler
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const raw = e.target.value;
+      // Remove numbers and special symbols, allow letters (unicode) and spaces
+      const sanitized = raw.replace(/[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/g, '');
+      setName(sanitized);
+      // If user is typing, we can opt to hide error until they blur again, or keep showing if it was already touched.
+      // Usually, good UX is to clear error when typing starts.
+      if (nameTouched) setNameTouched(false);
+  };
+
+  const handleNameBlur = () => {
+      setNameTouched(true);
+  };
 
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
@@ -90,7 +108,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
 
     if (!isFormValid) {
         if (!isLogin && !validateName(name)) {
-             setError("Invalid name. Must be 6-15 characters, no special symbols.");
+             // If they submit without blurring, force touch state to show error
+             setNameTouched(true);
              return;
         }
         return;
@@ -139,81 +158,80 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col justify-center px-6 relative overflow-hidden bg-light-bg dark:bg-dark-bg transition-colors duration-300">
+    <div className="min-h-screen w-full flex flex-col justify-center px-6 bg-light-bg dark:bg-dark-bg transition-colors duration-300">
       
-      {/* Background Decor Elements - Subtle */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50vh] h-[50vh] bg-primary/10 rounded-full blur-[100px] pointer-events-none animate-pulse"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50vh] h-[50vh] bg-secondary/10 rounded-full blur-[100px] pointer-events-none animate-pulse" style={{ animationDelay: '1s' }}></div>
-
       <div className="w-full max-w-md mx-auto z-10">
           
           {/* App Header */}
-          <div className="flex flex-col items-center mb-8 animate-fade-in-up">
-              <div className="relative group mb-4">
-                  <div className="absolute -inset-1 bg-gradient-to-tr from-primary to-secondary rounded-full blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
-                  <div className="relative w-20 h-20 rounded-full bg-white dark:bg-dark-card p-1 shadow-lg ring-1 ring-gray-100 dark:ring-gray-800">
+          <div className="flex flex-col items-center mb-6 mt-12">
+              <div className="relative mb-4">
+                  <div className="w-24 h-24 rounded-full bg-white dark:bg-dark-card p-1 shadow-md ring-1 ring-gray-200 dark:ring-gray-700">
                       <img src={logoUrl} alt={appName} className="w-full h-full object-cover rounded-full" />
                   </div>
               </div>
-              <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary tracking-tight">
+              <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mt-2">
                 {appName}
               </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 font-bold mt-1 uppercase tracking-widest">
-                  {isLogin ? texts.loginTitle : texts.registerTitle}
+              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">
+                  {isLogin ? "Login to your account" : "Create a new account"}
               </p>
           </div>
 
           {/* Main Form */}
-          <form onSubmit={handleAuth} className="w-full space-y-5 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+          <form onSubmit={handleAuth} className="w-full space-y-4">
             
             {!isLogin && (
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 ml-1 uppercase tracking-wide">{texts.name}</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.name}</label>
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <UserIcon className="h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <UserIcon className="h-5 w-5 text-primary" />
                         </div>
                         <input
                             type="text"
                             value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className={`w-full pl-10 pr-4 py-3.5 bg-white dark:bg-dark-card border rounded-2xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
-                                ${name && !validateName(name) ? 'border-red-500 focus:ring-red-500' : 'border-gray-100 dark:border-gray-800 focus:ring-primary/50 focus:border-primary'}
+                            onChange={handleNameChange}
+                            onBlur={handleNameBlur}
+                            placeholder="Name"
+                            className={`w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
+                                ${nameTouched && !validateName(name) ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'}
                             `}
                             required={!isLogin}
                         />
                     </div>
-                    {name && !validateName(name) && <p className="text-red-500 text-[10px] mt-1 font-bold">Invalid name (6-15 chars, no symbols)</p>}
+                    {nameTouched && !validateName(name) && <p className="text-red-500 text-xs mt-1 ml-1">Invalid name</p>}
                 </div>
             )}
 
             <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 ml-1 uppercase tracking-wide">{texts.email}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.email}</label>
                 <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <MailIcon className="h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                        <MailIcon className="h-5 w-5 text-primary" />
                     </div>
                     <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3.5 bg-white dark:bg-dark-card border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all font-medium text-gray-800 dark:text-white"
+                        placeholder="Email"
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-dark-card border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium text-gray-800 dark:text-white"
                         required
                     />
                 </div>
             </div>
 
             <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 ml-1 uppercase tracking-wide">{texts.password}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.password}</label>
                 <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <LockIcon className="h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                        <LockIcon className="h-5 w-5 text-primary" />
                     </div>
                     <input
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-10 pr-10 py-3.5 bg-white dark:bg-dark-card border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all font-medium text-gray-800 dark:text-white"
+                        placeholder="Password"
+                        className="w-full pl-10 pr-10 py-3 bg-gray-50 dark:bg-dark-card border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium text-gray-800 dark:text-white"
                         required
                     />
                     <button
@@ -227,20 +245,21 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
             </div>
 
             {!isLogin && (
-                <div className="animate-fade-in">
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 ml-1 uppercase tracking-wide">{texts.confirmPassword}</label>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.confirmPassword}</label>
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <LockIcon className="h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <LockIcon className="h-5 w-5 text-primary" />
                         </div>
                         <input
                             type={showConfirmPassword ? "text" : "password"}
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
-                            className={`w-full pl-10 pr-10 py-3.5 bg-white dark:bg-dark-card border rounded-2xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
+                            placeholder="Confirm Password"
+                            className={`w-full pl-10 pr-10 py-3 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
                                 ${confirmPassword && password !== confirmPassword 
-                                    ? 'border-red-500 focus:ring-red-500/50' 
-                                    : 'border-gray-100 dark:border-gray-800 focus:ring-primary/50 focus:border-primary'
+                                    ? 'border-red-500 focus:ring-red-500' 
+                                    : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
                                 }
                             `}
                             required={!isLogin}
@@ -254,66 +273,68 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
                         </button>
                     </div>
                     {confirmPassword && password !== confirmPassword && (
-                        <p className="text-red-500 text-[10px] mt-1 ml-1 font-bold animate-fade-in">{texts.passwordsDoNotMatch}</p>
+                        <p className="text-red-500 text-xs mt-1 ml-1">{texts.passwordsDoNotMatch}</p>
                     )}
-                </div>
-            )}
-
-            {error && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-500 text-xs rounded-xl text-center font-bold animate-pulse border border-red-100 dark:border-red-800">
-                    {error}
                 </div>
             )}
 
             <button
                 type="submit"
                 disabled={loading || !isFormValid}
-                className={`w-full py-4 font-bold rounded-2xl flex justify-center items-center transition-all duration-300
-                    bg-gradient-to-r from-primary to-secondary text-white
+                className={`w-full py-3.5 font-bold rounded-xl flex justify-center items-center transition-all duration-200
+                    bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30 hover:opacity-90
                     ${!isFormValid || loading
-                        ? 'opacity-50 cursor-not-allowed shadow-none'
-                        : 'opacity-100 shadow-xl shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-1 active:scale-95'
+                        ? 'opacity-60 cursor-not-allowed'
+                        : 'opacity-100 active:scale-[0.98]'
                     }
                 `}
             >
                 {loading ? (
                     <div className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
                 ) : (
-                    isLogin ? texts.login : texts.register
+                    isLogin ? "Login" : "Register"
                 )}
             </button>
+            
+            {/* Error Message - BELOW BUTTON to prevent layout shift of button */}
+            {error && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center border border-red-100 dark:border-red-800">
+                    {error}
+                </div>
+            )}
+
           </form>
 
-          {/* Toggle Login/Register */}
-          <div className="mt-6 text-center animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                  {isLogin ? texts.noAccount : texts.haveAccount}{" "}
-                  <button 
-                    onClick={() => { setIsLogin(!isLogin); setError(''); setPassword(''); setConfirmPassword(''); }}
-                    className="text-primary font-bold hover:underline transition-colors ml-1"
-                  >
-                      {isLogin ? texts.register : texts.login}
-                  </button>
-              </p>
-          </div>
-
           {/* Divider */}
-          <div className="relative flex py-6 items-center w-full animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-                <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-                <span className="flex-shrink-0 mx-4 text-gray-400 dark:text-gray-500 text-[10px] uppercase font-bold tracking-widest">Or continue with</span>
-                <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+          <div className="relative flex py-6 items-center w-full">
+                <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
+                <span className="flex-shrink-0 mx-4 text-gray-400 dark:text-gray-500 text-xs font-medium">Or</span>
+                <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
           </div>
 
-          {/* Social / Guest Login */}
-          <div className="w-full space-y-3 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+          {/* Social / Guest Login - Moved UP */}
+          <div className="w-full space-y-3 mb-6">
              <button
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="w-full py-3.5 bg-white dark:bg-dark-card text-gray-700 dark:text-gray-200 font-bold rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all active:scale-95 group disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-white dark:bg-dark-card text-gray-700 dark:text-gray-200 font-bold rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 flex items-center justify-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all active:scale-[0.98] disabled:opacity-50"
             >
-              <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5 group-hover:scale-110 transition-transform" alt="Google" />
+              <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
               <span>Google</span>
             </button>
+          </div>
+
+          {/* Toggle Login/Register - Moved DOWN */}
+          <div className="text-center pb-8">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+                  <button 
+                    onClick={() => { setIsLogin(!isLogin); setError(''); setPassword(''); setConfirmPassword(''); setNameTouched(false); }}
+                    className="text-primary font-bold hover:underline transition-colors ml-1"
+                  >
+                      {isLogin ? "Register" : "Login"}
+                  </button>
+              </p>
           </div>
       </div>
     </div>

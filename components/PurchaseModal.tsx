@@ -52,11 +52,11 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
         }
     } else {
         if (!/^\d+$/.test(value)) {
-            setInputError(texts.uidNumeric);
+            setInputError("Invalid UID");
             return false;
         }
         if (value.length < 8 || value.length > 12) {
-            setInputError(texts.uidLength);
+            setInputError("Invalid UID");
             return false;
         }
     }
@@ -65,17 +65,23 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
     return true;
   };
   
+  // Validate on blur to prevent error while typing
+  const handleBlur = () => {
+      validateInput(inputValue);
+  };
+  
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value;
       
       if (!isEmailType) {
           if (/^\d*$/.test(newValue)) {
               setInputValue(newValue);
-              validateInput(newValue);
+              // Clear error immediately when typing starts
+              if (inputError) setInputError('');
           }
       } else {
           setInputValue(newValue);
-          validateInput(newValue);
+          if (inputError) setInputError('');
       }
   };
 
@@ -140,6 +146,7 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
                 id="uidInput"
                 value={inputValue}
                 onChange={handleInputChange}
+                onBlur={handleBlur}
                 onFocus={handleInputFocus}
                 placeholder={isEmailType ? texts.enterEmail : texts.enterUID}
                 className={`w-full mt-1 p-3 bg-light-bg dark:bg-dark-bg border rounded-lg focus:outline-none focus:ring-2 ${inputError ? 'border-red-500 focus:ring-red-500/50' : 'border-gray-300 dark:border-gray-600 focus:ring-primary'}`}
