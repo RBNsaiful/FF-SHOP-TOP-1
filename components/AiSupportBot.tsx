@@ -303,10 +303,6 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
         >
             <div className="bg-gradient-to-r from-primary to-secondary text-white p-3.5 rounded-full shadow-xl shadow-primary/40 hover:scale-110 active:scale-95 transition-transform duration-200 flex items-center justify-center group relative">
                 <RobotIcon className="w-7 h-7 group-hover:rotate-12 transition-transform" />
-                <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                </span>
             </div>
         </div>
       )}
@@ -330,7 +326,6 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
                       <div className="bg-gradient-to-br from-primary to-secondary p-1.5 rounded-full text-white shadow-md">
                         <RobotIcon className="w-5 h-5" />
                       </div>
-                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-dark-bg rounded-full"></span>
                   </div>
                   <h3 className="font-bold text-lg text-gray-900 dark:text-white leading-none">{botName}</h3>
               </div>

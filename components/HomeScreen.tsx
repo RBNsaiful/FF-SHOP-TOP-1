@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, FC } from 'react';
 import type { User, DiamondOffer, LevelUpPackage, Membership, GenericOffer, PremiumApp, Screen, AppVisibility, Banner, SpecialOffer, UiSettings } from '../types';
 import PurchaseModal from './PurchaseModal';
@@ -438,16 +437,10 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 items-stretch">
                             {renderContent()}
                         </div>
-                    ) : (
-                        <p className="text-center text-gray-500 dark:text-gray-400 mt-8">{texts.noOffersFound}</p>
-                    )}
+                    ) : null}
                 </div>
             </>
-        ) : (
-            <div className="flex flex-col items-center justify-center py-10 animate-smart-fade-in">
-                <p className="text-center text-gray-500 dark:text-gray-400">{texts.noOffersFound}</p>
-            </div>
-        )}
+        ) : null}
 
         {/* --- FOOTER ADVERTISEMENT (Scroll to View) --- */}
         <div className="mt-8 animate-fade-in w-full flex justify-center min-h-[60px]">

@@ -29,7 +29,11 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
   const isEmailType = offer.inputType === 'email';
   
   const [inputValue, setInputValue] = useState(isEmailType ? '' : (defaultUid || ''));
+  const [phoneNumber, setPhoneNumber] = useState(''); // New state for Phone Number
+  
   const [inputError, setInputError] = useState('');
+  const [phoneError, setPhoneError] = useState(''); // New error state for phone
+  
   const [status, setStatus] = useState<'idle' | 'processing' | 'button-success' | 'success'>('idle');
 
   const handleInputFocus = (event: React.FocusEvent<HTMLInputElement>) => {
@@ -47,9 +51,10 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
     }
 
     if (isEmailType) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(value)) {
-            setInputError(texts.emailInvalid);
+        // STRICT GMAIL VALIDATION
+        const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+        if (!gmailRegex.test(value)) {
+            setInputError("Only @gmail.com addresses are allowed.");
             return false;
         }
     } else {
@@ -66,10 +71,40 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
     setInputError('');
     return true;
   };
+
+  const validatePhone = (value: string): boolean => {
+      if (!isEmailType) return true; // Phone only required for Premium Apps (email type)
+
+      if (!value.trim()) {
+          setPhoneError("Required");
+          return false;
+      }
+
+      // STRICT BD PHONE VALIDATION
+      // Must start with 01, contain only digits, and be 11 characters long.
+      const bdPhoneRegex = /^01[3-9]\d{8}$/;
+      
+      if (!/^\d+$/.test(value)) {
+          setPhoneError("Digits only");
+          return false;
+      }
+      
+      if (!bdPhoneRegex.test(value)) {
+          setPhoneError("Invalid");
+          return false;
+      }
+
+      setPhoneError('');
+      return true;
+  };
   
-  // Validate on blur to prevent error while typing
+  // Validate on blur
   const handleBlur = () => {
       validateInput(inputValue);
+  };
+
+  const handlePhoneBlur = () => {
+      validatePhone(phoneNumber);
   };
   
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -78,7 +113,6 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
       if (!isEmailType) {
           if (/^\d*$/.test(newValue)) {
               setInputValue(newValue);
-              // Clear error immediately when typing starts
               if (inputError) setInputError('');
           }
       } else {
@@ -87,12 +121,27 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
       }
   };
 
+  const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
+      const val = e.target.value;
+      if (/^\d*$/.test(val) && val.length <= 11) {
+          setPhoneNumber(val);
+          if (phoneError) setPhoneError('');
+      }
+  };
+
   const handleConfirm = async () => {
-    if (!validateInput(inputValue) || insufficientBalance || status === 'processing') return;
-    setStatus('processing');
-    await onConfirm(inputValue);
+    const isMainValid = validateInput(inputValue);
+    const isPhoneValid = validatePhone(phoneNumber);
+
+    if (!isMainValid || (isEmailType && !isPhoneValid) || insufficientBalance || status === 'processing') return;
     
-    // Show checkmark on button briefly before switching to success view
+    setStatus('processing');
+
+    // Combine data if it's a premium app purchase (Email + Phone)
+    const finalData = isEmailType ? `${inputValue} | ${phoneNumber}` : inputValue;
+
+    await onConfirm(finalData);
+    
     setStatus('button-success');
     
     setTimeout(() => {
@@ -107,7 +156,7 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
     }, 500);
   };
 
-  const isConfirmDisabled = !inputValue || !!inputError || status === 'processing' || status === 'button-success' || insufficientBalance;
+  const isConfirmDisabled = !inputValue || !!inputError || (isEmailType && (!phoneNumber || !!phoneError)) || status === 'processing' || status === 'button-success' || insufficientBalance;
 
   const OfferIcon = offer.icon || DiamondIcon;
 
@@ -143,9 +192,10 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
                 </div>
             </div>
 
-            <div className="mb-2">
-              <label htmlFor="uidInput" className="text-sm font-medium">
-                  {isEmailType ? texts.email : texts.uid}
+            {/* Main Input (UID or Email) */}
+            <div className="mb-3">
+              <label htmlFor="uidInput" className="text-sm font-medium block mb-1">
+                  {isEmailType ? "Gmail" : texts.uid}
               </label>
               <input
                 type={isEmailType ? 'email' : 'text'}
@@ -156,13 +206,36 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
                 onChange={handleInputChange}
                 onBlur={handleBlur}
                 onFocus={handleInputFocus}
-                placeholder={isEmailType ? texts.enterEmail : texts.enterUID}
-                className={`w-full mt-1 p-3 bg-light-bg dark:bg-dark-bg border rounded-lg focus:outline-none focus:ring-2 ${inputError ? 'border-red-500 focus:ring-red-500/50' : 'border-gray-300 dark:border-gray-600 focus:ring-primary'}`}
+                placeholder={isEmailType ? "Gmail" : texts.enterUID}
+                className={`w-full p-3 bg-light-bg dark:bg-dark-bg border rounded-lg focus:outline-none focus:ring-2 ${inputError ? 'border-red-500 focus:ring-red-500/50' : 'border-gray-300 dark:border-gray-600 focus:ring-primary'}`}
                 disabled={status === 'processing' || status === 'button-success'}
                 maxLength={!isEmailType ? 12 : undefined}
               />
-              {inputError && <p className="text-red-500 text-xs mt-1">{inputError}</p>}
+              {inputError && <p className="text-red-500 text-xs mt-1 font-bold">{inputError}</p>}
             </div>
+
+            {/* Additional Phone Input for Premium Apps */}
+            {isEmailType && (
+                <div className="mb-3 animate-fade-in">
+                    <label htmlFor="phoneInput" className="text-sm font-medium block mb-1">
+                        Number
+                    </label>
+                    <input
+                        type="tel"
+                        inputMode="numeric"
+                        id="phoneInput"
+                        value={phoneNumber}
+                        onChange={handlePhoneChange}
+                        onBlur={handlePhoneBlur}
+                        onFocus={handleInputFocus}
+                        placeholder="WA or IMO"
+                        className={`w-full p-3 bg-light-bg dark:bg-dark-bg border rounded-lg focus:outline-none focus:ring-2 ${phoneError ? 'border-red-500 focus:ring-red-500/50' : 'border-gray-300 dark:border-gray-600 focus:ring-primary'}`}
+                        disabled={status === 'processing' || status === 'button-success'}
+                        maxLength={11}
+                    />
+                    {/* Error message text removed as requested, validation purely controls button state */}
+                </div>
+            )}
             
             {insufficientBalance && <p className="text-red-500 text-sm text-center mb-2">{texts.insufficientBalance}</p>}
 

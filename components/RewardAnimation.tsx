@@ -33,8 +33,8 @@ const RewardAnimation: FC<RewardAnimationProps> = ({ amount, texts, onAnimationE
             // --- STEP 2: OPEN LID ---
             setStep('opening');
             
-            // Delay before money pops (0.5s)
-            await new Promise(r => setTimeout(r, 500));
+            // Delay before money pops (0.5s) - allow lid to start moving
+            await new Promise(r => setTimeout(r, 400));
             
             // --- STEP 3: MONEY POP & VIBRATION ---
             
@@ -59,7 +59,7 @@ const RewardAnimation: FC<RewardAnimationProps> = ({ amount, texts, onAnimationE
                  });
             }
 
-            // Visible duration (Money stays for 3 seconds now - INCREASED)
+            // Visible duration (Money stays for 3 seconds)
             await new Promise(r => setTimeout(r, 3000));
             
             // --- STEP 4: FINISH ---
@@ -72,7 +72,7 @@ const RewardAnimation: FC<RewardAnimationProps> = ({ amount, texts, onAnimationE
     }, [onAnimationEnd]);
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md">
             <style>{`
                 /* 1. SHAKE ANIMATION */
                 @keyframes violent-shake {
@@ -89,17 +89,18 @@ const RewardAnimation: FC<RewardAnimationProps> = ({ amount, texts, onAnimationE
                     100% { transform: translate(0, 0) rotate(0deg); }
                 }
 
-                /* 2. LID FLY OFF ANIMATION */
-                @keyframes lid-fly-off {
-                    0% { transform: translateY(0) rotate(0); }
-                    100% { transform: translateY(-300px) rotate(-45deg) scale(0.8); opacity: 0; }
+                /* 2. LID FLY OFF ANIMATION - Revised for better visuals */
+                @keyframes lid-open-and-fly {
+                    0% { transform: translateY(0) rotate(0deg); }
+                    40% { transform: translateY(-60px) rotate(-20deg); } /* Initial pop up */
+                    100% { transform: translateY(-400px) translateX(100px) rotate(-120deg) scale(0.8); opacity: 0; } /* Fly away */
                 }
 
-                /* 3. MONEY POP UP ANIMATION - Higher pop (Y: -220px) to show full text */
+                /* 3. MONEY POP UP ANIMATION */
                 @keyframes pop-up-money {
                     0% { transform: translate(-50%, 50px) scale(0.5); opacity: 0; }
-                    50% { transform: translate(-50%, -220px) scale(1.2); opacity: 1; }
-                    75% { transform: translate(-50%, -200px) scale(1.0); opacity: 1; }
+                    40% { transform: translate(-50%, -150px) scale(1.1); opacity: 1; }
+                    70% { transform: translate(-50%, -200px) scale(1.2); opacity: 1; }
                     100% { transform: translate(-50%, -210px) scale(1.0); opacity: 1; }
                 }
 
@@ -112,7 +113,7 @@ const RewardAnimation: FC<RewardAnimationProps> = ({ amount, texts, onAnimationE
                     justify-content: center;
                     align-items: flex-end;
                     perspective: 1000px;
-                    margin-top: 100px; /* Push down slightly to allow money to go up */
+                    margin-top: 100px;
                 }
 
                 .gift-container.shaking {
@@ -129,16 +130,17 @@ const RewardAnimation: FC<RewardAnimationProps> = ({ amount, texts, onAnimationE
                     background: linear-gradient(135deg, #7C3AED, #5B21B6, #4C1D95);
                     border-radius: 8px;
                     box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3);
-                    z-index: 30;
-                    transform-origin: center bottom;
+                    z-index: 30; /* Highest z-index */
+                    transform-origin: bottom center;
                     border: 1px solid #4C1D95;
                 }
                 
+                /* Trigger animation when class 'opening' is added */
                 .gift-container.opening .gift-lid {
-                    animation: lid-fly-off 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+                    animation: lid-open-and-fly 0.8s ease-in forwards;
                 }
 
-                /* Ribbon on Lid (Gold) */
+                /* Ribbon on Lid */
                 .gift-lid::before {
                     content: '';
                     position: absolute;
@@ -162,7 +164,7 @@ const RewardAnimation: FC<RewardAnimationProps> = ({ amount, texts, onAnimationE
                     box-shadow: 0 1px 2px rgba(0,0,0,0.2);
                 }
 
-                /* Bow (Gold) */
+                /* Bow */
                 .gift-bow {
                     position: absolute;
                     top: -28px;
@@ -185,18 +187,17 @@ const RewardAnimation: FC<RewardAnimationProps> = ({ amount, texts, onAnimationE
                 .gift-bow::before { left: -18px; transform: rotate(-30deg); border-bottom-color: transparent; border-right-color: transparent; }
                 .gift-bow::after { right: -18px; transform: rotate(30deg); border-bottom-color: transparent; border-left-color: transparent; }
 
-                /* --- BODY (Front - Premium Gold Gradient) --- */
+                /* --- BODY (Front) --- */
                 .gift-body {
                     position: relative;
                     width: 160px;
                     height: 112px;
                     background: linear-gradient(135deg, #FFD700 0%, #F59E0B 40%, #D97706 100%);
                     border-radius: 0 0 12px 12px;
-                    z-index: 20; 
+                    z-index: 20; /* In front of money */
                     box-shadow: 0 20px 50px rgba(0,0,0,0.7), inset 0 -5px 10px rgba(0,0,0,0.1);
                     border: 1px solid #B45309;
                 }
-                /* Vertical Ribbon on Body (Purple) */
                 .gift-body::before {
                     content: '';
                     position: absolute;
@@ -209,40 +210,40 @@ const RewardAnimation: FC<RewardAnimationProps> = ({ amount, texts, onAnimationE
                     box-shadow: 0 0 5px rgba(0,0,0,0.2);
                 }
 
-                /* --- BACK (Inside - Dark Gold) --- */
+                /* --- BACK (Inside) --- */
                 .gift-back {
                     position: absolute;
                     width: 152px;
                     height: 104px;
                     background: #92400E;
                     border-radius: 0 0 12px 12px;
-                    z-index: 1; 
+                    z-index: 1; /* Behind money */
                     bottom: 4px;
                     left: 4px;
                     box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
                 }
 
-                /* --- MONEY --- */
+                /* --- MONEY WRAPPER --- */
                 .money-wrapper {
                     position: absolute;
                     top: 50%;
                     left: 50%;
                     transform: translate(-50%, 50px); /* Start hidden deep inside */
                     opacity: 0;
-                    z-index: 10;
+                    z-index: 10; /* Sandwiched between Front (20) and Back (1) */
                     pointer-events: none;
-                    width: 300px; /* Wider wrapper to prevent text wrapping */
+                    width: 300px;
                     text-align: center;
                 }
 
                 .gift-container.opening .money-wrapper {
                     animation: pop-up-money 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-                    animation-delay: 0.5s; 
+                    animation-delay: 0.3s; 
                 }
 
                 .money-text {
                     display: inline-block;
-                    font-size: 4.5rem; /* MUCH LARGER TEXT */
+                    font-size: 4.5rem;
                     font-weight: 900;
                     color: #fff;
                     background: linear-gradient(to bottom, #FFD700, #FBBF24);
@@ -269,10 +270,10 @@ const RewardAnimation: FC<RewardAnimationProps> = ({ amount, texts, onAnimationE
 
             <div className={`gift-container ${step === 'shaking' ? 'shaking' : ''} ${step === 'opening' || step === 'finished' ? 'opening' : ''}`}>
                 
-                {/* 1. Back Face (Inside) */}
+                {/* 1. Back Face (Z-index: 1) */}
                 <div className="gift-back"></div>
 
-                {/* 2. Money (Pops out from middle) */}
+                {/* 2. Money (Z-index: 10 - pops up from here) */}
                 <div className="money-wrapper">
                     <div className="money-text">
                         {texts.currency}{amount}
@@ -280,10 +281,10 @@ const RewardAnimation: FC<RewardAnimationProps> = ({ amount, texts, onAnimationE
                     <span className="money-label">Reward</span>
                 </div>
 
-                {/* 3. Front Face */}
+                {/* 3. Front Face (Z-index: 20) */}
                 <div className="gift-body"></div>
 
-                {/* 4. Lid (Flies off) */}
+                {/* 4. Lid (Z-index: 30) */}
                 <div className="gift-lid">
                     <div className="gift-bow"></div>
                 </div>

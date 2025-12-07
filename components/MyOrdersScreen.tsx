@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, FC } from 'react';
 import type { User, Purchase } from '../types';
 import { db } from '../firebase';
@@ -23,6 +24,7 @@ const ClockIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http:/
 const XCircleIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>);
 const CalendarIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>);
 const UserIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>);
+const MailIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>);
 const ShoppingBagIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>);
 
 
@@ -82,6 +84,13 @@ const PurchaseCard: FC<{ purchase: Purchase, texts: any, index: number, onDelete
         setTimeout(() => setCopied(false), 2000);
     };
 
+    // Dynamic Label & Icon based on Data Content
+    // If it contains '@', assume it's Email (Premium App), else UID
+    const isEmailData = purchase.uid.includes('@') || purchase.offer?.inputType === 'email';
+    const displayLabel = isEmailData ? "Gmail" : texts.uid;
+    const DataIcon = isEmailData ? MailIcon : UserIcon;
+    const displayValue = isEmailData ? purchase.uid.split('|')[0].trim() : purchase.uid;
+
     return (
         <div 
             className="group relative bg-light-card dark:bg-dark-card rounded-2xl p-0 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-800 overflow-hidden opacity-0 animate-smart-slide-up"
@@ -115,9 +124,9 @@ const PurchaseCard: FC<{ purchase: Purchase, texts: any, index: number, onDelete
                 <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-2 grid grid-cols-2 gap-y-2 gap-x-2 text-xs border border-gray-100 dark:border-gray-800/50">
                     <div className="col-span-2 sm:col-span-1">
                         <p className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1">
-                            <UserIcon className="w-3 h-3" /> {texts.uid}
+                            <DataIcon className="w-3 h-3" /> {displayLabel}
                         </p>
-                        <p className="font-mono font-semibold text-gray-700 dark:text-gray-300 truncate text-xs">{purchase.uid}</p>
+                        <p className="font-mono font-semibold text-gray-700 dark:text-gray-300 truncate text-xs">{displayValue}</p>
                     </div>
                     <div className="col-span-2 sm:col-span-1 text-left sm:text-right">
                          <p className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1 sm:justify-end">
@@ -161,6 +170,7 @@ const PurchaseCard: FC<{ purchase: Purchase, texts: any, index: number, onDelete
 const MyOrdersScreen: FC<MyOrdersScreenProps> = ({ user, texts, adCode, adActive }) => {
     const [purchases, setPurchases] = useState<Purchase[]>([]);
     const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (!user.uid) return;
@@ -177,6 +187,7 @@ const MyOrdersScreen: FC<MyOrdersScreenProps> = ({ user, texts, adCode, adActive
             } else {
                 setPurchases([]);
             }
+            setLoading(false);
         });
         return () => unsubscribe();
     }, [user.uid]);
@@ -219,7 +230,11 @@ const MyOrdersScreen: FC<MyOrdersScreenProps> = ({ user, texts, adCode, adActive
                     </div>
                 </div>
 
-                {purchases.length > 0 ? (
+                {loading ? (
+                    <div className="flex justify-center items-center py-20">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+                    </div>
+                ) : purchases.length > 0 ? (
                     <div className="space-y-3">
                         {purchases.map((purchase, index) => (
                             <PurchaseCard 

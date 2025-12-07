@@ -1,6 +1,10 @@
 
+
+
+
+
 import React, { useState, useEffect, FC, FormEvent, useMemo } from 'react';
-import { User, Screen, Transaction, Purchase, AppSettings, Language, PaymentMethod, AppVisibility, Notification, DeveloperSettings, Banner } from '../types';
+import { User, Screen, Transaction, Purchase, AppSettings, Language, PaymentMethod, AppVisibility, Notification, DeveloperSettings, Banner, Theme } from '../types';
 import { db } from '../firebase';
 import { ref, update, onValue, get, remove, push, set, runTransaction } from 'firebase/database';
 import { 
@@ -13,6 +17,7 @@ import {
 // Icons
 const DashboardIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>);
 const UsersIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>);
+const UserIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>);
 const OrdersIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>);
 const MoneyIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>);
 const SettingsIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>);
@@ -44,6 +49,26 @@ const RobotIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http:/
 const LayoutIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></svg>);
 const ShieldIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>);
 const DollarIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>);
+
+const SunIcon: FC<{className?: string}> = ({className}) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <circle cx="12" cy="12" r="5" />
+        <path d="M12 1v2" />
+        <path d="M12 21v2" />
+        <path d="M4.22 4.22l1.42 1.42" />
+        <path d="M18.36 18.36l1.42 1.42" />
+        <path d="M1 12h2" />
+        <path d="M21 12h2" />
+        <path d="M4.22 19.78l1.42-1.42" />
+        <path d="M18.36 5.64l1.42-1.42" />
+    </svg>
+);
+
+const MoonIcon: FC<{className?: string}> = ({className}) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+);
 
 // Offer Icons
 const DiamondIcon: FC<{className?: string}> = ({className}) => (<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className={className}><path d="M12 2L2 8.5l10 13.5L22 8.5 12 2z" /></svg>);
@@ -170,6 +195,9 @@ const ADMIN_TEXTS = {
         enableAi: "Enable AI Support",
         aiName: "Bot Name",
         aiApiKey: "Gemini API Key",
+        contactSettings: "Contact Page Text",
+        contactMsg: "Support Message",
+        opHours: "Operating Hours Text",
     },
     bn: {
         dashboard: "ড্যাশবোর্ড",
@@ -288,6 +316,9 @@ const ADMIN_TEXTS = {
         enableAi: "এআই সাপোর্ট চালু করুন",
         aiName: "বটের নাম",
         aiApiKey: "এপিআই কি (API Key)",
+        contactSettings: "কন্টাক্ট পেজ টেক্সট",
+        contactMsg: "সাপোর্ট মেসেজ",
+        opHours: "অপারেটিং আওয়ার্স টেক্সট",
     }
 };
 
@@ -299,7 +330,33 @@ interface AdminScreenProps {
     language: Language;
     setLanguage: (lang: Language) => void;
     appSettings: AppSettings;
+    theme: Theme;
+    setTheme: (theme: Theme) => void;
 }
+
+// Confirmation Dialog
+const ConfirmationDialog: FC<{ title: string; message: string; onConfirm: () => void; onCancel: () => void; confirmText: string; cancelText: string; }> = ({ title, message, onConfirm, onCancel, confirmText, cancelText }) => (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 animate-smart-fade-in">
+        <div className="bg-light-card dark:bg-dark-card rounded-2xl p-6 w-full max-w-xs animate-smart-pop-in shadow-xl">
+            <h3 className="text-lg font-bold text-center mb-2">{title}</h3>
+            <p className="text-center text-gray-500 dark:text-gray-400 mb-6">{message}</p>
+            <div className="flex space-x-2">
+                <button
+                    onClick={onCancel}
+                    className="w-full bg-gray-200 dark:bg-gray-700 text-light-text dark:text-dark-text font-bold py-3 rounded-lg hover:opacity-80 transition-opacity"
+                >
+                    {cancelText}
+                </button>
+                <button
+                    onClick={onConfirm}
+                    className="w-full bg-red-500 text-white font-bold py-3 rounded-lg hover:bg-red-600 transition-colors"
+                >
+                    {confirmText}
+                </button>
+            </div>
+        </div>
+    </div>
+);
 
 // Helper Component for Copy Button
 const SmartCopy: FC<{ text: string, label?: string, iconOnly?: boolean }> = ({ text, label, iconOnly }) => {
@@ -339,7 +396,7 @@ const SearchInput: FC<{ value: string; onChange: (val: string) => void; placehol
     </div>
 );
 
-const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, language, setLanguage, appSettings }) => {
+const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, language, setLanguage, appSettings, theme, setTheme }) => {
     // Navigation State
     const [activeTab, setActiveTab] = useState<'dashboard' | 'offers' | 'orders' | 'deposits' | 'tools'>('dashboard');
     const [activeTool, setActiveTool] = useState<'users' | 'settings' | 'graphics' | 'wallet' | 'notifications' | 'contacts' | 'ads' | 'ai'>('users');
@@ -518,7 +575,9 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                             },
                             aiSupportActive: data.appSettings.aiSupportActive ?? DEFAULT_APP_SETTINGS.aiSupportActive,
                             aiName: data.appSettings.aiName || DEFAULT_APP_SETTINGS.aiName,
-                            aiApiKey: data.appSettings.aiApiKey || ""
+                            aiApiKey: data.appSettings.aiApiKey || "",
+                            contactMessage: data.appSettings.contactMessage || DEFAULT_APP_SETTINGS.contactMessage,
+                            operatingHours: data.appSettings.operatingHours || DEFAULT_APP_SETTINGS.operatingHours
                         };
                         setSettings(mergedSettings);
                         setOriginalSettings(mergedSettings); 
@@ -944,20 +1003,44 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                             ))}
                         </div>
                         <div className="space-y-3">
-                            {filteredOrders.length === 0 ? <div className="text-center py-10 text-gray-400">No orders found</div> : filteredOrders.map(order => (
+                            {filteredOrders.length === 0 ? <div className="text-center py-10 text-gray-400">No orders found</div> : filteredOrders.map(order => {
+                                // Logic to split email/phone
+                                const isPremium = order.uid.includes('|');
+                                let displayLabel = "Player UID";
+                                let displayValueLine1 = order.uid;
+                                let displayValueLine2 = null;
+
+                                if (isPremium) {
+                                    const parts = order.uid.split('|');
+                                    displayLabel = "Contact";
+                                    displayValueLine1 = parts[0].trim(); // Email
+                                    displayValueLine2 = parts[1] ? parts[1].trim() : null; // Phone
+                                } else if (order.uid.includes('@')) {
+                                    displayLabel = "Gmail";
+                                }
+
+                                return (
                                 <div key={order.key} className={`bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border-l-4 ${order.status === 'Pending' ? 'border-l-yellow-500' : order.status === 'Completed' ? 'border-l-green-500' : 'border-l-red-500'}`}>
                                     <div className="flex justify-between items-start mb-3">
                                         <div><span className="font-bold text-lg block">{order.offer.diamonds || order.offer.name}</span><span className="text-xs text-gray-400 font-mono">{new Date(order.date).toLocaleString()}</span></div>
                                         <div className="text-right"><span className="font-bold text-primary text-lg">৳{order.offer.price}</span></div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 mb-3">
-                                        <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-xs"><p className="text-gray-400 mb-1">Player UID</p><SmartCopy text={order.uid} /></div>
+                                        <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-xs">
+                                            <p className="text-gray-400 mb-1">{displayLabel}</p>
+                                            <div className="flex flex-col gap-1">
+                                                <SmartCopy text={displayValueLine1} label={displayValueLine1.substring(0, 20) + (displayValueLine1.length > 20 ? '...' : '')} />
+                                                {displayValueLine2 && (
+                                                    <SmartCopy text={displayValueLine2} />
+                                                )}
+                                            </div>
+                                        </div>
                                         <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-xs"><p className="text-gray-400 mb-1">Order ID</p><SmartCopy text={order.id} /></div>
                                     </div>
                                     {order.status === 'Pending' && <div className="flex gap-2 mt-2"><button onClick={() => handleOrderAction(order, 'Completed')} className="flex-1 bg-green-500 text-white py-3 rounded-lg font-bold text-sm shadow-md hover:bg-green-600 active:scale-95 transition-all">{t.approve}</button><button onClick={() => handleOrderAction(order, 'Failed')} className="flex-1 bg-red-500 text-white py-3 rounded-lg font-bold text-sm shadow-md hover:bg-red-600 active:scale-95 transition-all">{t.reject}</button></div>}
                                     {order.status === 'Failed' && <div className="text-xs text-red-500 font-bold mt-2">Refunded to User</div>}
                                 </div>
-                            ))}
+                            )})}
                         </div>
                     </div>
                 )}
@@ -1035,7 +1118,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 </div>
                             )}
 
-                            {/* WALLET TOOL */}
                             {activeTool === 'wallet' && (
                                 <div>
                                     <button onClick={openAddMethodModal} className="w-full py-3 mb-4 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl text-gray-500 font-bold hover:bg-gray-50 dark:hover:bg-gray-800">+ Add Wallet</button>
@@ -1050,7 +1132,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 </div>
                             )}
 
-                            {/* AI MANAGER TOOL */}
                             {activeTool === 'ai' && (
                                 <div className="space-y-6 animate-fade-in">
                                     {/* Stats Card */}
@@ -1139,12 +1220,49 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 </div>
                             )}
 
-                            {/* NEW ADS MANAGER TOOL */}
+                            {activeTool === 'graphics' && (
+                                <div className="space-y-6">
+                                    <div>
+                                        <h3 className="font-bold mb-2 text-sm uppercase text-gray-500">{t.appLogo}</h3>
+                                        <div className="flex gap-3"><img src={settings.logoUrl || APP_LOGO_URL} className="w-12 h-12 rounded-full border" /><input type="text" value={settings.logoUrl || ''} onChange={(e) => setSettings({...settings, logoUrl: e.target.value})} className={inputClass} placeholder="Image URL" /></div>
+                                        <button onClick={handleUpdateLogo} className="mt-2 text-xs bg-primary text-white px-3 py-1 rounded font-bold">Update Logo</button>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold mb-2 text-sm uppercase text-gray-500">Banners</h3>
+                                        <div className="flex gap-2 mb-3">
+                                            <input type="text" value={newBannerUrl} onChange={(e) => setNewBannerUrl(e.target.value)} className={inputClass} placeholder="Image URL" />
+                                            <input type="text" value={newActionUrl} onChange={(e) => setNewActionUrl(e.target.value)} className={inputClass} placeholder="Action URL (Optional)" />
+                                            <button onClick={handleAddBanner} className="bg-green-500 text-white px-3 rounded font-bold text-xs">{t.add}</button>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {banners.map((banner, index) => (
+                                                <div key={index} className="relative h-24 rounded-lg overflow-hidden group">
+                                                    <img src={banner.imageUrl} className="w-full h-full object-cover" />
+                                                    {banner.actionUrl && (
+                                                        <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm flex items-center gap-1">
+                                                            <LinkIcon className="w-3 h-3"/> Link
+                                                        </div>
+                                                    )}
+                                                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button onClick={() => openEditBannerModal(index, banner)} className="bg-blue-600 text-white p-1.5 rounded-full shadow-md hover:bg-blue-700">
+                                                            <EditIcon className="w-3 h-3" />
+                                                        </button>
+                                                        <button onClick={() => handleDeleteBanner(index)} className="bg-red-600 text-white p-1.5 rounded-full shadow-md hover:bg-red-700">
+                                                            <TrashIcon className="w-3 h-3"/>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {activeTool === 'ads' && (
                                 <div>
                                     <h4 className="font-bold text-sm mb-3 uppercase text-purple-600">{t.adsConfig}</h4>
                                     
-                                    {/* VIDEO & REWARD ADS CONFIGURATION (Restored) */}
+                                    {/* VIDEO & REWARD ADS CONFIGURATION */}
                                     <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
                                         <div className="flex items-center gap-2 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">
                                             <MegaphoneIcon className="w-5 h-5 text-orange-500" />
@@ -1342,41 +1460,32 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 </div>
                             )}
 
-                            {/* GRAPHICS TOOL */}
-                            {activeTool === 'graphics' && (
-                                <div className="space-y-6">
-                                    <div>
-                                        <h3 className="font-bold mb-2 text-sm uppercase text-gray-500">{t.appLogo}</h3>
-                                        <div className="flex gap-3"><img src={settings.logoUrl || APP_LOGO_URL} className="w-12 h-12 rounded-full border" /><input type="text" value={settings.logoUrl || ''} onChange={(e) => setSettings({...settings, logoUrl: e.target.value})} className={inputClass} placeholder="Image URL" /></div>
-                                        <button onClick={handleUpdateLogo} className="mt-2 text-xs bg-primary text-white px-3 py-1 rounded font-bold">Update Logo</button>
+                            {activeTool === 'notifications' && (
+                                <div>
+                                    <button onClick={() => setIsNotifModalOpen(true)} className="w-full py-3 mb-4 bg-purple-100 text-purple-600 rounded-xl font-bold">+ Send Notif</button>
+                                    <div className="space-y-2">
+                                        {notifications.map(n => (
+                                            <div key={n.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex justify-between">
+                                                <div><p className="font-bold text-sm">{n.title}</p><p className="text-xs text-gray-500">{n.message}</p></div>
+                                                <button onClick={() => handleDeleteNotification(n.id)} className="text-red-500"><TrashIcon className="w-4 h-4"/></button>
+                                            </div>
+                                        ))}
                                     </div>
-                                    <div>
-                                        <h3 className="font-bold mb-2 text-sm uppercase text-gray-500">Banners</h3>
-                                        <div className="flex gap-2 mb-3">
-                                            <input type="text" value={newBannerUrl} onChange={(e) => setNewBannerUrl(e.target.value)} className={inputClass} placeholder="Image URL" />
-                                            <input type="text" value={newActionUrl} onChange={(e) => setNewActionUrl(e.target.value)} className={inputClass} placeholder="Action URL (Optional)" />
-                                            <button onClick={handleAddBanner} className="bg-green-500 text-white px-3 rounded font-bold text-xs">{t.add}</button>
-                                        </div>
-                                        <div className="space-y-2">
-                                            {banners.map((banner, index) => (
-                                                <div key={index} className="relative h-24 rounded-lg overflow-hidden group">
-                                                    <img src={banner.imageUrl} className="w-full h-full object-cover" />
-                                                    {banner.actionUrl && (
-                                                        <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm flex items-center gap-1">
-                                                            <LinkIcon className="w-3 h-3"/> Link
-                                                        </div>
-                                                    )}
-                                                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button onClick={() => openEditBannerModal(index, banner)} className="bg-blue-600 text-white p-1.5 rounded-full shadow-md hover:bg-blue-700">
-                                                            <EditIcon className="w-3 h-3" />
-                                                        </button>
-                                                        <button onClick={() => handleDeleteBanner(index)} className="bg-red-600 text-white p-1.5 rounded-full shadow-md hover:bg-red-700">
-                                                            <TrashIcon className="w-3 h-3"/>
-                                                        </button>
-                                                    </div>
+                                </div>
+                            )}
+                            {activeTool === 'contacts' && (
+                                <div>
+                                    <button onClick={openAddContactModal} className="w-full py-3 mb-4 bg-blue-50 text-blue-600 rounded-xl font-bold">+ Add Contact</button>
+                                    <div className="space-y-2">
+                                        {contacts.map((c, i) => (
+                                            <div key={i} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex justify-between">
+                                                <div><p className="font-bold text-sm">{c.title || c.labelKey}</p><p className="text-xs text-gray-500">{c.type}</p></div>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => openEditContactModal(c, i)} className="text-blue-500"><EditIcon className="w-4 h-4"/></button>
+                                                    <button onClick={() => handleDeleteContact(i)} className="text-red-500"><TrashIcon className="w-4 h-4"/></button>
                                                 </div>
-                                            ))}
-                                        </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}
@@ -1386,6 +1495,33 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         
+                                        {/* 0. Admin Preferences Card (Local) */}
+                                        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                                            <div className="flex items-center gap-2 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">
+                                                <UserIcon className="w-5 h-5 text-pink-500" />
+                                                <h4 className="font-bold text-sm uppercase text-gray-600 dark:text-gray-300">Admin Preferences (Local)</h4>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-bold text-gray-600 dark:text-gray-300">Theme Mode</span>
+                                                <div className="flex items-center gap-2">
+                                                    <button 
+                                                        onClick={() => setTheme('light')} 
+                                                        className={`p-2 rounded-lg transition-all ${theme === 'light' ? 'bg-orange-100 text-orange-500 shadow-sm ring-1 ring-orange-200' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                                                        title="Light Mode"
+                                                    >
+                                                        <SunIcon className="w-5 h-5" />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setTheme('dark')} 
+                                                        className={`p-2 rounded-lg transition-all ${theme === 'dark' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 shadow-sm ring-1 ring-indigo-200 dark:ring-indigo-800' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                                                        title="Dark Mode"
+                                                    >
+                                                        <MoonIcon className="w-5 h-5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         {/* 1. App Identity Card */}
                                         <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
                                             <div className="flex items-center gap-2 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">
@@ -1404,6 +1540,27 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                                 <div>
                                                     <label className="block text-xs font-bold uppercase text-gray-500 mb-1">{t.notice}</label>
                                                     <textarea value={settings.notice || ''} onChange={(e) => setSettings({...settings, notice: e.target.value})} className={inputClass} rows={2} />
+                                                </div>
+                                                
+                                                {/* NEW: Contact Settings */}
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">{t.contactSettings}</label>
+                                                    <textarea 
+                                                        value={settings.contactMessage || ''} 
+                                                        onChange={(e) => setSettings({...settings, contactMessage: e.target.value})} 
+                                                        className={inputClass} 
+                                                        rows={2} 
+                                                        placeholder={t.contactMsg}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">{t.opHours}</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.operatingHours || ''} 
+                                                        onChange={(e) => setSettings({...settings, operatingHours: e.target.value})} 
+                                                        className={inputClass} 
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
@@ -1522,45 +1679,12 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                     <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full py-3 font-bold rounded-xl shadow-md transition-all sticky bottom-20 z-20 ${isSettingsChanged ? 'bg-primary text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>{t.save} All Changes</button>
                                 </div>
                             )}
-
-                            {/* NOTIFICATIONS & CONTACTS TOOL */}
-                            {activeTool === 'notifications' && (
-                                <div>
-                                    <button onClick={() => setIsNotifModalOpen(true)} className="w-full py-3 mb-4 bg-purple-100 text-purple-600 rounded-xl font-bold">+ Send Notif</button>
-                                    <div className="space-y-2">
-                                        {notifications.map(n => (
-                                            <div key={n.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex justify-between">
-                                                <div><p className="font-bold text-sm">{n.title}</p><p className="text-xs text-gray-500">{n.message}</p></div>
-                                                <button onClick={() => handleDeleteNotification(n.id)} className="text-red-500"><TrashIcon className="w-4 h-4"/></button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                            {activeTool === 'contacts' && (
-                                <div>
-                                    <button onClick={openAddContactModal} className="w-full py-3 mb-4 bg-blue-50 text-blue-600 rounded-xl font-bold">+ Add Contact</button>
-                                    <div className="space-y-2">
-                                        {contacts.map((c, i) => (
-                                            <div key={i} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex justify-between">
-                                                <div><p className="font-bold text-sm">{c.title || c.labelKey}</p><p className="text-xs text-gray-500">{c.type}</p></div>
-                                                <div className="flex gap-2">
-                                                    <button onClick={() => openEditContactModal(c, i)} className="text-blue-500"><EditIcon className="w-4 h-4"/></button>
-                                                    <button onClick={() => handleDeleteContact(i)} className="text-red-500"><TrashIcon className="w-4 h-4"/></button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
                         </div>
                     </div>
                 )}
-
             </div>
 
-            {/* Bottom Nav for Admin */}
+            {/* Bottom Nav for Admin - RESTORED */}
             <div className="fixed bottom-0 w-full bg-white dark:bg-dark-card border-t dark:border-gray-800 flex justify-around p-2 z-40 shadow-lg">
                 {[
                     { id: 'dashboard', icon: DashboardIcon, label: t.dashboard },
@@ -1580,142 +1704,104 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 ))}
             </div>
 
-            {/* --- Modals (Mobile Optimized: flex col, max-h-screen, overflow-y-auto) --- */}
-            {confirmDialog && confirmDialog.show && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-dark-card w-full max-w-xs p-6 rounded-2xl shadow-2xl animate-smart-pop-in text-center border border-gray-100 dark:border-gray-800">
-                        <h3 className="font-bold text-xl mb-2">{confirmDialog.title}</h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">{confirmDialog.message}</p>
-                        <div className="flex gap-3">
-                            <button onClick={() => setConfirmDialog(null)} className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl font-bold text-gray-700 dark:text-gray-300">{t.confirmNo}</button>
-                            <button onClick={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }} className="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold shadow-lg shadow-red-500/20">{t.confirmYes}</button>
-                        </div>
+            {/* Modals */}
+            {confirmDialog && (
+                 <ConfirmationDialog 
+                    title={confirmDialog.title} 
+                    message={confirmDialog.message} 
+                    onConfirm={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }} 
+                    onCancel={() => setConfirmDialog(null)} 
+                    confirmText={t.confirmYes} 
+                    cancelText={t.confirmNo} 
+                />
+            )}
+            
+            {/* Offer Modal */}
+            {isOfferModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-sm">
+                         <h3 className="text-lg font-bold mb-4">{editingOffer?.id ? t.edit : t.add} Offer ({offerType})</h3>
+                         <form onSubmit={handleSaveOffer} className="space-y-3">
+                            <input type="text" placeholder="Name" value={editingOffer?.name || ''} onChange={e => setEditingOffer({...editingOffer, name: e.target.value})} className={inputClass} />
+                            {(offerType === 'diamond' || offerType === 'special') && (
+                                <input type="number" placeholder="Diamonds" value={editingOffer?.diamonds || ''} onChange={e => setEditingOffer({...editingOffer, diamonds: e.target.value})} className={inputClass} />
+                            )}
+                            {offerType === 'special' && (
+                                <input type="text" placeholder="Title (e.g. 100 Diamond 50 Taka)" value={editingOffer?.title || ''} onChange={e => setEditingOffer({...editingOffer, title: e.target.value})} className={inputClass} />
+                            )}
+                            {offerType === 'special' && (
+                                <div className="flex items-center gap-2">
+                                    <input type="checkbox" checked={editingOffer?.isActive || false} onChange={e => setEditingOffer({...editingOffer, isActive: e.target.checked})} />
+                                    <label>Active</label>
+                                </div>
+                            )}
+                            {offerType === 'premium' && (
+                                <input type="text" placeholder="Description" value={editingOffer?.description || ''} onChange={e => setEditingOffer({...editingOffer, description: e.target.value})} className={inputClass} />
+                            )}
+                            <input type="number" placeholder="Price" value={editingOffer?.price || ''} onChange={e => setEditingOffer({...editingOffer, price: e.target.value})} className={inputClass} />
+                            <div className="flex gap-2 mt-4">
+                                <button type="button" onClick={() => setIsOfferModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl">{t.cancel}</button>
+                                <button type="submit" className="flex-1 py-2 bg-primary text-white rounded-xl">{t.save}</button>
+                            </div>
+                         </form>
                     </div>
                 </div>
             )}
-
-            {/* Custom Security Modal (Replaces Native Prompt) */}
-            {isSecurityModalOpen && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[65] p-4 animate-fade-in backdrop-blur-sm">
-                    <div className="bg-white dark:bg-dark-card w-full max-w-xs p-6 rounded-2xl shadow-2xl animate-smart-pop-in text-center border border-red-200 dark:border-red-900/30">
-                        <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <LockIcon className="w-6 h-6 text-red-500" />
-                        </div>
-                        <h3 className="font-bold text-xl mb-1 text-gray-800 dark:text-white">{t.securityCheck}</h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Authorized Personnel Only</p>
-                        
-                        <form onSubmit={handleVerifySecurityKey}>
-                            <input 
-                                type="password" 
-                                autoFocus
-                                value={securityKeyInput}
-                                onChange={(e) => setSecurityKeyInput(e.target.value)}
-                                className={`${inputClass} text-center font-bold tracking-widest mb-4`}
-                                placeholder={t.enterKey}
-                            />
-                            <div className="flex gap-3">
-                                <button type="button" onClick={() => setIsSecurityModalOpen(false)} className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl font-bold text-gray-700 dark:text-gray-300">{t.cancel}</button>
-                                <button type="submit" className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-600/30">{t.unlock}</button>
+            
+            {/* Method Modal */}
+            {isMethodModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-sm">
+                        <h3 className="text-lg font-bold mb-4">{editingMethodIndex !== null ? t.edit : t.add} Method</h3>
+                        <form onSubmit={handleSaveMethod} className="space-y-3">
+                            <input type="text" placeholder="Method Name" value={editingMethod?.name || ''} onChange={e => setEditingMethod({...editingMethod!, name: e.target.value})} className={inputClass} />
+                            <input type="text" placeholder="Account Number" value={editingMethod?.accountNumber || ''} onChange={e => setEditingMethod({...editingMethod!, accountNumber: e.target.value})} className={inputClass} />
+                            <input type="text" placeholder="Logo URL" value={editingMethod?.logo || ''} onChange={e => setEditingMethod({...editingMethod!, logo: e.target.value})} className={inputClass} />
+                            <textarea placeholder="Instructions" value={editingMethod?.instructions || ''} onChange={e => setEditingMethod({...editingMethod!, instructions: e.target.value})} className={inputClass} />
+                            <div className="flex gap-2 mt-4">
+                                <button type="button" onClick={() => setIsMethodModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl">{t.cancel}</button>
+                                <button type="submit" className="flex-1 py-2 bg-primary text-white rounded-xl">{t.save}</button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* Offer Modal */}
-            {isOfferModalOpen && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-dark-card w-full max-w-sm p-6 rounded-2xl shadow-xl animate-smart-pop-in flex flex-col max-h-[85vh]">
-                        <h3 className="font-bold text-lg mb-4">{editingOffer?.id ? t.edit : t.add} Offer</h3>
-                        <form onSubmit={handleSaveOffer} className="space-y-3 flex-1 overflow-y-auto">
-                            
-                            {/* Special Offer Toggle */}
-                            {offerType === 'special' && (
-                                <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-700 p-3 rounded-lg border border-gray-200 dark:border-gray-600 mb-2">
-                                    <label className="text-xs font-bold uppercase text-gray-600 dark:text-gray-300">Active Status</label>
-                                    <div 
-                                        onClick={() => setEditingOffer({...editingOffer, isActive: !editingOffer.isActive})}
-                                        className={`w-10 h-6 rounded-full p-1 cursor-pointer transition-colors ${editingOffer.isActive ? 'bg-green-500' : 'bg-gray-400'}`}
-                                    >
-                                        <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${editingOffer.isActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {offerType !== 'diamond' && (
-                                <div><label className="text-xs font-bold uppercase text-gray-500">Name</label><input required value={editingOffer?.name || ''} onChange={e => setEditingOffer({...editingOffer, name: e.target.value})} className={inputClass} placeholder="e.g. Winter Offer" /></div>
-                            )}
-                            
-                            {/* Specific Field for Special Offers: Title */}
-                            {offerType === 'special' && (
-                                <div><label className="text-xs font-bold uppercase text-gray-500">Title</label><input required value={editingOffer?.title || ''} onChange={e => setEditingOffer({...editingOffer, title: e.target.value})} className={inputClass} placeholder="e.g. 100 Diamond 50 Taka" /></div>
-                            )}
-
-                            {(offerType === 'diamond' || offerType === 'special') && (
-                                <div><label className="text-xs font-bold uppercase text-gray-500">Diamonds</label><input required type="number" value={editingOffer?.diamonds || ''} onChange={e => setEditingOffer({...editingOffer, diamonds: e.target.value})} className={inputClass} /></div>
-                            )}
-                            
-                            <div><label className="text-xs font-bold uppercase text-gray-500">Price</label><input required type="number" value={editingOffer?.price || ''} onChange={e => setEditingOffer({...editingOffer, price: e.target.value})} className={inputClass} /></div>
-                            
-                            {offerType === 'premium' && (
-                                <div><label className="text-xs font-bold uppercase text-gray-500">Description</label><input value={editingOffer?.description || ''} onChange={e => setEditingOffer({...editingOffer, description: e.target.value})} className={inputClass} /></div>
-                            )}
-                            
-                            <div className="flex gap-2 mt-4 pt-2"><button type="button" onClick={() => setIsOfferModalOpen(false)} className="flex-1 py-2 bg-gray-200 rounded-lg font-bold">{t.cancel}</button><button type="submit" className="flex-1 py-2 bg-primary text-white rounded-lg font-bold">{t.save}</button></div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Wallet Modal */}
-            {isMethodModalOpen && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-dark-card w-full max-w-sm p-6 rounded-2xl shadow-xl animate-smart-pop-in flex flex-col max-h-[85vh]">
-                        <h3 className="font-bold text-lg mb-4">{editingMethodIndex !== null ? t.edit : t.add} Wallet</h3>
-                        <form onSubmit={handleSaveMethod} className="space-y-3 flex-1 overflow-y-auto">
-                            <div><label className="text-xs font-bold uppercase text-gray-500">{t.methodName}</label><input required value={editingMethod?.name || ''} onChange={e => setEditingMethod({...editingMethod!, name: e.target.value})} className={inputClass} /></div>
-                            <div><label className="text-xs font-bold uppercase text-gray-500">{t.accNum}</label><input required value={editingMethod?.accountNumber || ''} onChange={e => setEditingMethod({...editingMethod!, accountNumber: e.target.value})} className={inputClass} /></div>
-                            <div><label className="text-xs font-bold uppercase text-gray-500">{t.logo}</label><input required value={editingMethod?.logo || ''} onChange={e => setEditingMethod({...editingMethod!, logo: e.target.value})} className={inputClass} placeholder="Image URL" /></div>
-                            <div><label className="text-xs font-bold uppercase text-gray-500">{t.instructions}</label><textarea value={editingMethod?.instructions || ''} onChange={e => setEditingMethod({...editingMethod!, instructions: e.target.value})} className={inputClass} rows={3} /></div>
-                            <div className="flex gap-2 mt-4 pt-2"><button type="button" onClick={() => setIsMethodModalOpen(false)} className="flex-1 py-2 bg-gray-200 rounded-lg font-bold">{t.cancel}</button><button type="submit" className="flex-1 py-2 bg-primary text-white rounded-lg font-bold">{t.save}</button></div>
+            {/* Contact Modal */}
+             {isContactModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-sm">
+                        <h3 className="text-lg font-bold mb-4">{editingContactIndex !== null ? t.edit : t.add} Contact</h3>
+                        <form onSubmit={handleSaveContact} className="space-y-3">
+                            <select value={editingContact?.type || 'phone'} onChange={e => setEditingContact({...editingContact, type: e.target.value})} className={inputClass}>
+                                <option value="phone">Phone</option>
+                                <option value="whatsapp">WhatsApp</option>
+                                <option value="telegram">Telegram</option>
+                                <option value="email">Email</option>
+                                <option value="video">Video</option>
+                            </select>
+                            <input type="text" placeholder="Title/Label" value={editingContact?.title || ''} onChange={e => setEditingContact({...editingContact, title: e.target.value})} className={inputClass} />
+                            <input type="text" placeholder="Link/Number" value={editingContact?.link || ''} onChange={e => setEditingContact({...editingContact, link: e.target.value})} className={inputClass} />
+                            <div className="flex gap-2 mt-4">
+                                <button type="button" onClick={() => setIsContactModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl">{t.cancel}</button>
+                                <button type="submit" className="flex-1 py-2 bg-primary text-white rounded-xl">{t.save}</button>
+                            </div>
                         </form>
                     </div>
                 </div>
             )}
 
             {/* Banner Modal */}
-            {isBannerModalOpen && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-dark-card w-full max-w-sm p-6 rounded-2xl shadow-xl animate-smart-pop-in">
-                        <h3 className="font-bold text-lg mb-4">{t.editBanner}</h3>
+             {isBannerModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-sm">
+                        <h3 className="text-lg font-bold mb-4">{t.editBanner}</h3>
                         <form onSubmit={handleSaveBanner} className="space-y-3">
-                            <div>
-                                <label className="text-xs font-bold uppercase text-gray-500">{t.bannerUrl}</label>
-                                <input 
-                                    required 
-                                    value={tempBannerUrl} 
-                                    onChange={(e) => setTempBannerUrl(e.target.value)} 
-                                    className={inputClass} 
-                                    placeholder="Image URL" 
-                                />
-                            </div>
-                            <div>
-                                <label className="text-xs font-bold uppercase text-gray-500">{t.actionUrl}</label>
-                                <input 
-                                    value={tempActionUrl} 
-                                    onChange={(e) => setTempActionUrl(e.target.value)} 
-                                    className={inputClass} 
-                                    placeholder="https://... (Optional)" 
-                                />
-                            </div>
-                            {tempBannerUrl && (
-                                <div className="mt-2 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 h-24 w-full">
-                                    <img src={tempBannerUrl} alt="Preview" className="w-full h-full object-cover" />
-                                </div>
-                            )}
-                            <div className="flex gap-2 mt-4 pt-2">
-                                <button type="button" onClick={() => setIsBannerModalOpen(false)} className="flex-1 py-2 bg-gray-200 rounded-lg font-bold text-gray-700">{t.cancel}</button>
-                                <button type="submit" className="flex-1 py-2 bg-primary text-white rounded-lg font-bold">{t.save}</button>
+                            <input type="text" placeholder="Image URL" value={tempBannerUrl} onChange={e => setTempBannerUrl(e.target.value)} className={inputClass} />
+                            <input type="text" placeholder="Action URL" value={tempActionUrl} onChange={e => setTempActionUrl(e.target.value)} className={inputClass} />
+                            <div className="flex gap-2 mt-4">
+                                <button type="button" onClick={() => setIsBannerModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl">{t.cancel}</button>
+                                <button type="submit" className="flex-1 py-2 bg-primary text-white rounded-xl">{t.save}</button>
                             </div>
                         </form>
                     </div>
@@ -1724,61 +1810,56 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
 
             {/* Notification Modal */}
             {isNotifModalOpen && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-dark-card w-full max-w-sm p-6 rounded-2xl shadow-xl animate-smart-pop-in flex flex-col max-h-[85vh]">
-                        <h3 className="font-bold text-lg mb-4">Send Notification</h3>
-                        <form onSubmit={handleSendNotification} className="space-y-3 flex-1 overflow-y-auto">
-                            <div><label className="text-xs font-bold uppercase text-gray-500">{t.notifTitle}</label><input required value={newNotif.title} onChange={e => setNewNotif({...newNotif, title: e.target.value})} className={inputClass} /></div>
-                            <div><label className="text-xs font-bold uppercase text-gray-500">{t.notifBody}</label><textarea required value={newNotif.message} onChange={e => setNewNotif({...newNotif, message: e.target.value})} className={inputClass} rows={3} /></div>
-                            <div>
-                                <label className="text-xs font-bold uppercase text-gray-500">{t.notifType}</label>
-                                <div className="flex gap-2 mt-1">
-                                    {['system', 'bonus', 'offer'].map(type => (
-                                        <button type="button" key={type} onClick={() => setNewNotif({...newNotif, type: type as any})} className={`px-3 py-1 rounded-lg text-xs font-bold border capitalize ${newNotif.type === type ? 'bg-primary text-white border-primary' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>{type}</button>
-                                    ))}
-                                </div>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-sm">
+                        <h3 className="text-lg font-bold mb-4">Send Notification</h3>
+                        <form onSubmit={handleSendNotification} className="space-y-3">
+                            <input type="text" placeholder="Title" value={newNotif.title} onChange={e => setNewNotif({...newNotif, title: e.target.value})} className={inputClass} />
+                            <textarea placeholder="Message" value={newNotif.message} onChange={e => setNewNotif({...newNotif, message: e.target.value})} className={inputClass} rows={3} />
+                            <select value={newNotif.type} onChange={e => setNewNotif({...newNotif, type: e.target.value as any})} className={inputClass}>
+                                <option value="system">System</option>
+                                <option value="offer">Offer</option>
+                                <option value="bonus">Bonus</option>
+                            </select>
+                            <div className="flex gap-2 mt-4">
+                                <button type="button" onClick={() => setIsNotifModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl">{t.cancel}</button>
+                                <button type="submit" className="flex-1 py-2 bg-primary text-white rounded-xl">{t.send}</button>
                             </div>
-                            <div className="flex gap-2 mt-4 pt-2"><button type="button" onClick={() => setIsNotifModalOpen(false)} className="flex-1 py-2 bg-gray-200 rounded-lg font-bold">{t.cancel}</button><button type="submit" className="flex-1 py-2 bg-primary text-white rounded-lg font-bold">{t.send}</button></div>
                         </form>
                     </div>
                 </div>
             )}
-
-            {/* Contact Modal */}
-            {isContactModalOpen && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-dark-card w-full max-w-sm p-6 rounded-2xl shadow-xl animate-smart-pop-in">
-                        <h3 className="font-bold text-lg mb-4">{editingContactIndex !== null ? t.edit : t.add} Contact</h3>
-                        <form onSubmit={handleSaveContact} className="space-y-3">
-                            <div><label className="text-xs font-bold uppercase text-gray-500">{t.contactLabel}</label><input required value={editingContact?.title || ''} onChange={e => setEditingContact({...editingContact!, title: e.target.value})} className={inputClass} /></div>
-                            <div><label className="text-xs font-bold uppercase text-gray-500">{t.contactLink}</label><input required value={editingContact?.link || ''} onChange={e => setEditingContact({...editingContact!, link: e.target.value})} className={inputClass} placeholder="https://... or tel:..." /></div>
-                            <div>
-                                <label className="text-xs font-bold uppercase text-gray-500">{t.contactType}</label>
-                                <select value={editingContact?.type || 'phone'} onChange={e => setEditingContact({...editingContact!, type: e.target.value})} className={inputClass}>
-                                    <option value="phone">Phone</option><option value="whatsapp">WhatsApp</option><option value="telegram">Telegram</option><option value="email">Email</option><option value="video">Video</option>
-                                </select>
+            
+            {/* Security Modal */}
+            {isSecurityModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-xs text-center">
+                        <LockIcon className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                        <h3 className="text-lg font-bold mb-2">{t.securityCheck}</h3>
+                        <p className="text-sm text-gray-500 mb-4">{t.enterKey}</p>
+                        <form onSubmit={handleVerifySecurityKey}>
+                            <input type="password" value={securityKeyInput} onChange={e => setSecurityKeyInput(e.target.value)} className={`${inputClass} text-center tracking-widest mb-4`} autoFocus />
+                            <div className="flex gap-2">
+                                <button type="button" onClick={() => setIsSecurityModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl">{t.cancel}</button>
+                                <button type="submit" className="flex-1 py-2 bg-red-500 text-white rounded-xl">{t.unlock}</button>
                             </div>
-                            <div className="flex gap-2 mt-4 pt-2"><button type="button" onClick={() => setIsContactModalOpen(false)} className="flex-1 py-2 bg-gray-200 rounded-lg font-bold">{t.cancel}</button><button type="submit" className="flex-1 py-2 bg-primary text-white rounded-lg font-bold">{t.save}</button></div>
                         </form>
                     </div>
                 </div>
             )}
-
+            
             {/* Balance Modal */}
             {balanceModalUser && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-dark-card w-full max-w-xs p-6 rounded-2xl shadow-xl animate-smart-pop-in text-center flex flex-col max-h-[85vh]">
-                        <h3 className="font-bold text-lg mb-1">{t.manageBalance}</h3>
-                        <p className="text-sm text-gray-500 mb-4">For: {balanceModalUser.name}</p>
-                        <p className="text-2xl font-black mb-4 text-primary">৳{Math.floor(balanceModalUser.balance)}</p>
-                        <input type="number" placeholder="Enter amount" value={balanceAmount} onChange={(e) => setBalanceAmount(e.target.value)} className={`${inputClass} text-center font-bold text-lg mb-4`} />
-                        <button 
-                            onClick={handleBalanceUpdate} 
-                            className={`py-3 ${balanceAction === 'add' ? 'bg-green-500 shadow-green-500/30' : 'bg-red-500 shadow-red-500/30'} text-white rounded-xl font-bold shadow-lg`}
-                        >
-                            {balanceAction === 'add' ? t.addBalance : t.deductBalance}
-                        </button>
-                        <button onClick={() => setBalanceModalUser(null)} className="mt-4 text-gray-400 text-sm hover:text-gray-600">Close</button>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-xs">
+                        <h3 className="text-lg font-bold mb-4">{balanceAction === 'add' ? t.addBalance : t.deductBalance}</h3>
+                        <p className="text-sm text-gray-500 mb-2">User: <span className="font-bold">{balanceModalUser.name}</span></p>
+                        <p className="text-sm text-gray-500 mb-4">Current: ৳{Math.floor(balanceModalUser.balance)}</p>
+                        <input type="number" value={balanceAmount} onChange={e => setBalanceAmount(e.target.value)} className={inputClass} placeholder="Amount" autoFocus />
+                        <div className="flex gap-2 mt-4">
+                            <button onClick={() => setBalanceModalUser(null)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl">{t.cancel}</button>
+                            <button onClick={handleBalanceUpdate} className={`flex-1 py-2 text-white rounded-xl ${balanceAction === 'add' ? 'bg-green-500' : 'bg-red-500'}`}>{balanceAction === 'add' ? t.add : 'Deduct'}</button>
+                        </div>
                     </div>
                 </div>
             )}

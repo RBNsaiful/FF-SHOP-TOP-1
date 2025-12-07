@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, FC } from 'react';
 import type { User, PaymentMethod, Screen } from '../types';
 import { db } from '../firebase';
@@ -85,7 +87,9 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
   };
 
   const handleTrxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setTransactionId(e.target.value);
+      // STRICT VALIDATION: Replace any character that is NOT A-Z or 0-9 with empty string immediately
+      const cleanValue = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      setTransactionId(cleanValue);
       if (error) setError('');
   };
   
@@ -94,11 +98,11 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
       
       if (cleanId.length === 0) return { isValid: false, isError: false };
 
-      if (/[^a-zA-Z0-9]/.test(cleanId)) return { isValid: false, isError: true };
-      if (/(.)\1{2,}/.test(cleanId)) return { isValid: false, isError: true }; 
+      // Since input is restricted, we just check length and pure number
       if (cleanId.length < 8) return { isValid: false, isError: false };
-      if (/^\d+$/.test(cleanId)) return { isValid: false, isError: true };
-
+      // Optional: Prevent pure numbers if TrxID usually contains chars, but some gateways use numbers. 
+      // Keeping generic alphanumeric check for now.
+      
       return { isValid: true, isError: false };
   };
 

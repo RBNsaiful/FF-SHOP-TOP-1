@@ -2,6 +2,7 @@
 
 
 
+
 import type { DiamondOffer, PaymentMethod, SupportContact, LevelUpPackage, Membership, PremiumApp, Banner } from './types';
 
 export const APP_LOGO_URL = 'https://i.ibb.co/k2nGxqwY/1763225878291.jpg';
@@ -104,6 +105,8 @@ export const DEFAULT_APP_SETTINGS = {
     aiApiKey: "", // Dynamic API Key (empty by default)
     aiName: "AI Tuktuki", // Default AI Name
     logoUrl: APP_LOGO_URL,
+    contactMessage: "Have a question or need help with your order? We are here to assist you 24/7.",
+    operatingHours: "Operating Hours: 10:00 AM - 10:00 PM",
     visibility: {
         diamonds: true,
         levelUp: true,

@@ -65,9 +65,24 @@ const VideoAdPlayer: FC<VideoAdPlayerProps> = ({ videoUrl, onComplete, onClose, 
 
     }, [videoUrl, duration]);
 
+    // --- TIMEOUT LOGIC: If content doesn't load in 8 seconds, FAIL ---
+    useEffect(() => {
+        let timeout: number;
+        if (loading && !isContentReady && !hasError) {
+            timeout = window.setTimeout(() => {
+                if (!isContentReady) {
+                    console.warn("Ad load timed out");
+                    setHasError(true);
+                    setLoading(false);
+                }
+            }, 8000); // 8 Seconds Timeout
+        }
+        return () => clearTimeout(timeout);
+    }, [loading, isContentReady, hasError]);
+
     // Timer Logic - Only runs when isContentReady is TRUE
     useEffect(() => {
-        if (!isContentReady || canSkip) return;
+        if (!isContentReady || canSkip || hasError) return;
 
         // Initialize end time when content becomes ready
         if (!endTimeRef.current) {
@@ -89,7 +104,7 @@ const VideoAdPlayer: FC<VideoAdPlayerProps> = ({ videoUrl, onComplete, onClose, 
         }, 500);
 
         return () => clearInterval(timer);
-    }, [isContentReady, canSkip, duration, onComplete]);
+    }, [isContentReady, canSkip, duration, onComplete, hasError]);
 
     // --- Handlers ---
 
@@ -125,6 +140,12 @@ const VideoAdPlayer: FC<VideoAdPlayerProps> = ({ videoUrl, onComplete, onClose, 
     };
 
     const handleCloseAttempt = () => {
+        // If error, force close without reward
+        if (hasError) {
+            onClose();
+            return;
+        }
+
         if (canSkip) {
             onClose();
         } else {
@@ -137,6 +158,7 @@ const VideoAdPlayer: FC<VideoAdPlayerProps> = ({ videoUrl, onComplete, onClose, 
     const handleRetry = () => {
         setLoading(true);
         setHasError(false);
+        setIsContentReady(false);
         // Force iframe reload
         const currentSrc = embedSrc;
         setEmbedSrc('');
@@ -147,11 +169,15 @@ const VideoAdPlayer: FC<VideoAdPlayerProps> = ({ videoUrl, onComplete, onClose, 
         <div className="fixed inset-0 z-[100] bg-black flex flex-col justify-center items-center">
             {/* Top Bar */}
             <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
-                <div className={`px-4 py-1.5 rounded-full text-xs font-bold border backdrop-blur-md shadow-lg transition-colors ${canSkip ? 'bg-green-500/90 border-green-400 text-white' : 'bg-black/60 border-white/20 text-white'}`}>
+                <div className={`px-4 py-1.5 rounded-full text-xs font-bold border backdrop-blur-md shadow-lg transition-colors ${
+                    hasError ? 'bg-red-500/90 border-red-400 text-white' :
+                    canSkip ? 'bg-green-500/90 border-green-400 text-white' : 
+                    'bg-black/60 border-white/20 text-white'
+                }`}>
                     {canSkip 
                         ? "Reward Granted" 
                         : hasError 
-                            ? "Error Loading Ad"
+                            ? "Ad Failed to Load"
                             : loading 
                                 ? "Loading Ad..." 
                                 : `Reward in: ${timeLeft > 0 ? timeLeft : 0}s`
@@ -183,15 +209,25 @@ const VideoAdPlayer: FC<VideoAdPlayerProps> = ({ videoUrl, onComplete, onClose, 
                         <div className="w-16 h-16 rounded-full bg-red-900/30 flex items-center justify-center mb-4">
                             <XIcon className="w-8 h-8 text-red-500" />
                         </div>
-                        <h3 className="text-lg font-bold mb-2">Video Unavailable</h3>
-                        <p className="text-sm text-gray-400 mb-6">The ad could not be loaded. Please check your internet or contact support.</p>
-                        <button 
-                            onClick={handleRetry}
-                            className="flex items-center space-x-2 bg-primary px-6 py-2 rounded-full font-bold hover:bg-primary-dark transition-colors"
-                        >
-                            <RefreshIcon className="w-4 h-4" />
-                            <span>Try Again</span>
-                        </button>
+                        <h3 className="text-lg font-bold mb-2">Ad Failed to Load</h3>
+                        <p className="text-sm text-gray-400 mb-6 max-w-xs mx-auto">
+                            The video or ad content timed out or was blocked. No reward can be given for this view.
+                        </p>
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={handleCloseAttempt}
+                                className="bg-gray-700 px-6 py-2 rounded-full font-bold hover:bg-gray-600 transition-colors"
+                            >
+                                Close
+                            </button>
+                            <button 
+                                onClick={handleRetry}
+                                className="flex items-center space-x-2 bg-primary px-6 py-2 rounded-full font-bold hover:bg-primary-dark transition-colors"
+                            >
+                                <RefreshIcon className="w-4 h-4" />
+                                <span>Retry</span>
+                            </button>
+                        </div>
                     </div>
                 )}
 
@@ -204,10 +240,11 @@ const VideoAdPlayer: FC<VideoAdPlayerProps> = ({ videoUrl, onComplete, onClose, 
                             // Important: onLoad triggers when content is fully loaded
                             onLoad={handleContentLoad}
                             onError={handleLoadError}
-                            // Added permissions for YouTube/Videos
+                            // Added permissions for YouTube/Videos/Smartlinks
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
-                            sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+                            // Broader sandbox permissions for Smartlinks/Social embeds
+                            sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-popups"
                         />
                     )
                 ) : (

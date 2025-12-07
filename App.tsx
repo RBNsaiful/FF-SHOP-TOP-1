@@ -242,7 +242,10 @@ const App: FC = () => {
                               ...(data.appSettings.uiSettings || {})
                           },
                           // Ensure new flags have defaults if missing
-                          aiSupportActive: data.appSettings.aiSupportActive ?? DEFAULT_APP_SETTINGS.aiSupportActive
+                          aiSupportActive: data.appSettings.aiSupportActive ?? DEFAULT_APP_SETTINGS.aiSupportActive,
+                          // Dynamic Contact Info
+                          contactMessage: data.appSettings.contactMessage || DEFAULT_APP_SETTINGS.contactMessage,
+                          operatingHours: data.appSettings.operatingHours || DEFAULT_APP_SETTINGS.operatingHours
                       };
                       
                       // Cache immediately to prevent flashing on next reload
@@ -431,7 +434,7 @@ const App: FC = () => {
       case 'profile': return <ProfileScreen user={user} texts={texts} onLogout={handleLogout} setActiveScreen={setActiveScreen} theme={theme} setTheme={setTheme} language={language} setLanguage={setLanguage} appSettings={appSettings} />;
       case 'myOrders': return <MyOrdersScreen user={user} texts={texts} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
       case 'myTransaction': return <MyTransactionScreen user={user} texts={texts} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
-      case 'contactUs': return <ContactUsScreen texts={texts} contacts={supportContacts} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
+      case 'contactUs': return <ContactUsScreen texts={texts} contacts={supportContacts} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} appSettings={appSettings} />;
       case 'changePassword': return <ChangePasswordScreen texts={texts} onPasswordChanged={() => setActiveScreen('profile')} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
       case 'watchAds': 
         if (appSettings.visibility && !appSettings.visibility.earn) return null; 
@@ -440,7 +443,7 @@ const App: FC = () => {
       case 'notifications': return <NotificationScreen texts={texts} notifications={notifications} onRead={handleMarkNotificationsAsRead} />;
       case 'admin':
           if (user.role !== 'admin') return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} specialOffers={specialOffers} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} uiSettings={appSettings.uiSettings} />;
-          return <AdminScreen user={user} texts={texts} onNavigate={handleSuccessNavigate} onLogout={handleLogout} language={language} setLanguage={setLanguage} appSettings={appSettings} />;
+          return <AdminScreen user={user} texts={texts} onNavigate={handleSuccessNavigate} onLogout={handleLogout} language={language} setLanguage={setLanguage} appSettings={appSettings} theme={theme} setTheme={setTheme} />;
       case 'aiChat':
           return null; // AI Bot logic handles rendering itself when activeScreen is 'aiChat'
       default: return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} specialOffers={specialOffers} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} uiSettings={appSettings.uiSettings} />;

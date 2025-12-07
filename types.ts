@@ -182,6 +182,8 @@ export interface AppSettings {
   aiName?: string; // NEW: Custom AI Name
   notice?: string;
   logoUrl?: string;
+  contactMessage?: string; // NEW: Custom Support Message
+  operatingHours?: string; // NEW: Custom Operating Hours
   visibility?: AppVisibility;
   earnSettings?: EarnSettings;
   developerSettings?: DeveloperSettings;
