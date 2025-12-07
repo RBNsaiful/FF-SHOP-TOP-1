@@ -30,11 +30,12 @@ const VideoAdPlayer: FC<VideoAdPlayerProps> = ({ videoUrl, onComplete, onClose, 
     const endTimeRef = useRef<number | null>(null);
 
     // Helper to convert YouTube links to Embed format
+    // CRITICAL FIX: Added 'mute=1' to ensure autoplay works on modern browsers
     const getEmbedUrl = (url: string) => {
-        // Regex to extract YouTube ID
-        const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|.*\/)([^&?]*))/);
+        // Regex to extract YouTube ID (Supports youtu.be, youtube.com/watch, youtube.com/embed)
+        const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|.*\/|embed\/)([^&?]*))/);
         if (ytMatch && ytMatch[1]) {
-            return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&controls=0&rel=0&modestbranding=1&playsinline=1`;
+            return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&showinfo=0`;
         }
         return url;
     };
@@ -47,7 +48,8 @@ const VideoAdPlayer: FC<VideoAdPlayerProps> = ({ videoUrl, onComplete, onClose, 
         }
 
         // Determine type and format URL
-        const isVideoFile = videoUrl.match(/\.(mp4|webm|ogg)$/i);
+        // Check for common video extensions
+        const isVideoFile = videoUrl.match(/\.(mp4|webm|ogg|mov)$/i);
         setIsIframe(!isVideoFile);
         
         if (!isVideoFile) {
@@ -92,8 +94,11 @@ const VideoAdPlayer: FC<VideoAdPlayerProps> = ({ videoUrl, onComplete, onClose, 
     // --- Handlers ---
 
     const handleContentLoad = () => {
-        setLoading(false);
-        setIsContentReady(true); // Start the timer now
+        // Prevent double triggering
+        if (!isContentReady) {
+            setLoading(false);
+            setIsContentReady(true); // Start the timer now
+        }
     };
 
     const handleLoadError = () => {
@@ -106,9 +111,8 @@ const VideoAdPlayer: FC<VideoAdPlayerProps> = ({ videoUrl, onComplete, onClose, 
         if (videoRef.current && videoRef.current.duration) {
             // For raw video files, we rely on the video's own time
             const remaining = Math.ceil(videoRef.current.duration - videoRef.current.currentTime);
-            setTimeLeft(remaining);
-            
-            // Sync content ready state if playing
+            // Only update UI if logic requires, but main timer is separate now for consistency
+            // However, ensuring content is ready:
             if (!isContentReady && videoRef.current.currentTime > 0) {
                 handleContentLoad();
             }
@@ -143,7 +147,7 @@ const VideoAdPlayer: FC<VideoAdPlayerProps> = ({ videoUrl, onComplete, onClose, 
         <div className="fixed inset-0 z-[100] bg-black flex flex-col justify-center items-center">
             {/* Top Bar */}
             <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
-                <div className={`px-3 py-1 rounded-full text-xs font-bold border backdrop-blur-md shadow-lg transition-colors ${canSkip ? 'bg-green-500/80 border-green-400 text-white' : 'bg-black/60 border-white/20 text-white'}`}>
+                <div className={`px-4 py-1.5 rounded-full text-xs font-bold border backdrop-blur-md shadow-lg transition-colors ${canSkip ? 'bg-green-500/90 border-green-400 text-white' : 'bg-black/60 border-white/20 text-white'}`}>
                     {canSkip 
                         ? "Reward Granted" 
                         : hasError 
@@ -169,18 +173,18 @@ const VideoAdPlayer: FC<VideoAdPlayerProps> = ({ videoUrl, onComplete, onClose, 
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10 bg-black">
                         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-3"></div>
                         <p className="text-sm text-gray-400 animate-pulse">Loading Advertisement...</p>
-                        <p className="text-xs text-gray-600 mt-2">Timer starts when ad loads</p>
+                        <p className="text-xs text-gray-600 mt-2">Timer starts when video plays</p>
                     </div>
                 )}
 
-                {/* Error State - Replaces the broken icon */}
+                {/* Error State */}
                 {hasError && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10 bg-black/90 p-6 text-center">
                         <div className="w-16 h-16 rounded-full bg-red-900/30 flex items-center justify-center mb-4">
                             <XIcon className="w-8 h-8 text-red-500" />
                         </div>
                         <h3 className="text-lg font-bold mb-2">Video Unavailable</h3>
-                        <p className="text-sm text-gray-400 mb-6">The ad could not be loaded. This might be due to a slow connection or an invalid link.</p>
+                        <p className="text-sm text-gray-400 mb-6">The ad could not be loaded. Please check your internet or contact support.</p>
                         <button 
                             onClick={handleRetry}
                             className="flex items-center space-x-2 bg-primary px-6 py-2 rounded-full font-bold hover:bg-primary-dark transition-colors"
@@ -219,7 +223,9 @@ const VideoAdPlayer: FC<VideoAdPlayerProps> = ({ videoUrl, onComplete, onClose, 
                             onEnded={handleEnded}
                             onCanPlay={handleContentLoad} 
                             onError={handleLoadError}
+                            // CRITICAL: Muted is required for autoplay in most browsers
                             autoPlay
+                            muted 
                         />
                     )
                 )}

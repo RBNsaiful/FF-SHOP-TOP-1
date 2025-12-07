@@ -1,9 +1,10 @@
 
+
 import type { FC } from 'react';
 
 export type Language = 'en' | 'bn';
 export type Theme = 'light' | 'dark';
-export type Screen = 'home' | 'wallet' | 'profile' | 'myOrders' | 'myTransaction' | 'contactUs' | 'changePassword' | 'watchAds' | 'editProfile' | 'notifications' | 'admin';
+export type Screen = 'home' | 'wallet' | 'profile' | 'myOrders' | 'myTransaction' | 'contactUs' | 'changePassword' | 'watchAds' | 'editProfile' | 'notifications' | 'admin' | 'aiChat';
 
 export interface User {
   name: string;
@@ -16,6 +17,7 @@ export interface User {
   totalEarned: number;
   role?: 'user' | 'admin';
   isBanned?: boolean;
+  aiRequestCount?: number; // New: Tracks number of AI interactions
   adsWatchedInfo?: {
       count: number;
       lastAdTimestamp?: number;
@@ -175,6 +177,9 @@ export interface UiSettings {
 export interface AppSettings {
   appName: string;
   maintenanceMode: boolean;
+  aiSupportActive?: boolean; // NEW: AI Support Toggle
+  aiApiKey?: string; // NEW: Custom API Key for AI
+  aiName?: string; // NEW: Custom AI Name
   notice?: string;
   logoUrl?: string;
   visibility?: AppVisibility;

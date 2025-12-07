@@ -40,6 +40,10 @@ const ArrowUpIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http
 const ArrowDownIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg>);
 const FireIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.2-2.2.5-3.3.3 1.3 1 2 2.5 2.8z"/></svg>);
 const LayersIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>);
+const RobotIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 8V4H8" /><rect x="4" y="8" width="16" height="12" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" /></svg>);
+const LayoutIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></svg>);
+const ShieldIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>);
+const DollarIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>);
 
 // Offer Icons
 const DiamondIcon: FC<{className?: string}> = ({className}) => (<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className={className}><path d="M12 2L2 8.5l10 13.5L22 8.5 12 2z" /></svg>);
@@ -159,6 +163,13 @@ const ADMIN_TEXTS = {
         small: "Small",
         medium: "Medium",
         large: "Large",
+        aiManager: "AI Manager",
+        totalAiInteractions: "Total Interactions",
+        aiActiveUsers: "Active Users",
+        aiConfig: "AI Configuration",
+        enableAi: "Enable AI Support",
+        aiName: "Bot Name",
+        aiApiKey: "Gemini API Key",
     },
     bn: {
         dashboard: "ড্যাশবোর্ড",
@@ -270,6 +281,13 @@ const ADMIN_TEXTS = {
         small: "ছোট",
         medium: "মাঝারি",
         large: "বড়",
+        aiManager: "এআই ম্যানেজার",
+        totalAiInteractions: "মোট ইন্টারঅ্যাকশন",
+        aiActiveUsers: "সক্রিয় ইউজার",
+        aiConfig: "এআই কনফিগারেশন",
+        enableAi: "এআই সাপোর্ট চালু করুন",
+        aiName: "বটের নাম",
+        aiApiKey: "এপিআই কি (API Key)",
     }
 };
 
@@ -324,7 +342,7 @@ const SearchInput: FC<{ value: string; onChange: (val: string) => void; placehol
 const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, language, setLanguage, appSettings }) => {
     // Navigation State
     const [activeTab, setActiveTab] = useState<'dashboard' | 'offers' | 'orders' | 'deposits' | 'tools'>('dashboard');
-    const [activeTool, setActiveTool] = useState<'users' | 'settings' | 'graphics' | 'wallet' | 'notifications' | 'contacts' | 'ads'>('users');
+    const [activeTool, setActiveTool] = useState<'users' | 'settings' | 'graphics' | 'wallet' | 'notifications' | 'contacts' | 'ads' | 'ai'>('users');
     
     // Filter States
     const [orderFilter, setOrderFilter] = useState<'Pending' | 'Completed' | 'Failed'>('Pending');
@@ -361,6 +379,9 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     // Other UI States
     const [permissionError, setPermissionError] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState<{ show: boolean; title: string; message: string; onConfirm: () => void } | null>(null);
+    
+    // AI API Key Validation State
+    const [apiKeyError, setApiKeyError] = useState('');
 
     // Offer State
     const [offerType, setOfferType] = useState<'diamond' | 'levelUp' | 'membership' | 'premium' | 'special'>('diamond');
@@ -432,9 +453,12 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                     let allOrders: Purchase[] = [];
                     snap.forEach(userOrders => {
                         const uOrders = userOrders.val();
-                        Object.keys(uOrders).forEach(key => {
-                            allOrders.push({ ...uOrders[key], key, userId: userOrders.key! });
-                        });
+                        // Important Check: Only iterate if uOrders is an object
+                        if (uOrders) {
+                            Object.keys(uOrders).forEach(key => {
+                                allOrders.push({ ...uOrders[key], key, userId: userOrders.key! });
+                            });
+                        }
                     });
                     setOrders(allOrders.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
                 } else {
@@ -447,9 +471,11 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                     let allTxns: Transaction[] = [];
                     snap.forEach(userTxns => {
                         const uTxns = userTxns.val();
-                        Object.keys(uTxns).forEach(key => {
-                            allTxns.push({ ...uTxns[key], key, userId: userTxns.key! });
-                        });
+                        if (uTxns) {
+                            Object.keys(uTxns).forEach(key => {
+                                allTxns.push({ ...uTxns[key], key, userId: userTxns.key! });
+                            });
+                        }
                     });
                     setTransactions(allTxns.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
                 } else {
@@ -489,7 +515,10 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                             uiSettings: {
                                 ...DEFAULT_APP_SETTINGS.uiSettings,
                                 ...(data.appSettings.uiSettings || {})
-                            }
+                            },
+                            aiSupportActive: data.appSettings.aiSupportActive ?? DEFAULT_APP_SETTINGS.aiSupportActive,
+                            aiName: data.appSettings.aiName || DEFAULT_APP_SETTINGS.aiName,
+                            aiApiKey: data.appSettings.aiApiKey || ""
                         };
                         setSettings(mergedSettings);
                         setOriginalSettings(mergedSettings); 
@@ -539,6 +568,12 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         };
     }, [users, orders, transactions]);
 
+    const aiStats = useMemo(() => {
+        const totalInteractions = users.reduce((acc, u) => acc + (u.aiRequestCount || 0), 0);
+        const activeAiUsers = users.filter(u => (u.aiRequestCount || 0) > 0).length;
+        return { totalInteractions, activeAiUsers };
+    }, [users]);
+
     const filteredUsers = useMemo(() => {
         if (!userSearch) return users;
         const lowerTerm = userSearch.toLowerCase();
@@ -579,6 +614,20 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const handleSettingsSave = async (e: FormEvent) => {
         e.preventDefault();
         
+        // 1. API Key Validation
+        const currentKey = settings.aiApiKey || '';
+        if (currentKey.length > 0) {
+            // Google API keys start with AIza and are usually 39 chars long.
+            // Using a specific regex for Google Cloud API Keys.
+            const apiKeyRegex = /^AIza[0-9A-Za-z\-_]{35}$/;
+            if (!apiKeyRegex.test(currentKey)) {
+                setApiKeyError("Invalid API Key format. Must start with 'AIza' and be 39 characters long.");
+                alert("Settings NOT Saved!\n\nReason: Invalid Gemini API Key format.\nPlease correct it and try again.");
+                return;
+            }
+        }
+        setApiKeyError(''); // Clear error if valid or empty
+
         let finalSettings = { ...settings };
         
         // Parse YouTube Link logic
@@ -609,7 +658,13 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         await update(ref(db, 'config/appSettings'), safeSettings);
         setSettings(finalSettings); // Update local state with the transformed URL
         setOriginalSettings(finalSettings);
-        alert(t.save + "d!");
+        
+        // Detailed Success Message
+        let successMsg = "✅ Settings Saved Successfully!";
+        if (settings.aiApiKey && settings.aiApiKey !== originalSettings?.aiApiKey) {
+            successMsg += "\n\nThe new API Key is successfully updated and is now ACTIVE in the system.";
+        }
+        alert(successMsg);
     };
 
     // --- SECURE DEVELOPER INFO UNLOCK ---
@@ -938,6 +993,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                             {[
                                 { id: 'users', label: t.users, icon: UsersIcon },
                                 { id: 'wallet', label: t.wallet, icon: WalletIcon },
+                                { id: 'ai', label: t.aiManager, icon: RobotIcon },
                                 { id: 'graphics', label: t.graphics, icon: ImageIcon },
                                 { id: 'ads', label: t.ads, icon: MegaphoneIcon },
                                 { id: 'notifications', label: t.notifications, icon: BellIcon },
@@ -994,10 +1050,188 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 </div>
                             )}
 
+                            {/* AI MANAGER TOOL */}
+                            {activeTool === 'ai' && (
+                                <div className="space-y-6 animate-fade-in">
+                                    {/* Stats Card */}
+                                    <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-5 rounded-2xl text-white shadow-lg">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <RobotIcon className="w-8 h-8 text-white/90" />
+                                            <h3 className="font-bold text-lg">{t.aiManager}</h3>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl border border-white/10">
+                                                <p className="text-2xl font-black mb-1">{aiStats.totalInteractions}</p>
+                                                <p className="text-[10px] uppercase font-bold text-white/80">{t.totalAiInteractions}</p>
+                                            </div>
+                                            <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl border border-white/10">
+                                                <p className="text-2xl font-black mb-1">{aiStats.activeAiUsers}</p>
+                                                <p className="text-[10px] uppercase font-bold text-white/80">{t.aiActiveUsers}</p>
+                                            </div>
+                                        </div>
+                                        <p className="text-[10px] text-white/60 mt-3 text-center">Monitoring real-time interactions with Gemini AI.</p>
+                                    </div>
+
+                                    {/* Configuration Card */}
+                                    <div className="bg-gray-50 dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700">
+                                        <h4 className="font-bold text-sm mb-4 uppercase text-indigo-600 dark:text-indigo-400">{t.aiConfig}</h4>
+                                        
+                                        <div className="space-y-4">
+                                            {/* Toggle Switch */}
+                                            <div className="flex justify-between items-center p-3 bg-white dark:bg-dark-card rounded-xl border border-gray-100 dark:border-gray-700">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-sm">{t.enableAi}</span>
+                                                </div>
+                                                <div 
+                                                    onClick={() => setSettings({...settings, aiSupportActive: !settings.aiSupportActive})}
+                                                    className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${settings.aiSupportActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                                                >
+                                                    <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${settings.aiSupportActive ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                                                </div>
+                                            </div>
+
+                                            {/* AI Name Input */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">{t.aiName}</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={settings.aiName || ''} 
+                                                    onChange={(e) => setSettings({...settings, aiName: e.target.value})} 
+                                                    className={inputClass}
+                                                    placeholder="AI Tuktuki"
+                                                />
+                                            </div>
+
+                                            {/* API Key Input */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">{t.aiApiKey}</label>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="password" 
+                                                        value={settings.aiApiKey || ''} 
+                                                        onChange={(e) => {
+                                                            setSettings({...settings, aiApiKey: e.target.value});
+                                                            if (apiKeyError) setApiKeyError(''); // Clear error on change
+                                                        }} 
+                                                        className={`${inputClass} pr-10 ${apiKeyError ? 'border-red-500 focus:ring-red-500' : ''}`}
+                                                        placeholder="AIzaSy..."
+                                                    />
+                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                                        <LockIcon className="w-4 h-4" />
+                                                    </div>
+                                                </div>
+                                                {apiKeyError ? (
+                                                    <p className="text-red-500 text-[10px] mt-1 font-bold animate-pulse">{apiKeyError}</p>
+                                                ) : (
+                                                    <p className="text-[10px] text-gray-400 mt-1">Key is securely stored. Leave empty to use fallback.</p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <button 
+                                            onClick={handleSettingsSave} 
+                                            disabled={!isSettingsChanged}
+                                            className={`w-full mt-6 py-3 font-bold rounded-xl shadow-md transition-all ${isSettingsChanged ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                                        >
+                                            {t.save} Settings
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* NEW ADS MANAGER TOOL */}
                             {activeTool === 'ads' && (
                                 <div>
                                     <h4 className="font-bold text-sm mb-3 uppercase text-purple-600">{t.adsConfig}</h4>
+                                    
+                                    {/* VIDEO & REWARD ADS CONFIGURATION (Restored) */}
+                                    <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
+                                        <div className="flex items-center gap-2 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">
+                                            <MegaphoneIcon className="w-5 h-5 text-orange-500" />
+                                            <h4 className="font-bold text-sm uppercase text-gray-600 dark:text-gray-300">Video & Reward Ads Configuration</h4>
+                                        </div>
+
+                                        {/* Web Ads Config */}
+                                        <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <span className="font-bold text-xs text-blue-600 uppercase">{t.webAds}</span>
+                                                <div 
+                                                    onClick={() => setSettings({
+                                                        ...settings,
+                                                        earnSettings: {
+                                                            ...settings.earnSettings!,
+                                                            webAds: { ...settings.earnSettings!.webAds, active: !settings.earnSettings!.webAds.active }
+                                                        }
+                                                    })}
+                                                    className={`w-10 h-5 flex items-center rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.webAds?.active ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                                >
+                                                    <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.webAds?.active ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <div>
+                                                    <label className="block text-[10px] text-gray-500 font-bold uppercase mb-1">{t.adUrl}</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.earnSettings?.webAds?.url || ''} 
+                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, url: e.target.value } }})} 
+                                                        className={inputClass} 
+                                                        placeholder="https://... (YouTube or MP4)" 
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] text-gray-500 font-bold uppercase mb-1">{t.adDuration} (sec)</label>
+                                                    <input 
+                                                        type="number" 
+                                                        value={settings.earnSettings?.webAds?.duration || 15} 
+                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, duration: Number(e.target.value) } }})} 
+                                                        className={inputClass} 
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* AdMob Config */}
+                                        <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <span className="font-bold text-xs text-green-600 uppercase">{t.adMob}</span>
+                                                <div 
+                                                    onClick={() => setSettings({
+                                                        ...settings,
+                                                        earnSettings: {
+                                                            ...settings.earnSettings!,
+                                                            adMob: { ...settings.earnSettings!.adMob, active: !settings.earnSettings!.adMob.active }
+                                                        }
+                                                    })}
+                                                    className={`w-10 h-5 flex items-center rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.adMob?.active ? 'bg-green-500' : 'bg-gray-300'}`}
+                                                >
+                                                    <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.adMob?.active ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <div>
+                                                    <label className="block text-[10px] text-gray-500 font-bold uppercase mb-1">{t.appId}</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.earnSettings?.adMob?.appId || ''} 
+                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, appId: e.target.value } }})} 
+                                                        className={inputClass} 
+                                                        placeholder="ca-app-pub-..." 
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] text-gray-500 font-bold uppercase mb-1">{t.rewardId}</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.earnSettings?.adMob?.rewardId || ''} 
+                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, rewardId: e.target.value } }})} 
+                                                        className={inputClass} 
+                                                        placeholder="ca-app-pub-.../..." 
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                     
                                     {/* Home Screen Ads */}
                                     <div className="mb-6 bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
@@ -1147,201 +1381,145 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 </div>
                             )}
 
-                            {/* SETTINGS TOOL */}
+                            {/* SETTINGS TOOL (Organized Grid Layout) */}
                             {activeTool === 'settings' && (
-                                <div className="space-y-5">
-                                    <div className="space-y-3">
-                                        <label className="block text-xs font-bold uppercase text-gray-500">{t.appName}</label>
-                                        <input type="text" value={settings.appName} onChange={(e) => setSettings({...settings, appName: e.target.value})} className={inputClass} />
-                                        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 mt-4">
-                                            <h4 className="font-bold text-sm mb-3 uppercase text-primary">{t.appControl}</h4>
-                                            <div className="flex justify-between items-center mb-4 pb-4 border-b dark:border-gray-700"><span className="font-bold text-sm">{t.maintenance}</span><div onClick={() => setSettings({...settings, maintenanceMode: !settings.maintenanceMode})} className={`w-10 h-6 rounded-full p-1 cursor-pointer transition-colors ${settings.maintenanceMode ? 'bg-red-500' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full transition-transform ${settings.maintenanceMode ? 'translate-x-4' : ''}`}></div></div></div>
-                                            <h5 className="text-xs font-bold text-gray-400 uppercase mb-2">{t.visibility}</h5>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                {Object.keys(settings.visibility || {}).map((key) => (
-                                                    <div key={key} className="flex justify-between items-center p-2 bg-white dark:bg-dark-card rounded border border-transparent hover:border-primary/30 transition-colors"><span className="capitalize text-xs font-bold">{t[key as keyof typeof t] || key}</span><div onClick={() => setSettings({...settings, visibility: {...settings.visibility!, [key]: !settings.visibility![key as keyof AppVisibility]}})} className={`w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.visibility![key as keyof AppVisibility] ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.visibility![key as keyof AppVisibility] ? 'translate-x-4' : ''}`}></div></div></div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* --- NEW UI & APPEARANCE SECTION --- */}
-                                    <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                                        <h4 className="font-bold text-sm mb-3 uppercase text-blue-600">{t.uiAppearance}</h4>
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         
-                                        {/* Card Size Control */}
-                                        <div className="mb-4">
-                                            <label className="block text-xs font-bold text-gray-500 mb-2">{t.cardSize}</label>
-                                            <div className="grid grid-cols-3 gap-2">
-                                                {['small', 'medium', 'large'].map((size) => (
-                                                    <button
-                                                        key={size}
-                                                        onClick={() => setSettings({
-                                                            ...settings,
-                                                            uiSettings: { ...settings.uiSettings!, cardSize: size as 'small' | 'medium' | 'large' }
-                                                        })}
-                                                        className={`py-2 rounded-lg text-xs font-bold capitalize transition-colors ${
-                                                            settings.uiSettings?.cardSize === size 
-                                                                ? 'bg-blue-500 text-white shadow-md' 
-                                                                : 'bg-white dark:bg-dark-card text-gray-500 border border-gray-200 dark:border-gray-600'
-                                                        }`}
-                                                    >
-                                                        {t[size as keyof typeof t] || size}
-                                                    </button>
-                                                ))}
+                                        {/* 1. App Identity Card */}
+                                        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                                            <div className="flex items-center gap-2 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">
+                                                <SettingsIcon className="w-5 h-5 text-blue-500" />
+                                                <h4 className="font-bold text-sm uppercase text-gray-600 dark:text-gray-300">Identity & Branding</h4>
                                             </div>
-                                        </div>
-
-                                        {/* Global Animation Toggle */}
-                                        <div className="flex justify-between items-center p-2 bg-white dark:bg-dark-card rounded-lg border border-gray-200 dark:border-gray-700">
-                                            <span className="text-xs font-bold text-gray-600 dark:text-gray-300">{t.globalAnim}</span>
-                                            <div 
-                                                onClick={() => setSettings({
-                                                    ...settings,
-                                                    uiSettings: { ...settings.uiSettings!, animationsEnabled: !settings.uiSettings?.animationsEnabled }
-                                                })}
-                                                className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.uiSettings?.animationsEnabled ? 'bg-green-500' : 'bg-gray-300'}`}
-                                            >
-                                                <div className={`w-3 h-3 bg-white rounded-full shadow-sm transform transition-transform ${settings.uiSettings?.animationsEnabled ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* EARNING RULES (Global) */}
-                                    <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                                        <h4 className="font-bold text-sm mb-3 uppercase text-gray-600 dark:text-gray-300">{t.earnConfig}</h4>
-                                        <div className="grid grid-cols-2 gap-3 text-xs">
-                                            <div><label className="block mb-1 text-gray-500">{t.dailyLimit}</label><input type="number" value={settings.earnSettings?.dailyLimit} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, dailyLimit: Number(e.target.value) }})} className={inputClass} /></div>
-                                            <div><label className="block mb-1 text-gray-500">{t.rewardPerAd}</label><input type="number" value={settings.earnSettings?.rewardPerAd} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, rewardPerAd: Number(e.target.value) }})} className={inputClass} /></div>
-                                            <div><label className="block mb-1 text-gray-500">{t.cooldown}</label><input type="number" value={settings.earnSettings?.adCooldownSeconds} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adCooldownSeconds: Number(e.target.value) }})} className={inputClass} /></div>
-                                            <div><label className="block mb-1 text-gray-500">{t.resetHours}</label><input type="number" value={settings.earnSettings?.resetHours} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, resetHours: Number(e.target.value) }})} className={inputClass} /></div>
-                                        </div>
-                                    </div>
-
-                                    {/* ADS CONFIGURATION (Hybrid) - Still kept for backward compat or if needed */}
-                                    <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                                        <h4 className="font-bold text-sm mb-3 uppercase text-purple-600">Video/Reward Ads</h4>
-                                        
-                                        {/* SYSTEM 1: WEB ADS */}
-                                        <div className="mb-4 bg-white dark:bg-dark-card p-3 rounded-lg border border-blue-200 dark:border-blue-900/30 shadow-sm">
-                                            <div className="flex justify-between items-center mb-2 border-b pb-2 border-gray-100 dark:border-gray-700">
-                                                <h5 className="text-xs font-bold text-blue-600 uppercase">{t.webAds}</h5>
-                                                <div onClick={() => setSettings({
-                                                    ...settings, 
-                                                    earnSettings: { 
-                                                        ...settings.earnSettings!, 
-                                                        webAds: { ...settings.earnSettings!.webAds, active: !settings.earnSettings!.webAds.active },
-                                                    }
-                                                })} className={`w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.webAds?.active ? 'bg-blue-500' : 'bg-gray-300'}`}>
-                                                    <div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.earnSettings?.webAds?.active ? 'translate-x-4' : ''}`}></div>
-                                                </div>
-                                            </div>
-                                            <div className={`space-y-2 text-xs transition-opacity ${settings.earnSettings?.webAds?.active ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
+                                            <div className="space-y-3">
                                                 <div>
-                                                    <label className="block mb-1 text-gray-500">{t.adUrl}</label>
-                                                    <input 
-                                                        type="text" 
-                                                        value={settings.earnSettings?.webAds?.url || ''} 
-                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, url: e.target.value } }})} 
-                                                        className={inputClass} 
-                                                        placeholder="https://... (YouTube or MP4)" 
-                                                    />
+                                                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">{t.appName}</label>
+                                                    <input type="text" value={settings.appName} onChange={(e) => setSettings({...settings, appName: e.target.value})} className={inputClass} />
                                                 </div>
                                                 <div>
-                                                    <label className="block mb-1 text-gray-500">{t.adDuration}</label>
-                                                    <input 
-                                                        type="number" 
-                                                        value={settings.earnSettings?.webAds?.duration || 15} 
-                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, duration: Number(e.target.value) } }})} 
-                                                        className={inputClass} 
-                                                    />
+                                                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">{t.appLogo}</label>
+                                                    <input type="text" value={settings.logoUrl || ''} onChange={(e) => setSettings({...settings, logoUrl: e.target.value})} className={inputClass} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">{t.notice}</label>
+                                                    <textarea value={settings.notice || ''} onChange={(e) => setSettings({...settings, notice: e.target.value})} className={inputClass} rows={2} />
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* DEVELOPER INFO SECTION (SECURE) */}
-                                    <div className="bg-red-50 dark:bg-red-900/10 p-4 rounded-xl border border-red-200 dark:border-red-900/30 relative overflow-hidden transition-all">
-                                        <div className="absolute top-0 right-0 p-2 opacity-10 pointer-events-none">
-                                            <LockIcon className="w-24 h-24 text-red-500" />
+                                        {/* 2. Control & Visibility Card */}
+                                        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                                            <div className="flex items-center gap-2 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">
+                                                <EyeIcon className="w-5 h-5 text-purple-500" />
+                                                <h4 className="font-bold text-sm uppercase text-gray-600 dark:text-gray-300">{t.appControl}</h4>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {/* Maintenance Mode */}
+                                                <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                                    <span className="font-bold text-sm text-red-500">{t.maintenance}</span>
+                                                    <div onClick={() => setSettings({...settings, maintenanceMode: !settings.maintenanceMode})} className={`w-10 h-6 rounded-full p-1 cursor-pointer transition-colors ${settings.maintenanceMode ? 'bg-red-500' : 'bg-gray-300'}`}>
+                                                        <div className={`w-4 h-4 bg-white rounded-full transition-transform ${settings.maintenanceMode ? 'translate-x-4' : ''}`}></div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                                    {Object.keys(settings.visibility || {}).map((key) => (
+                                                        <div key={key} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                                            <span className="capitalize text-xs font-bold truncate pr-2">{t[key as keyof typeof t] || key}</span>
+                                                            <div onClick={() => setSettings({...settings, visibility: {...settings.visibility!, [key]: !settings.visibility![key as keyof AppVisibility]}})} className={`flex-shrink-0 w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.visibility![key as keyof AppVisibility] ? 'bg-green-500' : 'bg-gray-300'}`}>
+                                                                <div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.visibility![key as keyof AppVisibility] ? 'translate-x-4' : ''}`}></div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="relative z-10">
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <CodeIcon className="w-5 h-5 text-red-600 dark:text-red-400" />
-                                                <h4 className="font-bold text-sm uppercase text-red-700 dark:text-red-300">{t.devInfo}</h4>
+
+                                        {/* 3. UI Appearance Card */}
+                                        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                                            <div className="flex items-center gap-2 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">
+                                                <LayoutIcon className="w-5 h-5 text-teal-500" />
+                                                <h4 className="font-bold text-sm uppercase text-gray-600 dark:text-gray-300">{t.uiAppearance}</h4>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="block text-xs font-bold text-gray-500 mb-2">{t.cardSize}</label>
+                                                    <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                                                        {['small', 'medium', 'large'].map((size) => (
+                                                            <button
+                                                                key={size}
+                                                                onClick={() => setSettings({ ...settings, uiSettings: { ...settings.uiSettings!, cardSize: size as 'small' | 'medium' | 'large' } })}
+                                                                className={`flex-1 py-1.5 rounded-md text-xs font-bold capitalize transition-all ${settings.uiSettings?.cardSize === size ? 'bg-white dark:bg-gray-600 shadow text-primary' : 'text-gray-500'}`}
+                                                            >
+                                                                {t[size as keyof typeof t] || size}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-xs font-bold text-gray-600 dark:text-gray-300">{t.globalAnim}</span>
+                                                    <div onClick={() => setSettings({ ...settings, uiSettings: { ...settings.uiSettings!, animationsEnabled: !settings.uiSettings?.animationsEnabled } })} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.uiSettings?.animationsEnabled ? 'bg-green-500' : 'bg-gray-300'}`}>
+                                                        <div className={`w-3 h-3 bg-white rounded-full shadow-sm transform transition-transform ${settings.uiSettings?.animationsEnabled ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* 4. Earning Rules Card */}
+                                        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                                            <div className="flex items-center gap-2 mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">
+                                                <DollarIcon className="w-5 h-5 text-yellow-500" />
+                                                <h4 className="font-bold text-sm uppercase text-gray-600 dark:text-gray-300">{t.earnConfig}</h4>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div><label className="block text-[10px] text-gray-500 font-bold uppercase mb-1">{t.dailyLimit}</label><input type="number" value={settings.earnSettings?.dailyLimit} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, dailyLimit: Number(e.target.value) }})} className={inputClass} /></div>
+                                                <div><label className="block text-[10px] text-gray-500 font-bold uppercase mb-1">{t.rewardPerAd}</label><input type="number" value={settings.earnSettings?.rewardPerAd} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, rewardPerAd: Number(e.target.value) }})} className={inputClass} /></div>
+                                                <div><label className="block text-[10px] text-gray-500 font-bold uppercase mb-1">{t.cooldown} (s)</label><input type="number" value={settings.earnSettings?.adCooldownSeconds} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adCooldownSeconds: Number(e.target.value) }})} className={inputClass} /></div>
+                                                <div><label className="block text-[10px] text-gray-500 font-bold uppercase mb-1">{t.resetHours} (h)</label><input type="number" value={settings.earnSettings?.resetHours} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, resetHours: Number(e.target.value) }})} className={inputClass} /></div>
+                                            </div>
+                                        </div>
+
+                                        {/* 5. Developer Card (Secure) - Full Width on Mobile, Col 2 on Desktop if space permits */}
+                                        <div className="md:col-span-2 bg-red-50 dark:bg-red-900/10 p-5 rounded-2xl border border-red-200 dark:border-red-900/30 relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 p-2 opacity-10 pointer-events-none">
+                                                <LockIcon className="w-24 h-24 text-red-500" />
+                                            </div>
+                                            <div className="relative z-10">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <CodeIcon className="w-5 h-5 text-red-600 dark:text-red-400" />
+                                                    <h4 className="font-bold text-sm uppercase text-red-700 dark:text-red-300">{t.devInfo}</h4>
+                                                    {isDevUnlocked ? (
+                                                        <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded font-bold border border-green-200 animate-pulse">UNLOCKED</span>
+                                                    ) : (
+                                                        <span className="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded font-bold border border-red-200 flex items-center gap-1"><LockIcon className="w-3 h-3"/> LOCKED</span>
+                                                    )}
+                                                </div>
+                                                
                                                 {isDevUnlocked ? (
-                                                    <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded font-bold border border-green-200 animate-pulse">UNLOCKED</span>
+                                                    <div className="animate-smart-slide-down">
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mb-3">
+                                                            <div><label className="block mb-1 text-gray-500">{t.devTitle}</label><input type="text" value={devSettings.title} onChange={(e) => setDevSettings({...devSettings, title: e.target.value})} className={inputClass} /></div>
+                                                            <div><label className="block mb-1 text-gray-500">{t.devUrl}</label><input type="text" value={devSettings.url} onChange={(e) => setDevSettings({...devSettings, url: e.target.value})} className={inputClass} /></div>
+                                                            <div><label className="block mb-1 text-gray-500">{t.devMsg}</label><input type="text" value={devSettings.message} onChange={(e) => setDevSettings({...devSettings, message: e.target.value})} className={inputClass} /></div>
+                                                            <div><label className="block mb-1 text-gray-500">{t.devDesc}</label><input type="text" value={devSettings.description} onChange={(e) => setDevSettings({...devSettings, description: e.target.value})} className={inputClass} /></div>
+                                                        </div>
+                                                        <button onClick={handleSaveDeveloperInfo} className="w-full py-2 bg-green-600 text-white font-bold rounded-lg shadow-md hover:bg-green-700 active:scale-95 transition-all text-xs flex items-center justify-center gap-2"><CheckIcon className="w-3 h-3" /> {t.updateDev}</button>
+                                                    </div>
                                                 ) : (
-                                                    <span className="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded font-bold border border-red-200 flex items-center gap-1"><LockIcon className="w-3 h-3"/> LOCKED</span>
+                                                    <div className="text-center py-4 bg-white/50 dark:bg-black/20 rounded-lg border border-red-100 dark:border-red-900/20 backdrop-blur-sm">
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 font-medium">{t.devLocked}</p>
+                                                        <div className="flex flex-wrap gap-2 justify-center text-[10px] text-gray-400 mb-3 opacity-60">
+                                                            <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{devSettings.title}</span>
+                                                        </div>
+                                                        <button onClick={handleUnlockDevInfo} className="mx-auto px-4 py-2 bg-red-500 text-white font-bold rounded-lg shadow-md hover:bg-red-600 active:scale-95 transition-all text-xs flex items-center gap-2"><UnlockIcon className="w-3 h-3" /> {t.unlockDev}</button>
+                                                    </div>
                                                 )}
                                             </div>
-                                            
-                                            {isDevUnlocked ? (
-                                                <div className="animate-smart-slide-down">
-                                                    <div className="grid grid-cols-2 gap-3 text-xs mb-3">
-                                                        <div>
-                                                            <label className="block mb-1 text-gray-500">{t.devTitle}</label>
-                                                            <input 
-                                                                type="text" 
-                                                                value={devSettings.title} 
-                                                                onChange={(e) => setDevSettings({...devSettings, title: e.target.value})} 
-                                                                className={inputClass} 
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block mb-1 text-gray-500">{t.devUrl}</label>
-                                                            <input 
-                                                                type="text" 
-                                                                value={devSettings.url} 
-                                                                onChange={(e) => setDevSettings({...devSettings, url: e.target.value})} 
-                                                                className={inputClass} 
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block mb-1 text-gray-500">{t.devMsg}</label>
-                                                            <input 
-                                                                type="text" 
-                                                                value={devSettings.message} 
-                                                                onChange={(e) => setDevSettings({...devSettings, message: e.target.value})} 
-                                                                className={inputClass} 
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block mb-1 text-gray-500">{t.devDesc}</label>
-                                                            <input 
-                                                                type="text" 
-                                                                value={devSettings.description} 
-                                                                onChange={(e) => setDevSettings({...devSettings, description: e.target.value})} 
-                                                                className={inputClass} 
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <button 
-                                                        onClick={handleSaveDeveloperInfo}
-                                                        className="w-full py-2 bg-green-600 text-white font-bold rounded-lg shadow-md hover:bg-green-700 active:scale-95 transition-all text-xs flex items-center justify-center gap-2"
-                                                    >
-                                                        <CheckIcon className="w-3 h-3" /> {t.updateDev}
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <div className="text-center py-4 bg-white/50 dark:bg-black/20 rounded-lg border border-red-100 dark:border-red-900/20 backdrop-blur-sm">
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 font-medium">{t.devLocked}</p>
-                                                    <div className="flex flex-wrap gap-2 justify-center text-[10px] text-gray-400 mb-3 opacity-60">
-                                                        <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{devSettings.title}</span>
-                                                        <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{devSettings.url}</span>
-                                                    </div>
-                                                    <button 
-                                                        onClick={handleUnlockDevInfo}
-                                                        className="mx-auto px-4 py-2 bg-red-500 text-white font-bold rounded-lg shadow-md hover:bg-red-600 active:scale-95 transition-all text-xs flex items-center gap-2"
-                                                    >
-                                                        <UnlockIcon className="w-3 h-3" /> {t.unlockDev}
-                                                    </button>
-                                                </div>
-                                            )}
                                         </div>
                                     </div>
 
-                                    <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full py-3 font-bold rounded-xl shadow-md transition-all ${isSettingsChanged ? 'bg-primary text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>{t.save}</button>
+                                    <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full py-3 font-bold rounded-xl shadow-md transition-all sticky bottom-20 z-20 ${isSettingsChanged ? 'bg-primary text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>{t.save} All Changes</button>
                                 </div>
                             )}
 

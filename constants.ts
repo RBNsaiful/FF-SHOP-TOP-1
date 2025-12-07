@@ -1,4 +1,7 @@
 
+
+
+
 import type { DiamondOffer, PaymentMethod, SupportContact, LevelUpPackage, Membership, PremiumApp, Banner } from './types';
 
 export const APP_LOGO_URL = 'https://i.ibb.co/k2nGxqwY/1763225878291.jpg';
@@ -7,6 +10,9 @@ export const DEFAULT_AVATAR_URL = 'https://i.ibb.co/k2nGxqwY/1763225878291.jpg';
 // --- SECURITY KEY FOR DEVELOPER SETTINGS ---
 // This is stored in code, not database, to prevent unauthorized edits even if DB is compromised.
 export const PROTECTION_KEY = "SAIFUL ISLAM+999"; 
+
+// --- DEFAULT AI KEY (Fallback) ---
+export const DEFAULT_AI_KEY = "AIzaSyDhC67R1bLxvmW_LGG7ske3MxbAa0mrFbk";
 
 export const DIAMOND_OFFERS: DiamondOffer[] = [
   { id: 0, diamonds: 50, price: 45 },
@@ -94,6 +100,9 @@ const DEFAULT_PROFILE_AD_SCRIPT = `<script type="text/javascript">
 export const DEFAULT_APP_SETTINGS = {
     appName: "FF SHOP",
     maintenanceMode: false,
+    aiSupportActive: true, // Enabled by default
+    aiApiKey: "", // Dynamic API Key (empty by default)
+    aiName: "AI Tuktuki", // Default AI Name
     logoUrl: APP_LOGO_URL,
     visibility: {
         diamonds: true,

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useMemo, FC, useRef } from 'react';
 import AuthScreen from './components/AuthScreen';
 import HomeScreen from './components/HomeScreen';
@@ -14,6 +15,7 @@ import NotificationScreen from './components/NotificationScreen';
 import AdminScreen from './components/AdminScreen'; 
 import BottomNav from './components/BottomNav';
 import RewardAnimation from './components/RewardAnimation';
+import AiSupportBot from './components/AiSupportBot'; // Import AI Bot
 import { TEXTS, DIAMOND_OFFERS as initialDiamondOffers, LEVEL_UP_PACKAGES as initialLevelUpPackages, MEMBERSHIPS as initialMemberships, PREMIUM_APPS as initialPremiumApps, APP_LOGO_URL, DEFAULT_APP_SETTINGS, PAYMENT_METHODS as initialPaymentMethods, BANNER_IMAGES as initialBanners, SUPPORT_CONTACTS as initialContacts } from './constants';
 import type { User, Language, Theme, Screen, DiamondOffer, LevelUpPackage, Membership, PremiumApp, Notification, AppSettings, PaymentMethod, SupportContact, Banner, SpecialOffer } from './types';
 import { auth, db } from './firebase';
@@ -59,8 +61,8 @@ const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavig
         notifications: texts.notifications, 
     };
 
-    // Hide Header on Admin AND Profile screens
-    if (screen === 'admin' || screen === 'profile') return null;
+    // Hide Header on Admin, Profile, and AI Chat screens
+    if (screen === 'admin' || screen === 'profile' || screen === 'aiChat') return null;
 
     // Desktop Nav Link Component
     const DesktopNavLink = ({ target, label }: { target: Screen, label: string }) => (
@@ -238,7 +240,9 @@ const App: FC = () => {
                           uiSettings: {
                               ...DEFAULT_APP_SETTINGS.uiSettings,
                               ...(data.appSettings.uiSettings || {})
-                          }
+                          },
+                          // Ensure new flags have defaults if missing
+                          aiSupportActive: data.appSettings.aiSupportActive ?? DEFAULT_APP_SETTINGS.aiSupportActive
                       };
                       
                       // Cache immediately to prevent flashing on next reload
@@ -437,11 +441,13 @@ const App: FC = () => {
       case 'admin':
           if (user.role !== 'admin') return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} specialOffers={specialOffers} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} uiSettings={appSettings.uiSettings} />;
           return <AdminScreen user={user} texts={texts} onNavigate={handleSuccessNavigate} onLogout={handleLogout} language={language} setLanguage={setLanguage} appSettings={appSettings} />;
+      case 'aiChat':
+          return null; // AI Bot logic handles rendering itself when activeScreen is 'aiChat'
       default: return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} specialOffers={specialOffers} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} uiSettings={appSettings.uiSettings} />;
     }
   };
 
-  const isFullScreenPage = activeScreen === 'profile' || activeScreen === 'watchAds' || activeScreen === 'admin';
+  const isFullScreenPage = activeScreen === 'profile' || activeScreen === 'watchAds' || activeScreen === 'admin' || activeScreen === 'aiChat';
 
   return (
     <div className="min-h-screen w-full flex justify-center bg-gray-100 dark:bg-gray-900 font-sans">
@@ -470,7 +476,24 @@ const App: FC = () => {
                 </div>
             </div>
             
-            {activeScreen !== 'admin' && (<BottomNav activeScreen={activeScreen} setActiveScreen={setActiveScreen} texts={texts} earnEnabled={appSettings.visibility?.earn ?? true} />)}
+            {/* AI Support Bot (Only visible if enabled by admin and not on admin screen) */}
+            {activeScreen !== 'admin' && (
+                <AiSupportBot
+                    user={user}
+                    appSettings={appSettings}
+                    diamondOffers={diamondOffers}
+                    paymentMethods={paymentMethods}
+                    supportContacts={supportContacts}
+                    levelUpPackages={levelUpPackages}
+                    memberships={memberships}
+                    premiumApps={premiumApps}
+                    specialOffers={specialOffers}
+                    activeScreen={activeScreen}
+                    setActiveScreen={setActiveScreen}
+                />
+            )}
+
+            {activeScreen !== 'admin' && activeScreen !== 'aiChat' && (<BottomNav activeScreen={activeScreen} setActiveScreen={setActiveScreen} texts={texts} earnEnabled={appSettings.visibility?.earn ?? true} />)}
             {showRewardAnim && (<RewardAnimation amount={earnedAmount} texts={texts} onAnimationEnd={() => setShowRewardAnim(false)} />)}
         </div>
     </div>
