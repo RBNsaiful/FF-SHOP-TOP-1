@@ -4,6 +4,10 @@
       ".read": true,
       ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
     },
+    "ai_knowledge": {
+      ".read": true,
+      ".write": true
+    },
     "users": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
       "$uid": {

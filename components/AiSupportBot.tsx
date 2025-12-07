@@ -3,18 +3,38 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { User, AppSettings, DiamondOffer, PaymentMethod, SupportContact, LevelUpPackage, Membership, PremiumApp, SpecialOffer, Screen } from '../types';
 import { DEFAULT_AI_KEY } from '../constants';
-import { db } from '../firebase';
-import { ref, runTransaction } from 'firebase/database';
+import { db, auth } from '../firebase';
+import { ref, runTransaction, onValue, push } from 'firebase/database';
 
-// Icons
-const RobotIcon = ({ className }: { className?: string }) => (
+// --- SOUND ASSETS (Short, crisp UI sounds) ---
+// Pop sound for sending
+const SEND_SOUND = "data:audio/mp3;base64,SUQzBAAAAAAAI1RTSVMAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWgAAAA0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAABzgM0AAAAAAOAAAAAAAAAAAA0gAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAALQAAAAADgOAAA///+5JkAAAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD//+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAADcADQAAAAADgAAAAAAAAAtAAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAAAAAANIAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA"; 
+// Soft ping for receiving
+const RECEIVE_SOUND = "data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWgAAAA0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAABzgM0AAAAAAOAAAAAAAAAAAA0gAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAALQAAAAADgOAAA///+5JkAAAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD//+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAADcADQAAAAADgAAAAAAAAAtAAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAAAAAANIAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA";
+
+// --- ANIMATED ICONS ---
+
+const LiveRobotIcon = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M12 8V4H8" />
+    <style>
+      {`
+        @keyframes blink { 0%, 90%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+        @keyframes scan { 0% { transform: translateX(-2px); } 50% { transform: translateX(2px); } 100% { transform: translateX(-2px); } }
+        .bot-eyes { animation: blink 4s infinite; transform-origin: center; }
+        .bot-antenna { animation: scan 3s ease-in-out infinite; }
+      `}
+    </style>
+    <path d="M12 8V4H8" className="bot-antenna" />
     <rect x="4" y="8" width="16" height="12" rx="2" />
     <path d="M2 14h2" />
     <path d="M20 14h2" />
     <path d="M15 13v2" />
     <path d="M9 13v2" />
+    {/* Animated Eyes */}
+    <g className="bot-eyes">
+        <circle cx="9" cy="12" r="1.5" fill="currentColor" stroke="none" />
+        <circle cx="15" cy="12" r="1.5" fill="currentColor" stroke="none" />
+    </g>
   </svg>
 );
 
@@ -59,14 +79,32 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
   activeScreen,
   setActiveScreen
 }) => {
-  const botName = appSettings.aiName || "AI Tuktuki"; 
+  const botName = appSettings.aiName || "Tuktuki"; 
+  
+  // INITIAL MESSAGE: Use "Sir" instead of "Bhaiya"
   const [messages, setMessages] = useState<Message[]>([
-    { id: 'init', role: 'model', text: `হাই ${user.name || 'বন্ধু'}! 👋 আমি ${botName}। ${appSettings.appName}-এ তোমাকে স্বাগতম। আমি তোমাকে কীভাবে সাহায্য করতে পারি?` }
+    { id: 'init', role: 'model', text: `আসসালামু আলাইকুম স্যার! 😊 আমি ${botName}। ${appSettings.appName}-এ আপনাকে স্বাগতম। অ্যাপ সম্পর্কে কিছু জানতে চাইলে বলুন, আমি সাহায্য করছি! 👇` }
   ]);
+  
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [financialStats, setFinancialStats] = useState({ totalDeposit: 0, totalSpent: 0 });
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [dynamicKnowledge, setDynamicKnowledge] = useState<string[]>([]);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // --- AUDIO UTILS ---
+  const playSound = (type: 'send' | 'receive') => {
+      try {
+          const audio = new Audio(type === 'send' ? SEND_SOUND : RECEIVE_SOUND);
+          audio.volume = 0.5;
+          audio.play().catch(e => console.log("Audio play blocked by browser interaction policy"));
+      } catch (e) {
+          // Ignore audio errors
+      }
+  };
 
   // --- DRAGGABLE BUTTON STATE ---
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -75,16 +113,77 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
   const buttonStartPos = useRef({ x: 0, y: 0 });
   const hasMoved = useRef(false);
 
-  // Initialize position to bottom-right on mount
+  // Initialize position
   useEffect(() => {
-      // Check if window is defined (client-side)
       if (typeof window !== 'undefined') {
           setPosition({
-              x: window.innerWidth - 80, // Approx width of button + margin
-              y: window.innerHeight - 150 // Approx height + nav bar
+              x: window.innerWidth - 75,
+              y: window.innerHeight - 140
           });
       }
   }, []);
+
+  // --- FETCH DYNAMIC KNOWLEDGE (For Admin Teaching) ---
+  useEffect(() => {
+      // FIX: Using 'ai_knowledge' path to avoid permission issues with 'config'
+      const knowledgeRef = ref(db, 'ai_knowledge');
+      const unsubscribe = onValue(knowledgeRef, (snapshot) => {
+          const data = snapshot.val();
+          if (data) {
+              // Convert object values to string array (handling both string pushes and object pushes)
+              const knowledgeArray = Object.values(data).map((item: any) => 
+                  typeof item === 'string' ? item : item.content
+              ).filter(Boolean);
+              setDynamicKnowledge(knowledgeArray);
+          } else {
+              setDynamicKnowledge([]);
+          }
+      }, (error) => {
+          console.error("Error fetching knowledge:", error);
+      });
+      return () => unsubscribe();
+  }, []);
+
+  // --- REAL-TIME DATA FETCHING (User Financials) ---
+  useEffect(() => {
+      if (!user.uid) return;
+
+      // Fetch Orders for Total Spent
+      const ordersRef = ref(db, `orders/${user.uid}`);
+      const unsubOrders = onValue(ordersRef, (snap) => {
+          let spent = 0;
+          if (snap.exists()) {
+              const data = snap.val();
+              Object.values(data).forEach((order: any) => {
+                  if (order.status === 'Completed') {
+                      spent += Number(order.price || order.offer?.price || 0);
+                  }
+              });
+          }
+          setFinancialStats(prev => ({ ...prev, totalSpent: spent }));
+      });
+
+      // Fetch Transactions for Total Deposit
+      const txnRef = ref(db, `transactions/${user.uid}`);
+      const unsubTxn = onValue(txnRef, (snap) => {
+          let deposit = 0;
+          if (snap.exists()) {
+              const data = snap.val();
+              Object.values(data).forEach((txn: any) => {
+                  if (txn.status === 'Completed') {
+                      deposit += Number(txn.amount || 0);
+                  }
+              });
+          }
+          setFinancialStats(prev => ({ ...prev, totalDeposit: deposit }));
+      });
+
+      return () => {
+          unsubOrders();
+          unsubTxn();
+      };
+  }, [user.uid]);
+
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -94,8 +193,8 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
   // Auto-resize Textarea
   useEffect(() => {
     if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'; // Reset height
-        textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`; // Set new height, max 120px
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
     }
   }, [input]);
 
@@ -103,105 +202,171 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
   const handlePointerDown = (e: React.MouseEvent | React.TouchEvent) => {
       isDragging.current = true;
       hasMoved.current = false;
-      
       const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
       const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-
       dragStartPos.current = { x: clientX, y: clientY };
       buttonStartPos.current = { ...position };
   };
 
   const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
       if (!isDragging.current) return;
-
       const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
       const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-
       const deltaX = clientX - dragStartPos.current.x;
       const deltaY = clientY - dragStartPos.current.y;
-
-      // Determine if moved significantly to count as a drag vs click
-      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
-          hasMoved.current = true;
-      }
-
+      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) hasMoved.current = true;
       let newX = buttonStartPos.current.x + deltaX;
       let newY = buttonStartPos.current.y + deltaY;
-
-      // Boundary Checks
-      const maxX = window.innerWidth - 60; // Button width approx
-      const maxY = window.innerHeight - 60; // Button height approx
-      
-      if (newX < 0) newX = 0;
-      if (newX > maxX) newX = maxX;
-      if (newY < 0) newY = 0;
-      if (newY > maxY) newY = maxY;
-
+      const maxX = window.innerWidth - 60;
+      const maxY = window.innerHeight - 60;
+      if (newX < 0) newX = 0; if (newX > maxX) newX = maxX;
+      if (newY < 0) newY = 0; if (newY > maxY) newY = maxY;
       setPosition({ x: newX, y: newY });
   };
 
-  const handlePointerUp = () => {
-      isDragging.current = false;
-  };
+  const handlePointerUp = () => { isDragging.current = false; };
+  const handleButtonClick = () => { if (!hasMoved.current) setActiveScreen('aiChat'); };
 
-  const handleButtonClick = () => {
-      if (!hasMoved.current) {
-          setActiveScreen('aiChat');
-      }
-  };
-
-  // --- 1. DEEP KNOWLEDGE INJECTION (CONTEXT) ---
+  // --- KNOWLEDGE INJECTION (Strictly Scoped & Professional) ---
   const systemInstruction = useMemo(() => {
-    const diamondsList = diamondOffers.map(o => `- ${o.diamonds} ডায়মন্ড: ৳${o.price}`).join('\n');
-    const levelUpList = levelUpPackages.map(o => `- ${o.name}: ৳${o.price}`).join('\n');
-    const memberList = memberships.map(o => `- ${o.name}: ৳${o.price}`).join('\n');
-    const premiumList = premiumApps.map(o => `- ${o.name}: ৳${o.price} (${o.description})`).join('\n');
-    const specialList = specialOffers.filter(o => o.isActive).map(o => `- ${o.title}: ৳${o.price}`).join('\n');
-    const paymentList = paymentMethods.map(m => `- ${m.name} (নাম্বার: ${m.accountNumber})`).join('\n');
+    const earnSettings = appSettings.earnSettings;
+    const learnedKnowledge = dynamicKnowledge.map(k => `- ${k}`).join('\n');
     
     return `
-      আপনি হলেন "${botName}", মোবাইল অ্যাপ "${appSettings.appName}"-এর অফিসিয়াল এআই সাপোর্ট অ্যাসিস্ট্যান্ট।
-      আপনার কাজ হলো ব্যবহারকারীদের পেমেন্ট, অফার, এবং অ্যাপ ব্যবহার সংক্রান্ত যেকোনো প্রশ্নের উত্তর দেওয়া।
+      *** IDENTITY ***
+      You are "${botName}", the Professional Female Assistant for "${appSettings.appName}".
       
-      *** গুরত্বপূর্ণ নিয়মাবলী (MUST FOLLOW): ***
-      ১. **ভাষা**: আপনি সর্বদা **বাংলা (Bengali)** ভাষায় উত্তর দেবেন।
-      ২. **ব্যবহার**: আপনি খুব বন্ধুসুলভ এবং বিনয়ী হবেন। ইমোজি ব্যবহার করবেন (😊, 👍, 🔥)।
-      ৩. **সীমা**: শুধুমাত্র এই অ্যাপ সম্পর্কিত প্রশ্নের উত্তর দিন।
-      ৪. **মুদ্রা**: সকল মূল্য 'টাকা' বা '৳' প্রতীকে বলবেন।
-      ৫. **জ্ঞান**: নিচে দেওয়া অ্যাপের বর্তমান তথ্য ব্যবহার করে সঠিক উত্তর দিন। নিজের থেকে কোনো ভুল তথ্য বানাবেন না।
+      *** STRICT PERSONA RULES (MANDATORY) ***
+      1. **ADDRESSING:** You MUST address the user as "Sir" (স্যার). **NEVER** use "Bhaiya", "Bro", "Saiful Bhaiya", or "Ogo".
+      2. **GREETING:** Use "As-salamu Alaykum" ONLY at the start of a conversation or if the user greets first. Do NOT repeat it in every message.
+      3. **TONE:** Professional, Efficient, Helpful, yet Polite and Muslim.
+      4. **LANGUAGE:** ONLY Bengali (Bangla).
 
-      *** অ্যাপের বর্তমান তথ্য (Context): ***
+      *** CRITICAL LOGIC OVERRIDES (HIGHEST PRIORITY) ***
+      1. **PASSWORD RESET:** If the user mentions "password", "forgot password", "reset password", or "password change" (when confused), you MUST reply EXACTLY with this text:
+         "স্যার, পাসওয়ার্ড রিসেট করার কোনো স্বয়ংক্রিয় অপশন আমাদের সিস্টেমে নেই। আপনি দয়া করে প্রোফাইল মেনুর মধ্যে থাকা 'Contact Us' অপশনে গিয়ে সরাসরি আমাদের সাথে যোগাযোগ করুন। আপনার সঠিক তথ্য যাচাই করে আমরা ম্যানুয়ালি পাসওয়ার্ড পরিবর্তন করে দেবো।"
+         (Do NOT suggest clicking a 'Forgot Password' button).
+         
+      2. **CONTACT INFO:** The "Contact Us" page contains real phone numbers, email, and social links. If a user asks how to contact, direct them to the "Contact Us" page. Do not say you don't know.
+
+      *** APP NAVIGATION MAP (KNOWLEDGE BASE) ***
+      If the user asks where to find something, guide them accurately:
       
-      - অ্যাপের নাম: ${appSettings.appName}
-      - মেইনটেইনেন্স মোড: ${appSettings.maintenanceMode ? 'চালু আছে (এখন অ্যাপ বন্ধ)' : 'বন্ধ আছে (অ্যাপ চলছে)'}
-      - বর্তমান ইউজার: ${user.name} (ব্যালেন্স: ৳${Math.floor(user.balance)})
+      1. **Profile Menu (প্রোফাইল মেনু)** contains:
+         - My Orders (অর্ডার হিস্টোরি)
+         - My Transaction (ডিপোজিট হিস্টোরি)
+         - Add Money (টাকা এড করা)
+         - Contact Us (যোগাযোগ)
+         - Change Password (পাসওয়ার্ড পরিবর্তন)
+         - Language (ভাষা পরিবর্তন)
+         - Theme (লাইট/ডার্ক মোড)
+         - Logout
       
-      **ডায়মন্ড অফারসমূহ:**
-      ${diamondsList}
+      2. **Edit Profile (এডিট প্রোফাইল)** contains:
+         - Name, Email, Save UID, Change Photo
+         - Show Reward Animation Toggle
       
-      **লেভেল আপ প্যাকেজ:**
-      ${levelUpList}
+      3. **Offers (অফার)** types:
+         - Diamond, Level Up, Membership, Premium App, Special Event.
+         
+      4. **Navigation Bar (নিচের মেনু)**:
+         - Home, Wallet, Earn (Watch Ads), Profile.
+
+      *** REAL-TIME USER DATA (SECRET ACCESS) ***
+      - User Name: ${user.name}
+      - Phone/Email: ${user.email}
+      - **Current Balance:** ৳${Math.floor(user.balance)}
+      - **Total Deposit:** ৳${financialStats.totalDeposit}
+      - **Total Spent:** ৳${financialStats.totalSpent}
       
-      **মেম্বারশিপ:**
-      ${memberList}
-      
-      **স্পেশাল অফার (হট ডিল):**
-      ${specialList || '(বর্তমানে কোনো স্পেশাল অফার নেই)'}
-      
-      **প্রিমিয়াম অ্যাপস:**
-      ${premiumList}
-      
-      **পেমেন্ট পদ্ধতি (টাকা এড করার নিয়ম):**
-      ${paymentList}
-      *নিয়ম:* প্রথমে অ্যাপের ওয়ালেট অপশনে গিয়ে নির্ধারিত নাম্বারে 'Send Money' করতে হবে। তারপর ট্রানজেকশন আইডি (TrxID) কপি করে অ্যাপে বসালে টাকা এড হবে।
-      
-      **সাপোর্ট যোগাযোগ:**
-      ${supportContacts.map(c => `- ${c.type}: ${c.link}`).join('\n')}
+      *** DEVELOPER INFO (ONLY IF ASKED) ***
+      If asked "Who made you?" or "Developer contact", provide EXACTLY:
+      - Developer Name: RBN Saiful
+      - Contact Number: 01614157071
+      - Website: https://rbm-saiful-contact.vercel.app
+      - Description: "RBN Saiful is a professional App & Web Developer known for clean code and unique designs."
+
+      *** EARN FEATURE ***
+      - Location: "Earn" tab.
+      - Limit: ${earnSettings?.dailyLimit || 20} ads/day.
+      - Reward: ৳${earnSettings?.rewardPerAd || 5}/ad.
+
+      *** DYNAMIC KNOWLEDGE BASE (LEARNED RULES) ***
+      ${learnedKnowledge}
     `;
-  }, [appSettings, diamondOffers, paymentMethods, supportContacts, levelUpPackages, memberships, specialOffers, user, botName]);
+  }, [appSettings, diamondOffers, user, botName, financialStats, paymentMethods, dynamicKnowledge]);
 
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
+
+    // --- ADMIN TEACHING MODE TRIGGER ---
+    if (input.trim() === 'SAIFULISLAM+999') {
+        setIsAdminMode(true);
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: '******' }]); // Hide pass
+        setTimeout(() => {
+            setMessages(prev => [...prev, { 
+                id: 'admin-welcome', 
+                role: 'model', 
+                text: "🟢 ADMIN TEACHING MODE ACTIVATED.\nAnything you type now will be saved to my memory. Type 'exit' to quit." 
+            }]);
+        }, 500);
+        setInput('');
+        return;
+    }
+
+    // --- ADMIN MODE LOGIC ---
+    if (isAdminMode) {
+        const adminInput = input.trim();
+        
+        if (adminInput.toLowerCase() === 'exit') {
+            setIsAdminMode(false);
+            setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: adminInput }]);
+            setTimeout(() => {
+                setMessages(prev => [...prev, { id: 'admin-exit', role: 'model', text: "🔴 Admin Mode Deactivated." }]);
+            }, 500);
+            setInput('');
+            return;
+        }
+
+        // Save to Firebase (Simpler, more robust approach)
+        try {
+            // Path: ai_knowledge (Root) - Matches relaxed DB rule
+            const knowledgeRef = ref(db, 'ai_knowledge');
+            const currentUser = auth.currentUser;
+            
+            // Basic auth check
+            if (!currentUser) {
+                throw new Error("You must be logged in to save knowledge.");
+            }
+
+            // Optimistic update for UI
+            setMessages(prev => [...prev, 
+                { id: Date.now().toString(), role: 'user', text: adminInput },
+            ]);
+            
+            // 3. Structured Data Push
+            const newEntry = {
+                content: adminInput,
+                addedBy: currentUser.uid,
+                timestamp: Date.now()
+            };
+
+            await push(knowledgeRef, newEntry);
+            
+            setMessages(prev => [...prev, 
+                { id: (Date.now()+1).toString(), role: 'model', text: "✅ Learned!" }
+            ]);
+        } catch (e: any) {
+            console.error("Admin Teaching Save Error:", e);
+            const errorMsg = e.code ? `Error: ${e.code}` : `Error saving: ${e.message}`;
+            setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: `❌ ${errorMsg}` }]);
+        }
+        setInput('');
+        return; // Stop here, do not call Gemini
+    }
+
+    // --- STANDARD AI CHAT LOGIC ---
+    playSound('send'); // Send Sound
 
     const userMessageText = input;
     const userMessage: Message = { id: Date.now().toString(), role: 'user', text: userMessageText };
@@ -210,7 +375,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
     setInput('');
     setIsTyping(true);
 
-    // --- TRACK AI USAGE ---
+    // Track AI Usage
     if (user.uid) {
         const userRef = ref(db, `users/${user.uid}`);
         runTransaction(userRef, (userData) => {
@@ -218,23 +383,15 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
                 userData.aiRequestCount = (userData.aiRequestCount || 0) + 1;
             }
             return userData;
-        }).catch(err => console.error("Error tracking AI usage:", err));
+        }).catch(err => console.error(err));
     }
 
     try {
-      // API Key Priority: Admin Key -> Hardcoded Default -> Env Key
       let apiKey = appSettings.aiApiKey; 
-      if (!apiKey || apiKey.trim() === "") {
-          apiKey = DEFAULT_AI_KEY; 
-      }
+      if (!apiKey || apiKey.trim() === "") apiKey = DEFAULT_AI_KEY; 
       
-      if (!apiKey) {
-          throw new Error("No API Key configured.");
-      }
-
       const ai = new GoogleGenAI({ apiKey: apiKey });
       
-      // Ensure history alternates properly. 
       const history = messages.map(m => ({
         role: m.role,
         parts: [{ text: m.text }]
@@ -242,29 +399,31 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
 
       const chat = ai.chats.create({
         model: "gemini-2.5-flash",
-        config: {
-            systemInstruction: systemInstruction,
-        },
+        config: { systemInstruction: systemInstruction },
         history: history
       });
 
       const result = await chat.sendMessageStream({ message: userMessageText });
-      
       const botMessageId = (Date.now() + 1).toString();
       setMessages(prev => [...prev, { id: botMessageId, role: 'model', text: '' }]);
 
       let fullText = '';
+      let soundPlayed = false;
+
       for await (const chunk of result) {
         const chunkText = chunk.text;
         if (chunkText) {
+            if (!soundPlayed) {
+                playSound('receive'); // Play sound once when reply starts
+                soundPlayed = true;
+            }
             fullText += chunkText;
             setMessages(prev => prev.map(m => m.id === botMessageId ? { ...m, text: fullText } : m));
         }
       }
 
     } catch (error) {
-      console.error("AI Error:", error);
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: "দুঃখিত, আমি এখন সংযোগ করতে পারছি না। দয়া করে একটু পরে আবার চেষ্টা করুন অথবা কাস্টমার কেয়ারে যোগাযোগ করুন।" }]);
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: "নেটওয়ার্ক সমস্যা হচ্ছে স্যার! একটু পরে আবার চেষ্টা করুন। 🥺" }]);
     } finally {
       setIsTyping(false);
     }
@@ -281,7 +440,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
 
   return (
     <>
-      {/* Draggable Floating Action Button */}
+      {/* Draggable Floating Button */}
       {activeScreen !== 'aiChat' && (
         <div
             onMouseDown={handlePointerDown}
@@ -292,74 +451,57 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
             onTouchMove={handlePointerMove}
             onTouchEnd={handlePointerUp}
             onClick={handleButtonClick}
-            style={{ 
-                left: position.x, 
-                top: position.y,
-                position: 'fixed',
-                zIndex: 50,
-                touchAction: 'none' // Important to prevent scrolling while dragging
-            }}
-            className="cursor-move active:cursor-grabbing transition-shadow"
+            style={{ left: position.x, top: position.y, position: 'fixed', zIndex: 50, touchAction: 'none' }}
+            className="cursor-move active:cursor-grabbing"
         >
-            <div className="bg-gradient-to-r from-primary to-secondary text-white p-3.5 rounded-full shadow-xl shadow-primary/40 hover:scale-110 active:scale-95 transition-transform duration-200 flex items-center justify-center group relative">
-                <RobotIcon className="w-7 h-7 group-hover:rotate-12 transition-transform" />
+            <div className="bg-gradient-to-r from-primary to-secondary text-white p-2.5 rounded-full shadow-lg shadow-primary/40 hover:scale-105 active:scale-95 transition-transform duration-200 flex items-center justify-center group relative border border-white/20">
+                <LiveRobotIcon className="w-7 h-7" />
             </div>
         </div>
       )}
 
-      {/* FULL SCREEN Chat Interface (Native Page Feel) */}
+      {/* Chat Interface */}
       {activeScreen === 'aiChat' && (
         <div className="fixed inset-0 z-[100] flex flex-col bg-light-bg dark:bg-dark-bg animate-smart-slide-up w-full h-full">
-          
-          {/* THEMED HEADER (Match App.tsx Header) */}
           <div className="flex items-center justify-between py-3 px-4 bg-light-bg dark:bg-dark-bg border-b border-gray-200 dark:border-gray-800 shadow-sm sticky top-0 z-10 h-16">
             <div className="flex items-center gap-3">
-              <button 
-                onClick={() => setActiveScreen('home')} 
-                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-300"
-              >
+              <button onClick={() => setActiveScreen('home')} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-300">
                 <ArrowLeftIcon className="w-6 h-6" />
               </button>
-              
               <div className="flex items-center gap-3">
                   <div className="relative">
                       <div className="bg-gradient-to-br from-primary to-secondary p-1.5 rounded-full text-white shadow-md">
-                        <RobotIcon className="w-5 h-5" />
+                        <LiveRobotIcon className="w-5 h-5" />
                       </div>
                   </div>
-                  <h3 className="font-bold text-lg text-gray-900 dark:text-white leading-none">{botName}</h3>
+                  <div>
+                      <h3 className="font-bold text-lg text-gray-900 dark:text-white leading-none">{botName}</h3>
+                      {isAdminMode && <span className="text-[10px] text-green-500 font-bold uppercase tracking-wider">Teaching Mode</span>}
+                  </div>
               </div>
             </div>
-            
-            {/* Right side is empty as per request (removed close button) */}
-            <div className="w-8"></div>
           </div>
 
-          {/* Messages Area (Theme Compatible) */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-light-bg dark:bg-dark-bg scroll-smooth pb-20">
-            {/* Date Separator */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#0F172A] scroll-smooth pb-20">
             <div className="flex justify-center mb-6">
-                <span className="text-[10px] bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-3 py-1 rounded-full uppercase tracking-wider font-bold">Today</span>
+                <span className="text-[10px] bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-3 py-1 rounded-full uppercase tracking-wider font-bold">Safe & Secure Chat</span>
             </div>
 
             {messages.map((msg) => (
               <div key={msg.id} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'model' && (
                     <div className="w-8 h-8 mr-2 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center self-end mb-1 text-white shadow-sm flex-shrink-0">
-                        <RobotIcon className="w-4 h-4" />
+                        <LiveRobotIcon className="w-4 h-4" />
                     </div>
                 )}
                 <div
                   className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm relative break-words whitespace-pre-wrap ${
                     msg.role === 'user'
-                      ? 'bg-primary text-white rounded-br-none' // User: Primary Color
-                      : 'bg-white dark:bg-dark-card text-gray-800 dark:text-gray-200 rounded-bl-none border border-gray-100 dark:border-gray-700' // Bot: Card Color
+                      ? 'bg-primary text-white rounded-br-none'
+                      : 'bg-white dark:bg-dark-card text-gray-800 dark:text-gray-200 rounded-bl-none border border-gray-100 dark:border-gray-700'
                   }`}
                 >
                   {msg.text}
-                  <span className={`text-[9px] block text-right mt-1 opacity-70 font-medium ${msg.role === 'user' ? 'text-white/80' : 'text-gray-400'}`}>
-                      {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
                 </div>
               </div>
             ))}
@@ -367,7 +509,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
             {isTyping && (
               <div className="flex justify-start w-full items-end">
                  <div className="w-8 h-8 mr-2 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white shadow-sm">
-                    <RobotIcon className="w-4 h-4" />
+                    <LiveRobotIcon className="w-4 h-4" />
                 </div>
                 <div className="bg-white dark:bg-dark-card px-4 py-3 rounded-2xl rounded-bl-none border border-gray-100 dark:border-gray-700 flex gap-1.5 shadow-sm">
                   <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
@@ -379,17 +521,16 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Area (Auto-expanding Textarea) */}
-          <div className="p-3 bg-light-card dark:bg-dark-card border-t border-gray-100 dark:border-gray-800 flex items-end gap-2 sticky bottom-0 w-full shadow-lg z-20">
+          <div className="p-3 bg-white dark:bg-dark-card border-t border-gray-100 dark:border-gray-800 flex items-end gap-2 sticky bottom-0 w-full shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-20">
             <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-2 border border-transparent focus-within:border-primary/50 transition-colors">
                 <textarea
                   ref={textareaRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask anything..."
+                  placeholder={isAdminMode ? "Type new rule to learn..." : "এখানে লিখুন..."}
                   rows={1}
-                  className="w-full bg-transparent text-gray-900 dark:text-white text-sm focus:outline-none resize-none max-h-32 overflow-y-auto leading-relaxed pt-1"
+                  className="w-full bg-transparent text-gray-900 dark:text-white text-sm focus:outline-none resize-none max-h-32 overflow-y-auto leading-relaxed pt-1.5"
                   style={{ minHeight: '24px' }}
                 />
             </div>
@@ -399,7 +540,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
               className={`p-3 rounded-full transition-all shadow-md flex items-center justify-center mb-0.5
                   ${!input.trim() || isTyping 
                       ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' 
-                      : 'bg-primary text-white hover:bg-primary-dark active:scale-95'
+                      : isAdminMode ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-primary text-white hover:bg-primary-dark active:scale-95'
                   }`}
             >
               <SendIcon className="w-5 h-5 ml-0.5" />
