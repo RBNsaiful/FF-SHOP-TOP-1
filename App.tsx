@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useMemo, FC, useRef } from 'react';
 import AuthScreen from './components/AuthScreen';
 import HomeScreen from './components/HomeScreen';
@@ -13,6 +11,7 @@ import WatchAdsScreen from './components/WatchAdsScreen';
 import EditProfileScreen from './components/EditProfileScreen';
 import NotificationScreen from './components/NotificationScreen';
 import AdminScreen from './components/AdminScreen'; 
+import RankingScreen from './components/RankingScreen'; // Import Ranking Screen
 import BottomNav from './components/BottomNav';
 import RewardAnimation from './components/RewardAnimation';
 import AiSupportBot from './components/AiSupportBot'; // Import AI Bot
@@ -35,6 +34,7 @@ const BellIcon: FC<{className?: string}> = ({className}) => (
 const MaintenanceIcon: FC<{className?: string}> = ({className}) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
 );
+const XIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>);
 
 interface HeaderProps {
     appName: string;
@@ -49,7 +49,7 @@ interface HeaderProps {
 }
 
 const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavigate, isBalancePulsing, onBalancePulseEnd, hasUnreadNotifications }) => {
-    const isSubScreen = (['myOrders', 'myTransaction', 'contactUs', 'wallet', 'changePassword', 'watchAds', 'editProfile', 'notifications'] as Screen[]).includes(screen);
+    const isSubScreen = (['myOrders', 'myTransaction', 'contactUs', 'wallet', 'changePassword', 'watchAds', 'editProfile', 'notifications', 'ranking'] as Screen[]).includes(screen);
     const titleMap: { [key in Screen]?: string } = {
         myOrders: texts.myOrders,
         myTransaction: texts.myTransaction,
@@ -59,6 +59,7 @@ const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavig
         watchAds: texts.watchAdsScreenTitle,
         editProfile: texts.editProfileTitle,
         notifications: texts.notifications, 
+        ranking: texts.ranking, // Add Ranking Title
     };
 
     // Hide Header on Admin, Profile, and AI Chat screens
@@ -203,6 +204,9 @@ const App: FC = () => {
   
   const [showRewardAnim, setShowRewardAnim] = useState(false);
   const [earnedAmount, setEarnedAmount] = useState(0);
+  
+  // Login Popup State
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   // Track previous balance to detect deposits
   const prevBalanceRef = useRef<number | null>(null);
@@ -245,7 +249,8 @@ const App: FC = () => {
                           aiSupportActive: data.appSettings.aiSupportActive ?? DEFAULT_APP_SETTINGS.aiSupportActive,
                           // Dynamic Contact Info
                           contactMessage: data.appSettings.contactMessage || DEFAULT_APP_SETTINGS.contactMessage,
-                          operatingHours: data.appSettings.operatingHours || DEFAULT_APP_SETTINGS.operatingHours
+                          operatingHours: data.appSettings.operatingHours || DEFAULT_APP_SETTINGS.operatingHours,
+                          popupNotification: data.appSettings.popupNotification
                       };
                       
                       // Cache immediately to prevent flashing on next reload
@@ -290,11 +295,13 @@ const App: FC = () => {
                     setUser(userData);
                     if (userData.role === 'admin') setActiveScreen('admin');
                 } else {
+                    // Fallback if DB record doesn't exist yet (created by AuthScreen)
                     setUser({ name: firebaseUser.displayName || 'User', email: firebaseUser.email || '', balance: 0, uid: firebaseUser.uid, playerUid: '', avatarUrl: firebaseUser.photoURL || undefined, totalAdsWatched: 0, totalEarned: 0, role: 'user', isBanned: false });
                 }
                 setLoading(false);
             }, (error) => {
                 console.error("User data fetch error:", error);
+                // Allow UI to load even if fetch fails slightly (likely permission issue fixed by retry)
                 setLoading(false);
             });
             return () => unsubscribeData();
@@ -306,16 +313,20 @@ const App: FC = () => {
     return () => unsubscribeAuth();
   }, []);
 
-  // Notifications Listener
+  // Notifications Listener - With Target Filtering
   useEffect(() => {
       const notifRef = ref(db, 'notifications');
       const unsubscribeNotifs = onValue(notifRef, (snapshot) => {
           const data = snapshot.val();
           if (data) {
               const notifList: Notification[] = Object.keys(data).map(key => ({ ...data[key], id: key })).sort((a, b) => b.timestamp - a.timestamp);
-              setNotifications(notifList);
+              
+              // Filter logic: Show global (no targetUid) OR targeted to current user
+              const relevantNotifs = notifList.filter(n => !n.targetUid || (user && n.targetUid === user.uid));
+              
+              setNotifications(relevantNotifs);
               const lastReadTimestamp = Number(localStorage.getItem('lastReadTimestamp') || 0);
-              const hasNew = notifList.some(n => n.timestamp > lastReadTimestamp);
+              const hasNew = relevantNotifs.some(n => n.timestamp > lastReadTimestamp);
               setHasUnreadNotifications(hasNew);
           } else {
               setNotifications([]);
@@ -323,11 +334,27 @@ const App: FC = () => {
           }
       });
       return () => unsubscribeNotifs();
-  }, []);
+  }, [user?.uid]);
+
+  // LOGIN POPUP LOGIC
+  useEffect(() => {
+      // Ensure popup only shows for non-admin users if active
+      if (user && user.role !== 'admin' && appSettings.popupNotification?.active) {
+          const hasSeen = sessionStorage.getItem('hasSeenLoginPopup');
+          if (!hasSeen) {
+              setShowLoginPopup(true);
+              sessionStorage.setItem('hasSeenLoginPopup', 'true');
+          }
+      }
+  }, [user, appSettings.popupNotification]);
 
   useEffect(() => {
+      // Visibility Checks
       if (activeScreen === 'watchAds' && appSettings.visibility && !appSettings.visibility.earn) {
           setActiveScreen('home');
+      }
+      if (activeScreen === 'ranking' && appSettings.visibility && !appSettings.visibility.ranking) {
+          setActiveScreen('profile');
       }
   }, [activeScreen, appSettings.visibility]);
 
@@ -369,7 +396,16 @@ const App: FC = () => {
   }, []);
 
   const handleLogout = async () => {
-    try { setUser(null); setActiveScreen('home'); await signOut(auth); } catch (error) { console.error("Logout failed", error); setUser(null); setActiveScreen('home'); }
+    try { 
+        setUser(null); 
+        setActiveScreen('home'); 
+        sessionStorage.removeItem('hasSeenLoginPopup'); // Reset popup on logout
+        await signOut(auth); 
+    } catch (error) { 
+        console.error("Logout failed", error); 
+        setUser(null); 
+        setActiveScreen('home'); 
+    }
   };
   
   const handleRewardEarned = (amount: number, showAnim: boolean = true) => { 
@@ -383,7 +419,7 @@ const App: FC = () => {
 
   const texts = useMemo(() => TEXTS[language], [language]);
   const handleBack = () => {
-      if (activeScreen === 'wallet' || activeScreen === 'notifications') { setActiveScreen('home'); } else if((['myOrders', 'myTransaction', 'contactUs', 'changePassword', 'editProfile'] as Screen[]).includes(activeScreen)) { setActiveScreen('profile'); } else if (activeScreen === 'admin') { setActiveScreen('profile'); }
+      if (activeScreen === 'wallet' || activeScreen === 'notifications') { setActiveScreen('home'); } else if((['myOrders', 'myTransaction', 'contactUs', 'changePassword', 'editProfile', 'ranking'] as Screen[]).includes(activeScreen)) { setActiveScreen('profile'); } else if (activeScreen === 'admin') { setActiveScreen('profile'); }
   }
   const handleSuccessNavigate = (screen: Screen) => { setActiveScreen(screen); };
 
@@ -441,6 +477,9 @@ const App: FC = () => {
         return <WatchAdsScreen user={user} texts={texts} onRewardEarned={handleRewardEarned} earnSettings={appSettings.earnSettings} />;
       case 'editProfile': return <EditProfileScreen user={user} texts={texts} onNavigate={setActiveScreen} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
       case 'notifications': return <NotificationScreen texts={texts} notifications={notifications} onRead={handleMarkNotificationsAsRead} />;
+      case 'ranking': 
+        if (appSettings.visibility && !appSettings.visibility.ranking) return null;
+        return <RankingScreen user={user} texts={texts} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
       case 'admin':
           if (user.role !== 'admin') return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} specialOffers={specialOffers} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} uiSettings={appSettings.uiSettings} />;
           return <AdminScreen user={user} texts={texts} onNavigate={handleSuccessNavigate} onLogout={handleLogout} language={language} setLanguage={setLanguage} appSettings={appSettings} theme={theme} setTheme={setTheme} />;
@@ -450,7 +489,7 @@ const App: FC = () => {
     }
   };
 
-  const isFullScreenPage = activeScreen === 'profile' || activeScreen === 'watchAds' || activeScreen === 'admin' || activeScreen === 'aiChat';
+  const isFullScreenPage = activeScreen === 'profile' || activeScreen === 'watchAds' || activeScreen === 'admin' || activeScreen === 'aiChat' || activeScreen === 'ranking';
 
   return (
     <div className="min-h-screen w-full flex justify-center bg-gray-100 dark:bg-gray-900 font-sans">
@@ -474,7 +513,7 @@ const App: FC = () => {
             
             <div className={!isFullScreenPage ? 'pb-24 md:pb-10' : ''}>
                 {/* Center Sub-screens on Desktop */}
-                <div className={`h-full w-full ${['wallet', 'profile', 'changePassword', 'editProfile', 'contactUs', 'myOrders', 'myTransaction', 'notifications'].includes(activeScreen) ? 'md:max-w-3xl md:mx-auto md:mt-6' : ''}`}>
+                <div className={`h-full w-full ${['wallet', 'profile', 'changePassword', 'editProfile', 'contactUs', 'myOrders', 'myTransaction', 'notifications', 'ranking'].includes(activeScreen) ? 'md:max-w-3xl md:mx-auto md:mt-6' : ''}`}>
                     {renderScreen()}
                 </div>
             </div>
@@ -496,8 +535,53 @@ const App: FC = () => {
                 />
             )}
 
-            {activeScreen !== 'admin' && activeScreen !== 'aiChat' && (<BottomNav activeScreen={activeScreen} setActiveScreen={setActiveScreen} texts={texts} earnEnabled={appSettings.visibility?.earn ?? true} />)}
+            {activeScreen !== 'admin' && activeScreen !== 'aiChat' && activeScreen !== 'ranking' && (<BottomNav activeScreen={activeScreen} setActiveScreen={setActiveScreen} texts={texts} earnEnabled={appSettings.visibility?.earn ?? true} />)}
             {showRewardAnim && (<RewardAnimation amount={earnedAmount} texts={texts} onAnimationEnd={() => setShowRewardAnim(false)} />)}
+            
+            {/* LOGIN POPUP MODAL */}
+            {showLoginPopup && appSettings.popupNotification && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-smart-fade-in">
+                    <div className="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden animate-smart-pop-in">
+                        {/* Header with Close */}
+                        <div className="absolute top-3 right-3 z-10">
+                            <button 
+                                onClick={() => setShowLoginPopup(false)} 
+                                className="p-2 bg-black/20 hover:bg-black/30 text-white rounded-full transition-colors backdrop-blur-md"
+                            >
+                                <XIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                        
+                        {/* Image Section */}
+                        {appSettings.popupNotification.imageUrl && (
+                            <div className="w-full h-40 bg-gray-200 dark:bg-gray-700">
+                                <img 
+                                    src={appSettings.popupNotification.imageUrl} 
+                                    alt="Announcement" 
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                        )}
+                        
+                        {/* Content Section */}
+                        <div className="p-6 text-center">
+                            <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">
+                                {appSettings.popupNotification.title}
+                            </h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                                {appSettings.popupNotification.message}
+                            </p>
+                            
+                            <button 
+                                onClick={() => setShowLoginPopup(false)}
+                                className="mt-6 w-full py-3 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-xl shadow-lg shadow-primary/30 hover:opacity-90 active:scale-95 transition-all"
+                            >
+                                OK, Got it!
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     </div>
   );

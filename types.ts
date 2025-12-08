@@ -1,10 +1,8 @@
-
-
 import type { FC } from 'react';
 
 export type Language = 'en' | 'bn';
 export type Theme = 'light' | 'dark';
-export type Screen = 'home' | 'wallet' | 'profile' | 'myOrders' | 'myTransaction' | 'contactUs' | 'changePassword' | 'watchAds' | 'editProfile' | 'notifications' | 'admin' | 'aiChat';
+export type Screen = 'home' | 'wallet' | 'profile' | 'myOrders' | 'myTransaction' | 'contactUs' | 'changePassword' | 'watchAds' | 'editProfile' | 'notifications' | 'admin' | 'aiChat' | 'ranking';
 
 export interface User {
   name: string;
@@ -15,6 +13,8 @@ export interface User {
   avatarUrl?: string;
   totalAdsWatched: number;
   totalEarned: number;
+  totalSpent?: number; // New: Track total purchases
+  totalDeposit?: number; // New: Track total money added
   role?: 'user' | 'admin';
   isBanned?: boolean;
   aiRequestCount?: number; // New: Tracks number of AI interactions
@@ -106,9 +106,10 @@ export interface Transaction {
   key?: string;
   amount: number;
   date: string;
-  method: string;
+  method: string; // 'Ad Reward', 'bKash', etc.
   status: TransactionStatus;
   userId: string;
+  type?: 'deposit' | 'ad_reward'; // To distinguish
 }
 
 export interface Notification {
@@ -117,6 +118,7 @@ export interface Notification {
   message: string;
   timestamp: number;
   type: 'bonus' | 'offer' | 'system';
+  targetUid?: string; // Optional: If present, only for this user
 }
 
 export interface AppVisibility {
@@ -125,6 +127,7 @@ export interface AppVisibility {
   membership: boolean;
   premium: boolean;
   earn: boolean;
+  ranking: boolean;
 }
 
 // HYBRID AD SYSTEM SETTINGS
@@ -174,18 +177,26 @@ export interface UiSettings {
     animationsEnabled: boolean;
 }
 
+export interface PopupConfig {
+    active: boolean;
+    title: string;
+    message: string;
+    imageUrl?: string;
+}
+
 export interface AppSettings {
   appName: string;
   maintenanceMode: boolean;
-  aiSupportActive?: boolean; // NEW: AI Support Toggle
-  aiApiKey?: string; // NEW: Custom API Key for AI
-  aiName?: string; // NEW: Custom AI Name
+  aiSupportActive?: boolean; 
+  aiApiKey?: string; 
+  aiName?: string; 
   notice?: string;
   logoUrl?: string;
-  contactMessage?: string; // NEW: Custom Support Message
-  operatingHours?: string; // NEW: Custom Operating Hours
+  contactMessage?: string; 
+  operatingHours?: string; 
   visibility?: AppVisibility;
   earnSettings?: EarnSettings;
   developerSettings?: DeveloperSettings;
   uiSettings?: UiSettings;
+  popupNotification?: PopupConfig; // NEW: Login Popup Configuration
 }

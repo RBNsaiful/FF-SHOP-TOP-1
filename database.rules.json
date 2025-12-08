@@ -9,10 +9,11 @@
       ".write": true
     },
     "users": {
-      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".read": "auth != null",
+      ".indexOn": ["totalEarned", "totalSpent", "totalDeposit"],
       "$uid": {
-        ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid || (auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin')"
+        ".read": "auth != null",
+        ".write": "auth != null && ($uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')"
       }
     },
     "orders": {

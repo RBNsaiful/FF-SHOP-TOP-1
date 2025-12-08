@@ -3,6 +3,7 @@
 
 
 
+
 import type { DiamondOffer, PaymentMethod, SupportContact, LevelUpPackage, Membership, PremiumApp, Banner } from './types';
 
 export const APP_LOGO_URL = 'https://i.ibb.co/k2nGxqwY/1763225878291.jpg';
@@ -112,7 +113,8 @@ export const DEFAULT_APP_SETTINGS = {
         levelUp: true,
         membership: true,
         premium: true,
-        earn: true
+        earn: true,
+        ranking: true
     },
     earnSettings: {
         dailyLimit: DAILY_AD_LIMIT,
@@ -288,6 +290,9 @@ export const TEXTS: any = {
     notifications: "Notifications",
     noNotifications: "No notifications yet.",
     markAllRead: "Mark all as read",
+    ranking: "Leaderboard",
+    topPlayers: "Top Active Players",
+    myRank: "My Rank",
     'Level 6 Package': 'Level 6 Package',
     'Level 10 Package': 'Level 10 Package',
     'Level 15 Package': 'Level 15 Package',
@@ -393,7 +398,7 @@ export const TEXTS: any = {
     incorrectCurrentPassword: "বর্তমান পাসওয়ার্ডটি ভুল।",
     delete: "মুছে ফেলুন",
     deleteConfirmTitle: "মুছে ফেলা নিশ্চিত করুন",
-    deleteConfirmMessage: "আপনি কি নিশ্চিতভাবে এই অর্ডারটি মুছে ফেলতে চান? এই কাজটি আর ফেরানো যাবে না。",
+    deleteConfirmMessage: "আপনি কি নিশ্চিতভাবে এই অর্ডারটি মুছে ফেলতে চান? এই কাজটি আর ফেরানো যাবে না।",
     deleteConfirmButton: "মুছে ফেলুন",
     ordersEmpty: "আপনার ক্রয়ের ইতিহাস খালি。",
     rewardAdded: "আপনার ব্যালেন্সে যোগ করা হয়েছে!",
@@ -434,6 +439,9 @@ export const TEXTS: any = {
     notifications: "নোটিফিকেশন",
     noNotifications: "কোনো নোটিফিকেশন নেই।",
     markAllRead: "সব পড়া হয়েছে হিসেবে মার্ক করুন",
+    ranking: "লিডারবোর্ড",
+    topPlayers: "শীর্ষ সক্রিয় খেলোয়াড়",
+    myRank: "আমার র‍্যাঙ্ক",
     'Level 6 Package': 'লেভেল ৬ প্যাকেজ',
     'Level 10 Package': 'লেভেল ১০ প্যাকেজ',
     'Level 15 Package': 'লেভেল ১৫ প্যাকেজ',

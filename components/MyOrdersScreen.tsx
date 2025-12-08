@@ -26,6 +26,7 @@ const CalendarIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="htt
 const UserIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>);
 const MailIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>);
 const ShoppingBagIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>);
+const CrownIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>);
 
 
 const WavyPath = () => (
@@ -90,6 +91,10 @@ const PurchaseCard: FC<{ purchase: Purchase, texts: any, index: number, onDelete
     const displayLabel = isEmailData ? "Gmail" : texts.uid;
     const DataIcon = isEmailData ? MailIcon : UserIcon;
     const displayValue = isEmailData ? purchase.uid.split('|')[0].trim() : purchase.uid;
+    
+    // Dynamic Subtitle Logic
+    const subtitle = isEmailData ? "Premium Subscription" : "Free Fire Topup";
+    const MainIcon = isEmailData ? CrownIcon : DiamondIcon;
 
     return (
         <div 
@@ -104,14 +109,14 @@ const PurchaseCard: FC<{ purchase: Purchase, texts: any, index: number, onDelete
             <div className="p-4 pl-5">
                 <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center space-x-3">
-                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
-                            <DiamondIcon className="w-6 h-6" />
+                         <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${isEmailData ? 'from-yellow-500/10 to-orange-500/10 text-yellow-600' : 'from-primary/10 to-secondary/10 text-primary'} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                            <MainIcon className="w-6 h-6" />
                         </div>
                         <div>
                             <h3 className="font-extrabold text-base text-light-text dark:text-dark-text leading-tight">
                                 {purchase.offer?.diamonds || purchase.offer?.name}
                             </h3>
-                            <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400">Free Fire Topup</p>
+                            <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400">{subtitle}</p>
                         </div>
                     </div>
                     <div className="text-right">

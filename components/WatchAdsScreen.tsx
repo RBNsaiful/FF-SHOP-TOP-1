@@ -1,9 +1,8 @@
-
 import React, { useState, FC, useRef, useEffect } from 'react';
 import { DEFAULT_AVATAR_URL } from '../constants';
 import type { User, EarnSettings } from '../types';
 import { db } from '../firebase';
-import { ref, update, runTransaction } from 'firebase/database';
+import { ref, update, runTransaction, push } from 'firebase/database';
 import VideoAdPlayer from './VideoAdPlayer';
 import AdRenderer from './AdRenderer'; // Import AdRenderer
 
@@ -252,6 +251,7 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
         const today = new Date().toISOString().split('T')[0];
 
         try {
+            let rewarded = false;
             await runTransaction(userRef, (userData) => {
                 if (userData) {
                     const currentInfo = userData.adsWatchedInfo || { count: 0, date: today };
@@ -276,6 +276,7 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
                         }
                         
                         userData.adsWatchedInfo = currentInfo;
+                        rewarded = true; // Mark as successful locally
                         return userData;
                     } else {
                         // Limit reached, do not increment balance
@@ -285,10 +286,24 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
                 return userData;
             });
 
-            onRewardEarned(rewardAmount, enableAnimations);
-            
-            // Only set local cooldown if we successfully watched
-            setAdCooldown(cooldownTime); 
+            if (rewarded) {
+                onRewardEarned(rewardAmount, enableAnimations);
+                setAdCooldown(cooldownTime); 
+
+                // NEW: Log Transaction for Admin Stats (Hidden from User Transaction View usually, but good for records)
+                // We mark type as 'ad_reward' so we can filter it easily.
+                const txnRef = ref(db, 'transactions/' + user.uid);
+                await push(txnRef, {
+                    type: 'ad_reward',
+                    amount: rewardAmount,
+                    method: 'Ad Watch',
+                    transactionId: `AD${Date.now()}`, // Fake ID
+                    date: new Date().toISOString(),
+                    status: 'Completed',
+                    id: `AD${Date.now()}`,
+                    userId: user.uid
+                });
+            }
 
         } catch (error) {
             console.error("Reward Transaction failed", error);
@@ -340,7 +355,7 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
                 <header className="flex flex-col items-center text-center mb-4 animate-fade-in-up">
                     <img 
                         src={user.avatarUrl || DEFAULT_AVATAR_URL} 
-                        alt={user.name}
+                        alt={user.name} 
                         className="w-20 h-20 rounded-full object-cover border-4 border-white/20 shadow-lg mb-4"
                     />
                     <h1 className="text-2xl sm:text-3xl font-extrabold drop-shadow-lg uppercase tracking-wider">
