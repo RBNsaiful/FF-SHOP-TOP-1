@@ -3,14 +3,12 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { User, AppSettings, DiamondOffer, PaymentMethod, SupportContact, LevelUpPackage, Membership, PremiumApp, SpecialOffer, Screen } from '../types';
 import { DEFAULT_AI_KEY } from '../constants';
-import { db, auth } from '../firebase';
-import { ref, runTransaction, onValue, push } from 'firebase/database';
+import { db } from '../firebase';
+import { ref, runTransaction, onValue, push, get, set } from 'firebase/database';
 
 // --- SOUND ASSETS (Short, crisp UI sounds) ---
-// Pop sound for sending
 const SEND_SOUND = "data:audio/mp3;base64,SUQzBAAAAAAAI1RTSVMAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWgAAAA0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAABzgM0AAAAAAOAAAAAAAAAAAA0gAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAALQAAAAADgOAAA///+5JkAAAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD//+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAADcADQAAAAADgAAAAAAAAAtAAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAAAAAANIAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA"; 
-// Soft ping for receiving
-const RECEIVE_SOUND = "data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWgAAAA0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAABzgM0AAAAAAOAAAAAAAAAAAA0gAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAALQAAAAADgOAAA///+5JkAAAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD//+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAADcADQAAAAADgAAAAAAAAAtAAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAAAAAANIAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA";
+const RECEIVE_SOUND = "data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWgAAAA0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAABzgM0AAAAAAOAAAAAAAAAAAA0gAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAALQAAAAADgOAAA///+5JkAAAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAADcADQAAAAADgAAAAAAAAAtAAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAAAAAANIAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA";
 
 // --- ANIMATED ICONS ---
 
@@ -79,16 +77,23 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
   activeScreen,
   setActiveScreen
 }) => {
-  const botName = appSettings.aiName || "Tuktuki"; 
+  const botName = appSettings.aiName || "Assistant"; 
+  const appName = appSettings.appName || "FF SHOP";
   
-  // INITIAL MESSAGE: Use "Sir" instead of "Bhaiya"
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 'init', role: 'model', text: `আসসালামু আলাইকুম স্যার! 😊 আমি ${botName}। ${appSettings.appName}-এ আপনাকে স্বাগতম। অ্যাপ সম্পর্কে কিছু জানতে চাইলে বলুন, আমি সাহায্য করছি! 👇` }
-  ]);
+  // Initialize with personalized greeting
+  const [messages, setMessages] = useState<Message[]>([]);
+  
+  // Set initial greeting only once on mount or when user name changes
+  useEffect(() => {
+      // Cleaner welcome message
+      const greeting = `আসসালামু আলাইকুম ${user.name || 'স্যার'}, ${appName}-এ আপনাকে স্বাগতম!`;
+      setMessages([{ id: 'init', role: 'model', text: greeting }]);
+  }, [user.name, appName]);
   
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [financialStats, setFinancialStats] = useState({ totalDeposit: 0, totalSpent: 0 });
+  const [recentHistory, setRecentHistory] = useState<string>(''); // For storing last 5 orders/txns
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [dynamicKnowledge, setDynamicKnowledge] = useState<string[]>([]);
   
@@ -125,12 +130,12 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
 
   // --- FETCH DYNAMIC KNOWLEDGE (For Admin Teaching) ---
   useEffect(() => {
-      // FIX: Using 'ai_knowledge' path to avoid permission issues with 'config'
+      // Path: 'ai_knowledge' (Root level, matches open DB rules)
       const knowledgeRef = ref(db, 'ai_knowledge');
       const unsubscribe = onValue(knowledgeRef, (snapshot) => {
           const data = snapshot.val();
           if (data) {
-              // Convert object values to string array (handling both string pushes and object pushes)
+              // Convert object values to string array
               const knowledgeArray = Object.values(data).map((item: any) => 
                   typeof item === 'string' ? item : item.content
               ).filter(Boolean);
@@ -144,40 +149,97 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
       return () => unsubscribe();
   }, []);
 
-  // --- REAL-TIME DATA FETCHING (User Financials) ---
+  // --- REAL-TIME DATA FETCHING (User Financials & History) ---
   useEffect(() => {
       if (!user.uid) return;
 
-      // Fetch Orders for Total Spent
       const ordersRef = ref(db, `orders/${user.uid}`);
       const unsubOrders = onValue(ordersRef, (snap) => {
           let spent = 0;
+          let lastOrders: string[] = [];
+          
           if (snap.exists()) {
               const data = snap.val();
-              Object.values(data).forEach((order: any) => {
+              const ordersList = Object.values(data) as any[];
+              
+              // Calculate Total Spent
+              ordersList.forEach((order) => {
                   if (order.status === 'Completed') {
                       spent += Number(order.price || order.offer?.price || 0);
                   }
               });
+
+              // Get Last 5 Orders for Context
+              lastOrders = ordersList
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .slice(0, 5)
+                  .map(o => `Order: ${o.offer?.name || o.offer?.diamonds + ' Diamonds'} - ${o.price}tk - Status: ${o.status} - Date: ${new Date(o.date).toLocaleDateString()}`);
           }
+          
           setFinancialStats(prev => ({ ...prev, totalSpent: spent }));
       });
 
-      // Fetch Transactions for Total Deposit
       const txnRef = ref(db, `transactions/${user.uid}`);
       const unsubTxn = onValue(txnRef, (snap) => {
           let deposit = 0;
+          let lastTxns: string[] = [];
+
           if (snap.exists()) {
               const data = snap.val();
-              Object.values(data).forEach((txn: any) => {
+              const txnList = Object.values(data) as any[];
+
+              txnList.forEach((txn) => {
                   if (txn.status === 'Completed') {
                       deposit += Number(txn.amount || 0);
                   }
               });
+
+              lastTxns = txnList
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .slice(0, 5)
+                  .map(t => `Deposit: ${t.method} - ${t.amount}tk - Status: ${t.status} - TrxID: ${t.transactionId}`);
           }
+          
           setFinancialStats(prev => ({ ...prev, totalDeposit: deposit }));
       });
-
+      
+      // Combined Logic using a single function to build history string
+      const updateHistoryContext = async () => {
+          try {
+              const [ordersSnap, txnsSnap] = await Promise.all([
+                  get(ordersRef),
+                  get(txnRef)
+              ]);
+              
+              let historyStr = "";
+              
+              if (ordersSnap.exists()) {
+                  const oList = Object.values(ordersSnap.val()) as any[];
+                  const topOrders = oList
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .slice(0, 5)
+                      .map(o => `[Order] Item: ${o.offer?.name || o.offer?.diamonds}, Price: ${o.price}, Status: ${o.status}, Date: ${new Date(o.date).toLocaleDateString()}`);
+                  historyStr += "Recent Orders:\n" + topOrders.join('\n') + "\n\n";
+              }
+              
+              if (txnsSnap.exists()) {
+                  const tList = Object.values(txnsSnap.val()) as any[];
+                  const topTxns = tList
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .slice(0, 5)
+                      .map(t => `[Deposit] Method: ${t.method}, Amount: ${t.amount}, Status: ${t.status}, Date: ${new Date(t.date).toLocaleDateString()}`);
+                  historyStr += "Recent Transactions:\n" + topTxns.join('\n');
+              }
+              
+              setRecentHistory(historyStr);
+          } catch (e) {
+              console.error(e);
+          }
+      };
+      
+      // Trigger history update initially and on changes
+      updateHistoryContext();
+      
       return () => {
           unsubOrders();
           unsubTxn();
@@ -215,10 +277,15 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
       const deltaX = clientX - dragStartPos.current.x;
       const deltaY = clientY - dragStartPos.current.y;
       if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) hasMoved.current = true;
+      
       let newX = buttonStartPos.current.x + deltaX;
       let newY = buttonStartPos.current.y + deltaY;
+      
       const maxX = window.innerWidth - 60;
-      const maxY = window.innerHeight - 60;
+      // Adjusted maxY to account for Bottom Nav (60px nav + 20px padding = ~80px space needed)
+      // Setting maxY 130px from bottom ensures it doesn't overlap the nav bar area.
+      const maxY = window.innerHeight - 130; 
+      
       if (newX < 0) newX = 0; if (newX > maxX) newX = maxX;
       if (newY < 0) newY = 0; if (newY > maxY) newY = maxY;
       setPosition({ x: newX, y: newY });
@@ -227,82 +294,76 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
   const handlePointerUp = () => { isDragging.current = false; };
   const handleButtonClick = () => { if (!hasMoved.current) setActiveScreen('aiChat'); };
 
-  // --- KNOWLEDGE INJECTION (Strictly Scoped & Professional) ---
+  // --- SYSTEM INSTRUCTION (Persona & Logic) ---
   const systemInstruction = useMemo(() => {
     const earnSettings = appSettings.earnSettings;
     const learnedKnowledge = dynamicKnowledge.map(k => `- ${k}`).join('\n');
     
+    // Format Data for AI
+    const diamondsList = diamondOffers.map(d => `${d.diamonds} Diamonds = ${d.price} Taka`).join(', ');
+    const membershipsList = memberships.map(m => `${m.name} = ${m.price} Taka`).join(', ');
+    const paymentList = paymentMethods.map(p => `${p.name} (Number: ${p.accountNumber})`).join(', ');
+    
+    // Developer & Contact Info - Prioritize Dynamic, Fallback to Specifics
+    const devName = appSettings.developerSettings?.title || "RBN Saiful";
+    const devUrl = appSettings.developerSettings?.url || "https://rbm-saiful-contact.vercel.app";
+    // Company name usually matches App Name or specifically requested FF SHOP RBN
+    const companyName = appSettings.appName || "FF SHOP RBN"; 
+    const devPhone = "01614157071";
+
     return `
-      *** IDENTITY ***
-      You are "${botName}", the Professional Female Assistant for "${appSettings.appName}".
-      
-      *** STRICT PERSONA RULES (MANDATORY) ***
-      1. **ADDRESSING:** You MUST address the user as "Sir" (স্যার). **NEVER** use "Bhaiya", "Bro", "Saiful Bhaiya", or "Ogo".
-      2. **GREETING:** Use "As-salamu Alaykum" ONLY at the start of a conversation or if the user greets first. Do NOT repeat it in every message.
-      3. **TONE:** Professional, Efficient, Helpful, yet Polite and Muslim.
-      4. **LANGUAGE:** ONLY Bengali (Bangla).
+      *** IDENTITY & PERSONA ***
+      - **Role:** Professional, Efficient, and Polite Assistant of **${companyName}**.
+      - **Perspective:** Always speak as "**We**" (আমরা/আমাদের). Never use "I" or "The App".
+      - **Tone:** Professional, Direct, Courteous (Muslim/Bengali style).
+      - **Language:** Bengali (Bangla). Use English terms for app features (e.g., "Order", "Deposit", "Wallet").
 
-      *** CRITICAL LOGIC OVERRIDES (HIGHEST PRIORITY) ***
-      1. **PASSWORD RESET:** If the user mentions "password", "forgot password", "reset password", or "password change" (when confused), you MUST reply EXACTLY with this text:
-         "স্যার, পাসওয়ার্ড রিসেট করার কোনো স্বয়ংক্রিয় অপশন আমাদের সিস্টেমে নেই। আপনি দয়া করে প্রোফাইল মেনুর মধ্যে থাকা 'Contact Us' অপশনে গিয়ে সরাসরি আমাদের সাথে যোগাযোগ করুন। আপনার সঠিক তথ্য যাচাই করে আমরা ম্যানুয়ালি পাসওয়ার্ড পরিবর্তন করে দেবো।"
-         (Do NOT suggest clicking a 'Forgot Password' button).
-         
-      2. **CONTACT INFO:** The "Contact Us" page contains real phone numbers, email, and social links. If a user asks how to contact, direct them to the "Contact Us" page. Do not say you don't know.
+      *** COMMUNICATION GUIDELINES (STRICT) ***
+      1. **Conciseness:** Be brief. Do not write long paragraphs unless necessary.
+      2. **Greeting:**
+         - User: "Hi/Hello" -> AI: "জি স্যার, বলুন কিভাবে সাহায্য করতে পারি?"
+         - User: "Salam/As-salamu Alaykum" -> AI: "ওয়ালাইকুম আসসালাম। বলুন কিভাবে সাহায্য করতে পারি?"
+      3. **Addressing:** Use "Sir" (স্যার) politey but **VERY SPARINGLY**. Maximum once per response.
+      4. **Prohibited:** NEVER use the word "Bhaiya" (ভাইয়া).
+      5. **No Repetition:** Do not repeat the user's question or state the obvious.
 
-      *** APP NAVIGATION MAP (KNOWLEDGE BASE) ***
-      If the user asks where to find something, guide them accurately:
-      
-      1. **Profile Menu (প্রোফাইল মেনু)** contains:
-         - My Orders (অর্ডার হিস্টোরি)
-         - My Transaction (ডিপোজিট হিস্টোরি)
-         - Add Money (টাকা এড করা)
-         - Contact Us (যোগাযোগ)
-         - Change Password (পাসওয়ার্ড পরিবর্তন)
-         - Language (ভাষা পরিবর্তন)
-         - Theme (লাইট/ডার্ক মোড)
-         - Logout
-      
-      2. **Edit Profile (এডিট প্রোফাইল)** contains:
-         - Name, Email, Save UID, Change Photo
-         - Show Reward Animation Toggle
-      
-      3. **Offers (অফার)** types:
-         - Diamond, Level Up, Membership, Premium App, Special Event.
-         
-      4. **Navigation Bar (নিচের মেনু)**:
-         - Home, Wallet, Earn (Watch Ads), Profile.
+      *** CRITICAL LOGIC: PASSWORD RESET ***
+      - If user asks to **RESET** or **FORGOT** password:
+        "সালাম স্যার। আপনার অ্যাকাউন্টের পাসওয়ার্ড নিয়ে চিন্তার কোনো কারণ নেই। আমরা আনন্দের সাথে আপনাকে সাহায্য করব। আপনার সুরক্ষার জন্য, আমাদের সিস্টেমে স্বয়ংক্রিয় পাসওয়ার্ড রিসেট অপশন রাখা হয়নি। আপনার পাসওয়ার্ড পরিবর্তন করার জন্য আপনি দয়া করে প্রোফাইল মেনুর মধ্যে থাকা 'Contact Us' অপশন ব্যবহার করে আমাদের সাপোর্ট টিমের সাথে যোগাযোগ করুন। তারা আপনার তথ্য যাচাই করে দ্রুত একটি নতুন পাসওয়ার্ড সেট করে দেবেন।"
+      - If user mentions "password" casually (e.g., "Is my password safe?"), give a normal, safe answer.
 
-      *** REAL-TIME USER DATA (SECRET ACCESS) ***
-      - User Name: ${user.name}
-      - Phone/Email: ${user.email}
-      - **Current Balance:** ৳${Math.floor(user.balance)}
-      - **Total Deposit:** ৳${financialStats.totalDeposit}
-      - **Total Spent:** ৳${financialStats.totalSpent}
-      
-      *** DEVELOPER INFO (ONLY IF ASKED) ***
-      If asked "Who made you?" or "Developer contact", provide EXACTLY:
-      - Developer Name: RBN Saiful
-      - Contact Number: 01614157071
-      - Website: https://rbm-saiful-contact.vercel.app
-      - Description: "RBN Saiful is a professional App & Web Developer known for clean code and unique designs."
+      *** DEVELOPER & CONTACT INFO ***
+      - **Developer:** ${devName}
+      - **Company:** ${companyName}
+      - **Support Phone:** ${devPhone}
+      - **Website:** ${devUrl}
+      - **Instruction:** If asked about the developer, owner, or contact, provide these details clearly and praise the developer's work.
 
-      *** EARN FEATURE ***
-      - Location: "Earn" tab.
-      - Limit: ${earnSettings?.dailyLimit || 20} ads/day.
-      - Reward: ৳${earnSettings?.rewardPerAd || 5}/ad.
+      *** REAL-TIME APP DATA ***
+      - **User:** ${user.name} (Balance: ৳${Math.floor(user.balance)}).
+      - **Offers:** ${diamondsList}.
+      - **Memberships:** ${membershipsList}.
+      - **Payment:** ${paymentList}.
+      - **Earn:** Limit ${earnSettings?.dailyLimit || 20} ads/day, Reward ৳${earnSettings?.rewardPerAd || 5}.
 
-      *** DYNAMIC KNOWLEDGE BASE (LEARNED RULES) ***
+      *** RECENT USER ACTIVITY (CONTEXT) ***
+      ${recentHistory || "No recent activity."}
+
+      *** KNOWLEDGE BASE ***
       ${learnedKnowledge}
+      
+      *** SCOPE ***
+      - Answer ONLY about ${companyName}. Politely decline personal or off-topic questions.
     `;
-  }, [appSettings, diamondOffers, user, botName, financialStats, paymentMethods, dynamicKnowledge]);
+  }, [appSettings, user, financialStats, recentHistory, diamondOffers, memberships, paymentMethods, dynamicKnowledge, botName, appName]);
 
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
 
-    // --- ADMIN TEACHING MODE TRIGGER ---
+    // --- ADMIN TEACHING MODE ACTIVATION ---
     if (input.trim() === 'SAIFULISLAM+999') {
         setIsAdminMode(true);
-        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: '******' }]); // Hide pass
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: '******' }]); 
         setTimeout(() => {
             setMessages(prev => [...prev, { 
                 id: 'admin-welcome', 
@@ -314,7 +375,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
         return;
     }
 
-    // --- ADMIN MODE LOGIC ---
+    // --- ADMIN MODE LOGIC (Saving Knowledge) ---
     if (isAdminMode) {
         const adminInput = input.trim();
         
@@ -328,45 +389,64 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
             return;
         }
 
-        // Save to Firebase (Simpler, more robust approach)
+        // Save to Firebase
         try {
-            // Path: ai_knowledge (Root) - Matches relaxed DB rule
             const knowledgeRef = ref(db, 'ai_knowledge');
-            const currentUser = auth.currentUser;
-            
-            // Basic auth check
-            if (!currentUser) {
-                throw new Error("You must be logged in to save knowledge.");
-            }
-
-            // Optimistic update for UI
-            setMessages(prev => [...prev, 
-                { id: Date.now().toString(), role: 'user', text: adminInput },
-            ]);
-            
-            // 3. Structured Data Push
-            const newEntry = {
-                content: adminInput,
-                addedBy: currentUser.uid,
-                timestamp: Date.now()
-            };
-
+            setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: adminInput }]);
+            const newEntry = { content: adminInput, timestamp: Date.now() };
             await push(knowledgeRef, newEntry);
-            
-            setMessages(prev => [...prev, 
-                { id: (Date.now()+1).toString(), role: 'model', text: "✅ Learned!" }
-            ]);
+            setMessages(prev => [...prev, { id: (Date.now()+1).toString(), role: 'model', text: "✅ Learned!" }]);
         } catch (e: any) {
             console.error("Admin Teaching Save Error:", e);
             const errorMsg = e.code ? `Error: ${e.code}` : `Error saving: ${e.message}`;
             setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: `❌ ${errorMsg}` }]);
         }
         setInput('');
-        return; // Stop here, do not call Gemini
+        return; 
+    }
+
+    // --- RATE LIMITING LOGIC (BACKEND STYLE) ---
+    if (user.uid) {
+        const rateLimitRef = ref(db, `users/${user.uid}/aiRateLimit`);
+        
+        try {
+            const snapshot = await get(rateLimitRef);
+            const rateData = snapshot.val() || { count: 0, firstRequestTime: 0 };
+            const now = Date.now();
+            const WINDOW_MS = 3 * 60 * 60 * 1000; // 3 Hours
+            const LIMIT_COUNT = 25; // Increased Limit to 25
+
+            let newCount = rateData.count;
+            let newStartTime = rateData.firstRequestTime;
+
+            // Reset if window passed
+            if (now - rateData.firstRequestTime > WINDOW_MS) {
+                newCount = 0;
+                newStartTime = now;
+            }
+
+            if (newCount >= LIMIT_COUNT) {
+                // Limit Reached - Polite Message
+                const busyMessage: Message = { 
+                    id: Date.now().toString(), 
+                    role: 'model', 
+                    text: "স্যার, আমি বর্তমানে অন্যান্য ব্যবহারকারীদের অনুরোধের উত্তর দিতে ব্যস্ত আছি। দয়া করে কিছুক্ষণ পরে আবার চেষ্টা করুন, অথবা আপনি সরাসরি আমাদের সাপোর্ট টিমের সাথে যোগাযোগ করতে পারেন। আমাদের সাথে যোগাযোগ করতে 'Contact Us' অপশনটি ব্যবহার করুন।" 
+                };
+                setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: input }, busyMessage]);
+                setInput('');
+                return; // Stop execution
+            }
+
+            // Update Limit
+            await set(rateLimitRef, { count: newCount + 1, firstRequestTime: newStartTime });
+
+        } catch (error) {
+            console.warn("Rate limit check failed, proceeding anyway.");
+        }
     }
 
     // --- STANDARD AI CHAT LOGIC ---
-    playSound('send'); // Send Sound
+    playSound('send');
 
     const userMessageText = input;
     const userMessage: Message = { id: Date.now().toString(), role: 'user', text: userMessageText };
@@ -375,7 +455,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
     setInput('');
     setIsTyping(true);
 
-    // Track AI Usage
+    // Track AI Usage Stats
     if (user.uid) {
         const userRef = ref(db, `users/${user.uid}`);
         runTransaction(userRef, (userData) => {
@@ -387,8 +467,10 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
     }
 
     try {
-      let apiKey = appSettings.aiApiKey; 
-      if (!apiKey || apiKey.trim() === "") apiKey = DEFAULT_AI_KEY; 
+      // PRIORITY: Use App Settings Key first, then Default
+      // TRIM is important to avoid 'invalid argument' errors from copy-paste spaces
+      let apiKey = appSettings.aiApiKey ? appSettings.aiApiKey.trim() : ""; 
+      if (!apiKey) apiKey = DEFAULT_AI_KEY; 
       
       const ai = new GoogleGenAI({ apiKey: apiKey });
       
@@ -414,7 +496,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
         const chunkText = chunk.text;
         if (chunkText) {
             if (!soundPlayed) {
-                playSound('receive'); // Play sound once when reply starts
+                playSound('receive');
                 soundPlayed = true;
             }
             fullText += chunkText;
@@ -422,8 +504,45 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
         }
       }
 
-    } catch (error) {
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: "নেটওয়ার্ক সমস্যা হচ্ছে স্যার! একটু পরে আবার চেষ্টা করুন। 🥺" }]);
+    } catch (error: any) {
+      let errorText = "নেটওয়ার্ক সমস্যা হচ্ছে স্যার! একটু পরে আবার চেষ্টা করুন। 🥺";
+      
+      // Parse Error to handle Quota Exceeded (429) or Invalid Key
+      let errStatus = error.status;
+      let errCode = error.code;
+      let errMsg = error.message || "";
+      
+      // Handle wrapped error object from Google API often looking like { error: { code: 429, ... } }
+      if (error.error) {
+          errStatus = error.error.status || errStatus;
+          errCode = error.error.code || errCode;
+          errMsg = error.error.message || errMsg;
+      }
+
+      const errString = JSON.stringify(error) || "";
+      let isQuotaError = false;
+
+      if (
+          errCode === 429 || 
+          errStatus === 429 || 
+          errString.includes("429") || 
+          errString.includes("RESOURCE_EXHAUSTED") ||
+          errMsg.includes("quota")
+      ) {
+          isQuotaError = true;
+          errorText = "⚠️ অতিরিক্ত ব্যবহারের কারণে AI সেবা সাময়িকভাবে ব্যস্ত আছে। দয়া করে কিছুক্ষণ পরে আবার চেষ্টা করুন। (Quota Limit Reached)";
+      } else if (errString.includes("API key") || errString.includes("400")) {
+          errorText = "⚠️ কনফিগারেশন ত্রুটি: ভুল API কী। দয়া করে সাপোর্টে যোগাযোগ করুন।";
+      }
+
+      // Log appropriately
+      if (isQuotaError) {
+          console.warn("Gemini API Quota Exceeded (429). This is expected behavior on the free tier.");
+      } else {
+          console.error("AI Generation Error:", error);
+      }
+
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: errorText }]);
     } finally {
       setIsTyping(false);
     }
@@ -483,9 +602,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#0F172A] scroll-smooth pb-20">
-            <div className="flex justify-center mb-6">
-                <span className="text-[10px] bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-3 py-1 rounded-full uppercase tracking-wider font-bold">Safe & Secure Chat</span>
-            </div>
+            {/* Removed Safe & Secure Chat Badge */}
 
             {messages.map((msg) => (
               <div key={msg.id} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>

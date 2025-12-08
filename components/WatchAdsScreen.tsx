@@ -1,3 +1,4 @@
+
 import React, { useState, FC, useRef, useEffect } from 'react';
 import { DEFAULT_AVATAR_URL } from '../constants';
 import type { User, EarnSettings } from '../types';
@@ -175,20 +176,68 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
         }
     };
 
-    // --- ADMOB LOGIC (Hybrid Support) ---
-    const playAdMobAd = () => {
-        // 1. Check if Native AdMob Plugin is available (For future APK)
+    // --- ADMOB LOGIC (Future-Proof Hybrid Support) ---
+    const playAdMobAd = async () => {
+        // 1. DETECT NATIVE PLUGIN
+        // This checks for the standard 'admob-plus' or 'cordova-plugin-admob-plus' object.
+        // It will only be present in the compiled APK/IPA.
         // @ts-ignore
-        if (window.AdMob) {
-            // REAL APK CODE WOULD GO HERE
-            // AdMob.showRewardVideoAd({ adId: adMobRewardId }).then(...)
-            console.log("Running Native AdMob Logic with ID:", adMobRewardId);
+        const nativeAdMob = window.admob || window.AdMob;
+
+        if (nativeAdMob) {
+            console.log("🔥 Native AdMob Plugin Detected!");
+            
+            try {
+                // A. INITIALIZE REWARD VIDEO
+                // Using standard AdMob Plus syntax
+                // @ts-ignore
+                const rewardVideo = new nativeAdMob.RewardVideo({
+                    id: adMobRewardId || 'ca-app-pub-3940256099942544/5224354917' // Use Test ID if admin ID missing
+                });
+
+                // B. SETUP EVENT LISTENERS
+                // @ts-ignore
+                rewardVideo.on('load', () => {
+                    console.log('AdMob Video Loaded');
+                });
+
+                // @ts-ignore
+                rewardVideo.on('reward', (evt) => {
+                    console.log('💰 AdMob Reward Earned!');
+                    handleRewardClaim(); // Call secure server-side claim logic
+                });
+
+                // @ts-ignore
+                rewardVideo.on('dismiss', () => {
+                    console.log('AdMob Video Closed');
+                    // Optional: You could reload logic here if needed
+                });
+
+                // @ts-ignore
+                rewardVideo.on('loadfail', (err) => {
+                    console.error('AdMob Load Failed:', err);
+                    alert("Ad failed to load. Please try again or check connection.");
+                });
+
+                // C. LOAD AND SHOW
+                console.log("Loading AdMob Video...");
+                await rewardVideo.load();
+                await rewardVideo.show();
+
+            } catch (err) {
+                console.error("❌ AdMob Native Logic Error:", err);
+                alert("Error initializing AdMob. Please ensure the plugin is installed correctly in the APK.");
+            }
+
         } else {
-            // 2. Web Simulation (Since we are in Browser now)
+            // 2. WEB SIMULATION (No Native Plugin Found)
+            // This runs in the browser so you can verify the "Reward Flow" works visually.
+            console.log("⚠️ Native AdMob not found. Running Web Simulation.");
+            
             setShowAdMobSimulator(true);
             setTimeout(() => {
                 setShowAdMobSimulator(false);
-                handleRewardClaim(); // Auto claim for test
+                handleRewardClaim(); // Auto claim for web test
             }, 3000);
         }
     };
