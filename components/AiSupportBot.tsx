@@ -352,8 +352,8 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
             style={{ left: position.x, top: position.y, position: 'fixed', zIndex: 50, touchAction: 'none' }}
             className="cursor-move active:cursor-grabbing"
         >
-            {/* CLEAN SINGLE COLOR DESIGN */}
-            <div className="bg-primary text-white p-2.5 rounded-full shadow-lg shadow-primary/40 hover:scale-105 active:scale-95 transition-transform duration-200 flex items-center justify-center">
+            {/* UPDATED TO BRAND GRADIENT */}
+            <div className="bg-gradient-to-r from-primary to-secondary text-white p-2.5 rounded-full shadow-lg shadow-primary/40 hover:scale-105 active:scale-95 transition-transform duration-200 flex items-center justify-center">
                 <LiveRobotIcon className="w-7 h-7" />
             </div>
         </div>
@@ -366,8 +366,8 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
               <button onClick={() => setActiveScreen('home')} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-300"><ArrowLeftIcon className="w-6 h-6" /></button>
               <div className="flex items-center gap-3">
                   <div className="relative">
-                      {/* CLEAN SINGLE COLOR HEADER ICON */}
-                      <div className="bg-primary p-1.5 rounded-full text-white shadow-md">
+                      {/* UPDATED HEADER ICON TO BRAND GRADIENT */}
+                      <div className="bg-gradient-to-r from-primary to-secondary p-1.5 rounded-full text-white shadow-md">
                           <LiveRobotIcon className="w-5 h-5" />
                       </div>
                   </div>
@@ -380,7 +380,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
             {messages.map((msg) => (
               <div key={msg.id} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'model' && (
-                    <div className="w-8 h-8 mr-2 rounded-full bg-primary flex items-center justify-center self-end mb-1 text-white shadow-sm flex-shrink-0">
+                    <div className="w-8 h-8 mr-2 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center self-end mb-1 text-white shadow-sm flex-shrink-0">
                         <LiveRobotIcon className="w-4 h-4" />
                     </div>
                 )}
@@ -389,7 +389,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
             ))}
             {isTyping && (
                 <div className="flex justify-start w-full items-end">
-                    <div className="w-8 h-8 mr-2 rounded-full bg-primary flex items-center justify-center text-white shadow-sm">
+                    <div className="w-8 h-8 mr-2 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center text-white shadow-sm">
                         <LiveRobotIcon className="w-4 h-4" />
                     </div>
                     <div className="bg-white dark:bg-dark-card px-4 py-3 rounded-2xl rounded-bl-none border border-gray-100 dark:border-gray-700 flex gap-1.5 shadow-sm">

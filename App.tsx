@@ -50,7 +50,7 @@ interface HeaderProps {
 }
 
 const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavigate, isBalancePulsing, onBalancePulseEnd, hasUnreadNotifications }) => {
-    const isSubScreen = (['myOrders', 'myTransaction', 'contactUs', 'wallet', 'changePassword', 'watchAds', 'editProfile', 'notifications', 'ranking'] as Screen[]).includes(screen);
+    const isSubScreen = (['myOrders', 'myTransaction', 'contactUs', 'wallet', 'changePassword', 'watchAds', 'editProfile', 'notifications'] as Screen[]).includes(screen);
     const titleMap: { [key in Screen]?: string } = {
         myOrders: texts.myOrders,
         myTransaction: texts.myTransaction,
@@ -63,8 +63,8 @@ const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavig
         ranking: texts.ranking, // Add Ranking Title
     };
 
-    // Hide Header on Admin, Profile, and AI Chat screens
-    if (screen === 'admin' || screen === 'profile' || screen === 'aiChat') return null;
+    // Hide Header on Admin, Profile, AI Chat, and Ranking screens
+    if (screen === 'admin' || screen === 'profile' || screen === 'aiChat' || screen === 'ranking') return null;
 
     // Desktop Nav Link Component
     const DesktopNavLink = ({ target, label }: { target: Screen, label: string }) => (
@@ -538,8 +538,9 @@ const App: FC = () => {
       case 'editProfile': return <EditProfileScreen user={user} texts={texts} onNavigate={setActiveScreen} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
       case 'notifications': return <NotificationScreen texts={texts} notifications={notifications} onRead={handleMarkNotificationsAsRead} />;
       case 'ranking': 
+        // Ranking Screen: Pass onClose handler to navigate back
         if (appSettings.visibility && !appSettings.visibility.ranking) return null;
-        return <RankingScreen user={user} texts={texts} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
+        return <RankingScreen user={user} texts={texts} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} onClose={() => setActiveScreen('profile')} />;
       case 'admin':
           // Strict check: if user role isn't admin, force home
           if (user.role !== 'admin') return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} specialOffers={specialOffers} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} uiSettings={appSettings.uiSettings} />;

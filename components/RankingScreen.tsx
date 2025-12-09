@@ -4,60 +4,45 @@ import { User } from '../types';
 import { db } from '../firebase';
 import { ref, onValue } from 'firebase/database';
 import { DEFAULT_AVATAR_URL } from '../constants';
-import AdRenderer from './AdRenderer';
 
 interface RankingScreenProps {
     user: User;
     texts: any;
     adCode?: string;
     adActive?: boolean;
+    onClose?: () => void;
 }
 
 // Icons
-const GiftIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>);
-const TrendingIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>);
-const RefreshIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>);
+const ArrowLeftIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>);
 
-// Crown Icons
-const GoldCrown: FC<{className?: string}> = ({className}) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="url(#goldGradient)" className={className} style={{ filter: 'drop-shadow(0px 2px 4px rgba(255, 215, 0, 0.5))' }}>
-        <defs>
-            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#FFD700" />
-                <stop offset="50%" stopColor="#FDB931" />
-                <stop offset="100%" stopColor="#FFD700" />
-            </linearGradient>
-        </defs>
-        <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5z"/>
+// Crown Icon
+const CrownIcon: FC<{className?: string, fill?: string}> = ({className, fill = "currentColor"}) => (
+    <svg viewBox="0 0 24 24" fill={fill} className={className} xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 4L5 16H19L22 4L15 9L12 3L9 9L2 4Z" stroke="none" />
     </svg>
 );
 
-const SilverCrown: FC<{className?: string}> = ({className}) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#E0E0E0" className={className} style={{ filter: 'drop-shadow(0px 2px 4px rgba(192, 192, 192, 0.5))' }}>
-        <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5z"/>
+// Star Badge Icon
+const StarBadgeIcon: FC<{className?: string, fill?: string}> = ({className, fill = "currentColor"}) => (
+    <svg viewBox="0 0 24 24" fill={fill} className={className} xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z" stroke="none" />
     </svg>
 );
 
-const BronzeCrown: FC<{className?: string}> = ({className}) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#CD7F32" className={className} style={{ filter: 'drop-shadow(0px 2px 4px rgba(205, 127, 50, 0.5))' }}>
-        <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5z"/>
-    </svg>
-);
-
-const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive }) => {
+const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, onClose }) => {
     const [activeTab, setActiveTab] = useState<'transaction' | 'earning'>('transaction');
     const [rankings, setRankings] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [myRank, setMyRank] = useState<number | null>(null);
 
-    // Format safe numbers to prevent huge scientific notation strings
+    // Robust Safe Number Conversion
     const safeNumber = (val: any) => {
-        let num = Number(val);
+        if (val === undefined || val === null) return 0;
+        let num = parseFloat(val); 
         if (isNaN(num) || !isFinite(num)) return 0;
-        // Cap unrealistic numbers (e.g., > 100 Billion likely a bug)
-        if (num > 100000000000) return 9999999999;
-        return Math.floor(num);
+        return num;
     };
 
     const fetchData = () => {
@@ -71,23 +56,23 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive }
                 const data = snapshot.val();
                 const usersList: User[] = Object.values(data);
                 
-                // Sorting
+                // Sorting Logic
                 const sortedUsers = usersList.sort((a, b) => {
                     if (activeTab === 'transaction') {
+                        // For Traders: Total Volume (Deposit + Spend)
                         const volA = safeNumber(a.totalDeposit) + safeNumber(a.totalSpent);
                         const volB = safeNumber(b.totalDeposit) + safeNumber(b.totalSpent);
                         return volB - volA; 
                     } else {
+                        // For Earners: Total Earned
                         const earnA = safeNumber(a.totalEarned);
                         const earnB = safeNumber(b.totalEarned);
                         return earnB - earnA; 
                     }
                 });
                 
-                // Limit rendering to top 100 for performance
-                setRankings(sortedUsers.slice(0, 100));
+                setRankings(sortedUsers.slice(0, 100)); // Top 100
                 
-                // Find current user's rank in full list
                 const rank = sortedUsers.findIndex(u => u.uid === user.uid);
                 setMyRank(rank !== -1 ? rank + 1 : null);
             } else {
@@ -95,12 +80,7 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive }
             }
             setLoading(false);
         }, (err) => {
-            // FIX: Suppress permission denied errors if user is logging out (auth.currentUser might be null or transitioning)
-            // This prevents "Client doesn't have permission" errors from showing up in the UI during logout.
-            if (err.message.includes('permission_denied') || err.message.includes("Client doesn't have permission")) {
-                 console.log("Ranking fetch suppressed (likely logout)");
-                 return;
-            }
+            if (err.message.includes('permission_denied')) return;
             console.error("Ranking fetch error:", err);
             setError(err.message);
             setLoading(false);
@@ -114,256 +94,205 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive }
         return () => unsub();
     }, [user.uid, activeTab]);
 
-    const TopPlayer: FC<{ user: User, rank: 1 | 2 | 3 }> = ({ user, rank }) => {
-        const styleConfig = {
-            1: {
-                containerClass: 'order-2 z-30 -mt-10 transform scale-110',
-                avatarSize: 'w-24 h-24 sm:w-28 sm:h-28',
-                borderClass: 'border-yellow-400',
-                glowClass: 'shadow-[0_0_30px_rgba(255,215,0,0.4)]',
-                crown: <GoldCrown className="w-14 h-14 absolute -top-12 left-1/2 -translate-x-1/2 animate-bounce" />,
-                badge: 'bg-yellow-400 text-black',
-                platformClass: 'bg-gradient-to-t from-yellow-500/20 to-transparent h-24'
-            },
-            2: {
-                containerClass: 'order-1 z-20 mt-4',
-                avatarSize: 'w-16 h-16 sm:w-20 sm:h-20',
-                borderClass: 'border-gray-300',
-                glowClass: 'shadow-[0_0_20px_rgba(192,192,192,0.3)]',
-                crown: <SilverCrown className="w-10 h-10 absolute -top-8 left-1/2 -translate-x-1/2" />,
-                badge: 'bg-gray-300 text-gray-800',
-                platformClass: 'bg-gradient-to-t from-gray-400/20 to-transparent h-16'
-            },
-            3: {
-                containerClass: 'order-3 z-20 mt-8',
-                avatarSize: 'w-16 h-16 sm:w-20 sm:h-20',
-                borderClass: 'border-orange-400',
-                glowClass: 'shadow-[0_0_20px_rgba(205,127,50,0.3)]',
-                crown: <BronzeCrown className="w-10 h-10 absolute -top-8 left-1/2 -translate-x-1/2" />,
-                badge: 'bg-orange-400 text-white',
-                platformClass: 'bg-gradient-to-t from-orange-500/20 to-transparent h-12'
-            }
-        };
-
-        const config = styleConfig[rank];
-        
-        let score = 0;
-        if (activeTab === 'transaction') {
-            score = safeNumber(user.totalDeposit) + safeNumber(user.totalSpent);
-        } else {
-            score = safeNumber(user.totalEarned);
-        }
-
-        return (
-            <div className={`flex flex-col items-center ${config.containerClass} transition-transform duration-500 hover:scale-105`}>
-                <div className="relative">
-                    {config.crown}
-                    <div className={`rounded-full p-1 bg-white dark:bg-gray-800 ${config.glowClass}`}>
-                        <img 
-                            src={user.avatarUrl || DEFAULT_AVATAR_URL} 
-                            alt={user.name} 
-                            className={`rounded-full object-cover border-4 ${config.borderClass} ${config.avatarSize}`}
-                            onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR_URL; }}
-                        />
-                    </div>
-                    <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs shadow-md border-2 border-white dark:border-dark-card ${config.badge}`}>
-                        {rank}
-                    </div>
-                </div>
-                
-                <div className="text-center mt-3 relative z-10">
-                    <p className="font-bold text-sm text-gray-900 dark:text-white truncate max-w-[100px] mb-0.5">
-                        {user.name}
-                    </p>
-                    <span className="inline-block bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-2 py-0.5 text-[10px] font-bold text-primary dark:text-yellow-400 shadow-sm">
-                        {texts.currency}{score.toLocaleString()}
-                    </span>
-                </div>
-            </div>
-        );
-    };
-
     const top3 = rankings.slice(0, 3);
     const rest = rankings.slice(3);
 
-    // Skeleton Loader for sleek experience
-    const SkeletonItem = () => (
-        <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800 animate-pulse">
-            <div className="flex items-center gap-4 w-full">
-                <div className="w-6 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                <div className="flex flex-col gap-2 w-1/2">
-                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-                </div>
-            </div>
-        </div>
-    );
+    // --- Helper to get score ---
+    const getScore = (u: User) => {
+        if (!u) return 0;
+        return activeTab === 'transaction' 
+            ? safeNumber(u.totalDeposit) + safeNumber(u.totalSpent)
+            : safeNumber(u.totalEarned);
+    };
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-[#0F172A] relative overflow-hidden flex flex-col font-sans">
+        <div className="fixed inset-0 z-50 bg-[#000000] flex flex-col font-sans overflow-hidden animate-smart-fade-in text-white">
             
-            {/* Ambient Background Glow */}
-            <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-primary/10 via-purple-500/5 to-transparent pointer-events-none"></div>
-            <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/20 rounded-full blur-[80px]"></div>
-            <div className="absolute top-40 -left-20 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px]"></div>
+            {/* --- DECORATIVE BACKGROUND BLOBS --- */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[40%] bg-primary/20 blur-[100px] rounded-full animate-pulse"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[40%] bg-secondary/10 blur-[100px] rounded-full animate-pulse"></div>
+            </div>
 
-            <div className="flex-1 flex flex-col max-w-lg mx-auto w-full relative z-10">
-                
-                {/* Custom Stylish Tab Switcher - No Title Duplicate */}
-                <div className="px-6 pt-4 mb-2 animate-smart-slide-down">
-                    <div className="bg-white/80 dark:bg-white/5 backdrop-blur-md p-1.5 rounded-2xl shadow-sm border border-white/20 flex relative">
+            {/* --- HEADER WITH TABS --- */}
+            <div className="relative z-50 pt-safe-top px-4 pb-2 bg-[#000000]/80 backdrop-blur-sm sticky top-0">
+                <div className="flex items-center justify-between py-3 gap-3">
+                    <button 
+                        onClick={onClose} 
+                        className="w-10 h-10 flex flex-shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+                    >
+                        <ArrowLeftIcon className="w-5 h-5 text-white" />
+                    </button>
+                    
+                    {/* PREMIUM TABS */}
+                    <div className="flex-1 bg-[#1E293B] p-1.5 rounded-2xl flex relative border border-white/10 shadow-inner max-w-sm mx-auto">
                         <button 
                             onClick={() => setActiveTab('transaction')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 relative z-10 ${activeTab === 'transaction' ? 'text-white shadow-lg shadow-primary/30' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                            className={`flex-1 py-3 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all duration-300 ${activeTab === 'transaction' ? 'bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white shadow-lg shadow-primary/30 transform scale-[1.02]' : 'text-gray-400 hover:text-white'}`}
                         >
-                            <TrendingIcon className="w-4 h-4" /> {texts.topPlayers || "Top Traders"}
+                            Traders
                         </button>
                         <button 
                             onClick={() => setActiveTab('earning')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 relative z-10 ${activeTab === 'earning' ? 'text-white shadow-lg shadow-green-500/30' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                            className={`flex-1 py-3 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all duration-300 ${activeTab === 'earning' ? 'bg-gradient-to-r from-[#EC4899] to-[#DB2777] text-white shadow-lg shadow-pink-500/30 transform scale-[1.02]' : 'text-gray-400 hover:text-white'}`}
                         >
-                            <GiftIcon className="w-4 h-4" /> {texts.topEarners || "Top Earners"}
+                            Earners
                         </button>
-                        
-                        {/* Animated Background Slider */}
-                        <div className={`absolute top-1.5 bottom-1.5 rounded-xl transition-all duration-300 ease-out w-[calc(50%-6px)] 
-                            ${activeTab === 'transaction' ? 'left-1.5 bg-gradient-to-r from-primary to-purple-600' : 'left-[calc(50%+3px)] bg-gradient-to-r from-green-500 to-emerald-600'}`}>
-                        </div>
                     </div>
+
+                    <div className="w-10 flex-shrink-0"></div> {/* Spacer for center alignment */}
                 </div>
-
-                {loading ? (
-                    <div className="flex-1 p-4 mt-10">
-                        {/* Fake Podium Loading */}
-                        <div className="flex justify-center items-end gap-4 mb-10 h-32">
-                            <div className="w-16 h-16 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
-                            <div className="w-24 h-24 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse -mb-4"></div>
-                            <div className="w-16 h-16 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse"></div>
-                        </div>
-                        <div className="bg-white dark:bg-dark-card rounded-3xl p-2 shadow-sm">
-                            {[1,2,3,4,5].map(i => <SkeletonItem key={i} />)}
-                        </div>
-                    </div>
-                ) : error ? (
-                    <div className="flex flex-col justify-center items-center flex-1 text-center p-6">
-                        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-full mb-3 text-red-500 animate-bounce">
-                            <TrendingIcon className="w-8 h-8" />
-                        </div>
-                        <p className="text-gray-800 dark:text-white font-bold mb-2">Something went wrong</p>
-                        <p className="text-xs text-gray-500 mb-6">{error}</p>
-                        <button onClick={fetchData} className="px-6 py-2 bg-primary text-white rounded-full font-bold shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
-                            <RefreshIcon className="w-4 h-4" /> Retry
-                        </button>
-                    </div>
-                ) : (
-                    <>
-                        {/* Top 3 Podium Area */}
-                        {rankings.length > 0 ? (
-                            <div className="relative pt-8 pb-10 px-4">
-                                <div className="flex justify-center items-end gap-2 sm:gap-6 animate-smart-pop-in min-h-[220px]">
-                                    {/* Rank 2 */}
-                                    <div className="w-1/3 flex justify-center">{top3[1] && <TopPlayer user={top3[1]} rank={2} />}</div>
-                                    {/* Rank 1 */}
-                                    <div className="w-1/3 flex justify-center z-20">{top3[0] && <TopPlayer user={top3[0]} rank={1} />}</div>
-                                    {/* Rank 3 */}
-                                    <div className="w-1/3 flex justify-center">{top3[2] && <TopPlayer user={top3[2]} rank={3} />}</div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="text-center py-20 text-gray-400 opacity-60">
-                                <GiftIcon className="w-16 h-16 mx-auto mb-4" />
-                                <p>No rankings available yet.</p>
-                            </div>
-                        )}
-
-                        {/* List View (Rank 4+) - Glassmorphism Style */}
-                        {rest.length > 0 && (
-                            <div className="flex-1 bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] border-t border-white/20 dark:border-gray-800 relative z-20 -mt-4 animate-smart-slide-up pb-24">
-                                <div className="w-12 h-1 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mt-3 mb-2 opacity-50"></div>
-                                <div className="overflow-y-auto px-2">
-                                    {rest.map((rUser, index) => {
-                                        let score = activeTab === 'transaction' 
-                                            ? safeNumber(rUser.totalDeposit) + safeNumber(rUser.totalSpent)
-                                            : safeNumber(rUser.totalEarned);
-                                        
-                                        const rank = index + 4;
-                                        const isMe = rUser.uid === user.uid;
-
-                                        return (
-                                            <div 
-                                                key={rUser.uid} 
-                                                className={`flex items-center justify-between p-3 mb-2 rounded-2xl transition-all duration-200 border border-transparent
-                                                    ${isMe 
-                                                        ? 'bg-gradient-to-r from-primary/10 to-transparent border-primary/20 shadow-sm' 
-                                                        : 'hover:bg-white dark:hover:bg-gray-800 hover:shadow-sm'
-                                                    }`}
-                                            >
-                                                <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-                                                    <span className={`font-black w-6 text-center text-sm ${rank <= 10 ? 'text-gray-600 dark:text-gray-300' : 'text-gray-400'}`}>
-                                                        #{rank}
-                                                    </span>
-                                                    <div className="relative flex-shrink-0">
-                                                        <img 
-                                                            src={rUser.avatarUrl || DEFAULT_AVATAR_URL} 
-                                                            alt={rUser.name} 
-                                                            className={`w-10 h-10 rounded-full object-cover border-2 ${isMe ? 'border-primary' : 'border-gray-200 dark:border-gray-700'}`}
-                                                            onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR_URL; }}
-                                                        />
-                                                    </div>
-                                                    <div className="flex flex-col min-w-0">
-                                                        <p className={`font-bold text-sm truncate ${isMe ? 'text-primary' : 'text-gray-800 dark:text-gray-200'}`}>
-                                                            {rUser.name}
-                                                        </p>
-                                                        {isMe && <p className="text-[9px] text-primary font-bold uppercase tracking-wider">You</p>}
-                                                    </div>
-                                                </div>
-                                                
-                                                <div className="text-right pl-2">
-                                                    <div className="font-black text-sm text-gray-800 dark:text-white">
-                                                        {texts.currency}{score.toLocaleString()}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-                    </>
-                )}
             </div>
 
-            {/* Sticky User Rank Footer (If not in top 3) */}
-            {myRank && myRank > 3 && !loading && (
-                <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-white via-white/90 to-transparent dark:from-[#0F172A] dark:via-[#0F172A]/90 animate-smart-slide-up">
-                    <div className="max-w-lg mx-auto bg-gray-900 text-white dark:bg-white dark:text-black rounded-2xl p-3 shadow-2xl flex items-center justify-between border border-white/10 dark:border-gray-200 ring-1 ring-black/5">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center font-black shadow-lg text-sm text-white">
-                                #{myRank}
+            {/* --- CONTENT AREA --- */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden relative z-40 pb-28 no-scrollbar scroll-smooth">
+                
+                {/* 1. PODIUM (Top 3) */}
+                {!loading && rankings.length > 0 && (
+                    <div className="flex justify-center items-end px-4 mt-24 mb-10 gap-2 sm:gap-4">
+                        
+                        {/* Rank 2 (Silver) */}
+                        <div className="flex flex-col items-center w-1/3 order-1">
+                            <div className="relative mb-2 animate-bounce" style={{ animationDuration: '4s' }}>
+                                <StarBadgeIcon className="w-6 h-6" fill="#C0C0C0" />
                             </div>
-                            <div className="flex flex-col">
-                                <span className="font-bold text-sm">{texts.myRank}</span>
-                                <span className="text-[10px] opacity-70 uppercase font-bold tracking-wider">Your Position</span>
+                            <div className="relative mb-3 group">
+                                <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-gray-300 via-gray-400 to-gray-500 shadow-[0_0_20px_rgba(192,192,192,0.3)]">
+                                    <img 
+                                        src={top3[1]?.avatarUrl || DEFAULT_AVATAR_URL} 
+                                        className="w-full h-full rounded-full object-cover border-2 border-[#000]"
+                                        alt="Rank 2"
+                                    />
+                                </div>
+                                <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-6 h-6 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center border-2 border-[#1E293B] text-white text-[10px] font-black shadow-lg z-10">
+                                    2
+                                </div>
+                            </div>
+                            <p className="text-xs font-bold text-white truncate w-full text-center max-w-[80px]">{top3[1]?.name || 'N/A'}</p>
+                            <p className="text-[10px] text-gray-400 font-bold mt-0.5">{Math.floor(getScore(top3[1])).toLocaleString()}</p>
+                        </div>
+
+                        {/* Rank 1 (Gold - Winner) */}
+                        <div className="flex flex-col items-center w-1/3 order-2 -mt-12 z-10 scale-110">
+                            <div className="mb-2 animate-bounce" style={{ animationDuration: '3s' }}>
+                                <CrownIcon className="w-10 h-10 drop-shadow-[0_0_10px_rgba(255,215,0,0.6)]" fill="#FFD700" />
+                            </div>
+                            <div className="relative mb-4">
+                                <div className="w-24 h-24 rounded-full p-1.5 bg-gradient-to-tr from-yellow-300 via-yellow-500 to-yellow-700 shadow-[0_0_40px_rgba(253,224,71,0.5)]">
+                                    <img 
+                                        src={top3[0]?.avatarUrl || DEFAULT_AVATAR_URL} 
+                                        className="w-full h-full rounded-full object-cover border-4 border-[#000]"
+                                        alt="Rank 1"
+                                    />
+                                </div>
+                                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center border-2 border-[#1E293B] text-white text-xs font-black shadow-xl z-10">
+                                    1
+                                </div>
+                            </div>
+                            <p className="text-sm font-black text-white truncate w-full text-center max-w-[110px]">{top3[0]?.name || 'N/A'}</p>
+                            <div className="bg-yellow-500/10 px-3 py-0.5 rounded-full mt-1 border border-yellow-500/30">
+                                <p className="text-[10px] text-yellow-400 font-bold tracking-wide">{Math.floor(getScore(top3[0])).toLocaleString()}</p>
                             </div>
                         </div>
-                        <div className="px-4 text-right">
-                            <span className="font-black block text-base leading-none">
-                                {texts.currency}
-                                {(activeTab === 'transaction' 
-                                    ? safeNumber(user.totalDeposit) + safeNumber(user.totalSpent) 
-                                    : safeNumber(user.totalEarned)
-                                ).toLocaleString()}
-                            </span>
+
+                        {/* Rank 3 (Bronze) */}
+                        <div className="flex flex-col items-center w-1/3 order-3">
+                            <div className="relative mb-2 animate-bounce" style={{ animationDuration: '5s' }}>
+                                <StarBadgeIcon className="w-5 h-5" fill="#CD7F32" />
+                            </div>
+                            <div className="relative mb-3 group">
+                                <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-orange-700 via-amber-800 to-amber-900 shadow-[0_0_20px_rgba(205,127,50,0.3)]">
+                                    <img 
+                                        src={top3[2]?.avatarUrl || DEFAULT_AVATAR_URL} 
+                                        className="w-full h-full rounded-full object-cover border-2 border-[#000]"
+                                        alt="Rank 3"
+                                    />
+                                </div>
+                                <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-6 h-6 bg-gradient-to-br from-orange-700 to-amber-900 rounded-full flex items-center justify-center border-2 border-[#1E293B] text-white text-[10px] font-black shadow-lg z-10">
+                                    3
+                                </div>
+                            </div>
+                            <p className="text-xs font-bold text-white truncate w-full text-center max-w-[80px]">{top3[2]?.name || 'N/A'}</p>
+                            <p className="text-[10px] text-gray-400 font-bold mt-0.5">{Math.floor(getScore(top3[2])).toLocaleString()}</p>
+                        </div>
+
+                    </div>
+                )}
+
+                {/* 2. THE LIST (Rank 4+) */}
+                <div className="px-4 space-y-3 pb-10">
+                    {loading ? (
+                        <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white"></div></div>
+                    ) : rest.length > 0 ? (
+                        rest.map((rUser, index) => {
+                            const rank = index + 4;
+                            const isMe = rUser.uid === user.uid;
+                            const score = getScore(rUser);
+
+                            return (
+                                <div 
+                                    key={rUser.uid} 
+                                    className={`relative flex items-center p-3.5 rounded-3xl transition-all active:scale-[0.98] border
+                                        ${isMe 
+                                            ? 'bg-[#1E293B] border-primary/50 shadow-[0_4px_15px_-3px_rgba(124,58,237,0.3)]' 
+                                            : 'bg-[#1E293B] border-white/5 hover:border-white/10'
+                                        }
+                                    `}
+                                >
+                                    {/* Rank Number */}
+                                    <div className="w-8 flex justify-center">
+                                        <span className={`text-sm font-bold ${isMe ? 'text-primary' : 'text-gray-500'}`}>{rank}</span>
+                                    </div>
+
+                                    {/* Avatar */}
+                                    <div className="relative">
+                                        <img 
+                                            src={rUser.avatarUrl || DEFAULT_AVATAR_URL} 
+                                            alt="User" 
+                                            className="w-10 h-10 rounded-full object-cover border border-white/10 mx-3"
+                                        />
+                                    </div>
+
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                        <p className={`text-sm font-bold truncate ${isMe ? 'text-white' : 'text-gray-200'}`}>
+                                            {rUser.name}
+                                        </p>
+                                        {isMe && <span className="text-[9px] text-primary font-medium tracking-wide">You</span>}
+                                    </div>
+
+                                    {/* Score */}
+                                    <div className="text-right px-2">
+                                        <p className="text-sm font-black text-white">{Math.floor(score).toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        !loading && <div className="text-center py-10 text-gray-600 text-xs">No data available</div>
+                    )}
+                </div>
+            </div>
+
+            {/* --- STICKY FOOTER FOR MY RANK (If I'm not in view or top 3) --- */}
+            {myRank && myRank > 3 && !loading && (
+                <div className="absolute bottom-0 left-0 right-0 z-50 px-4 pb-5 pt-4 bg-gradient-to-t from-black via-black to-transparent">
+                    <div className="flex items-center p-3.5 rounded-3xl bg-gradient-to-r from-primary to-secondary shadow-2xl border border-white/10">
+                        <div className="w-8 flex justify-center">
+                            <span className="text-sm font-bold text-white">{myRank}</span>
+                        </div>
+                        <img 
+                            src={user.avatarUrl || DEFAULT_AVATAR_URL} 
+                            alt="Me" 
+                            className="w-10 h-10 rounded-full object-cover border-2 border-white/30 mx-3"
+                        />
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-white">My Rank</p>
+                        </div>
+                        <div className="text-right px-2">
+                            <p className="text-sm font-black text-white">{Math.floor(getScore(user)).toLocaleString()}</p>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {/* --- FOOTER ADVERTISEMENT --- */}
-            {adCode && (
-                <div className="w-full flex justify-center pb-2 bg-gray-50 dark:bg-[#0F172A]">
-                    <AdRenderer code={adCode} active={adActive} />
                 </div>
             )}
         </div>
