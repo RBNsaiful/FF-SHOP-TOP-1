@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { User, AppSettings, DiamondOffer, PaymentMethod, SupportContact, LevelUpPackage, Membership, PremiumApp, SpecialOffer, Screen } from '../types';
@@ -104,7 +103,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
       try {
           const audio = new Audio(type === 'send' ? SEND_SOUND : RECEIVE_SOUND);
           audio.volume = 0.5;
-          audio.play().catch(e => console.log("Audio blocked"));
+          audio.play().catch(e => {}); // Audio blocked
       } catch (e) {}
   };
 
@@ -172,7 +171,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
                   historyStr += "Recent Transactions:\n" + topTxns.join('\n');
               }
               setRecentHistory(historyStr);
-          } catch (e) { console.error(e); }
+          } catch (e) { }
       };
       
       // Calculate Rank (Logic mirrors RankingScreen.tsx)
@@ -296,7 +295,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
         try {
             await push(ref(db, 'ai_knowledge'), { content: input, timestamp: Date.now() });
             setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: input }, { id: (Date.now()+1).toString(), role: 'model', text: "✅ Learned new logic." }]);
-        } catch (e) { console.error(e); }
+        } catch (e) { }
         setInput(''); return; 
     }
 
@@ -331,7 +330,6 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
         }
       }
     } catch (error: any) {
-      console.error(error);
       setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: "দুঃখিত, নেটওয়ার্ক সমস্যার কারণে উত্তর দিতে পারছি না।" }]);
     } finally {
       setIsTyping(false);

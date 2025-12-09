@@ -86,11 +86,12 @@ const PurchaseCard: FC<{ purchase: Purchase, texts: any, index: number, onDelete
     };
 
     // Dynamic Label & Icon based on Data Content
-    // If it contains '@', assume it's Email (Premium App), else UID
-    const isEmailData = purchase.uid.includes('@') || purchase.offer?.inputType === 'email';
+    // Safely handle potentially undefined 'uid'
+    const uidStr = purchase.uid || '';
+    const isEmailData = uidStr.includes('@') || purchase.offer?.inputType === 'email';
     const displayLabel = isEmailData ? "Gmail" : texts.uid;
     const DataIcon = isEmailData ? MailIcon : UserIcon;
-    const displayValue = isEmailData ? purchase.uid.split('|')[0].trim() : purchase.uid;
+    const displayValue = isEmailData ? uidStr.split('|')[0].trim() : uidStr;
     
     // Dynamic Subtitle Logic
     const subtitle = isEmailData ? "Premium Subscription" : "Free Fire Topup";
@@ -121,7 +122,7 @@ const PurchaseCard: FC<{ purchase: Purchase, texts: any, index: number, onDelete
                     </div>
                     <div className="text-right">
                          <div className="bg-light-bg dark:bg-dark-bg px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700">
-                             <span className="font-bold text-sm text-primary">{texts.currency}{purchase.offer.price}</span>
+                             <span className="font-bold text-sm text-primary">{texts.currency}{purchase.offer?.price || 0}</span>
                          </div>
                     </div>
                 </div>
@@ -216,7 +217,7 @@ const MyOrdersScreen: FC<MyOrdersScreenProps> = ({ user, texts, adCode, adActive
 
     const totalSpent = purchases
         .filter(p => p.status === 'Completed')
-        .reduce((acc, curr) => acc + curr.offer.price, 0);
+        .reduce((acc, curr) => acc + (curr.offer?.price || 0), 0);
 
     return (
         <div className="p-4 animate-smart-fade-in pb-20">

@@ -1,3 +1,4 @@
+
 import React, { useState, FC, useRef, useEffect } from 'react';
 import { DEFAULT_AVATAR_URL } from '../constants';
 import type { User, EarnSettings } from '../types';
@@ -14,6 +15,7 @@ const TotalEarnedIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="
 const TotalAdsIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 20h9"/><path d="M3 12h5l-1.42 1.42A2 2 0 0 0 6.17 16H9"/><path d="M3 20h2"/><path d="M17 4h4"/><path d="M17 8h4"/><path d="M17 12h4"/><path d="M3 4h10v10H3z"/></svg>);
 const AdMobIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6v12"/><path d="M8 10l4-4 4 4"/></svg>); 
 const ZapIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>);
+const ShieldIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>);
 
 
 interface WatchAdsScreenProps {
@@ -44,6 +46,8 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
     const [timerString, setTimerString] = useState<string | null>(null);
     const [adCooldown, setAdCooldown] = useState(0);
     const [enableAnimations, setEnableAnimations] = useState(true);
+    const [showVpnWarning, setShowVpnWarning] = useState(false);
+    const [vpnMode, setVpnMode] = useState<'notice' | 'force'>('notice');
     
     const cooldownTimerRef = useRef<number | null>(null);
     const resetTimerRef = useRef<number | null>(null);
@@ -135,12 +139,65 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
         // Priority Check: AdMob > Web Ads (if both are active, ideally only one should be active)
         // But user requested if AdMob = ON use AdMob, if Web = ON use Web.
         
+        // 1. Check Limits
+        if ((user.adsWatchedInfo?.count || 0) >= dailyLimit) {
+            alert(texts.adLimitReached);
+            return;
+        }
+        if (adCooldown > 0) return;
+
+        // 2. APK Logic (Simulated Native Check)
+        // @ts-ignore
+        const isApk = !!(window.admob || window.AdMob); // Native plugin detection
+
+        if (isApk) {
+            // --- APK LOGIC ---
+            if (earnSettings?.vpnRequired) {
+                // FORCE MODE: Always show popup -> YES -> Check VPN -> Load
+                setVpnMode('force');
+                setShowVpnWarning(true);
+            } else {
+                // No VPN required: Just play
+                playAdMobAd();
+            }
+            return;
+        }
+
+        // 3. Web Logic
+        // Check for Web Notice Toggle
+        if (earnSettings?.vpnNoticeActive) {
+            const hasSeenNotice = sessionStorage.getItem('vpn_notice_seen');
+            if (!hasSeenNotice) {
+                setVpnMode('notice');
+                setShowVpnWarning(true);
+                return;
+            }
+        }
+
+        // If no notice required or already seen
         if (adMobActive) {
             playAdMobAd();
         } else if (webAdActive) {
             playWebAd();
         } else {
             alert("No ads available right now. Please contact admin.");
+        }
+    };
+
+    const handleConfirmVpnPopup = () => {
+        setShowVpnWarning(false);
+
+        if (vpnMode === 'notice') {
+            // WEB: Mark as seen for session, then load ad
+            sessionStorage.setItem('vpn_notice_seen', 'true');
+            if (adMobActive) {
+                playAdMobAd();
+            } else if (webAdActive) {
+                playWebAd();
+            }
+        } else {
+            // APK FORCE MODE: Check VPN Status Here
+            checkNativeVpnAndLoad();
         }
     };
 
@@ -172,6 +229,19 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
         if (isRewardPending) {
             handleRewardClaim();
             setIsRewardPending(false);
+        }
+    };
+
+    // --- APK AD LOGIC (Placeholder) ---
+    const checkNativeVpnAndLoad = async () => {
+        // TODO: Call Native VPN Checker Plugin here
+        // const isVpn = await NativeVPN.check();
+        const isVpn = true; // Placeholder for now
+
+        if (isVpn) {
+            playAdMobAd();
+        } else {
+            alert("VPN Not Connected! Please connect to US/UK VPN.");
         }
     };
 
@@ -347,6 +417,47 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
                             <div className="bg-blue-600 h-1.5 rounded-full animate-[width_3s_linear]"></div>
                         </div>
                         <p className="text-xs font-bold text-blue-600">Playing Ad...</p>
+                    </div>
+                </div>
+            )}
+
+            {/* VPN Warning Popup */}
+            {showVpnWarning && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-smart-fade-in">
+                    <div className="bg-white dark:bg-dark-card w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl animate-smart-pop-in">
+                        {/* Header Image Area */}
+                        <div className="bg-red-50 dark:bg-red-900/20 p-6 flex justify-center border-b border-red-100 dark:border-red-900/30">
+                            <div className="w-20 h-20 bg-red-100 dark:bg-red-800/40 rounded-full flex items-center justify-center animate-pulse">
+                                <ShieldIcon className="w-10 h-10 text-red-500" />
+                            </div>
+                        </div>
+                        
+                        <div className="p-6 text-center">
+                            <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2 uppercase tracking-wide">
+                                VPN Required
+                            </h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
+                                {vpnMode === 'notice' 
+                                    ? "To earn maximum rewards, please connect to a VPN (USA/UK/Canada). Do you want to continue?"
+                                    : "You must connect to a VPN (USA/UK/Canada) to watch ads and earn rewards."
+                                }
+                            </p>
+
+                            <div className="flex flex-col gap-3">
+                                <button 
+                                    onClick={handleConfirmVpnPopup}
+                                    className="w-full py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-500/30 transition-all active:scale-95"
+                                >
+                                    YES, I CONNECTED
+                                </button>
+                                <button 
+                                    onClick={() => setShowVpnWarning(false)}
+                                    className="w-full py-3 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                    CANCEL
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

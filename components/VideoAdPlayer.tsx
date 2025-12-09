@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, FC } from 'react';
 
 interface VideoAdPlayerProps {
@@ -71,7 +70,6 @@ const VideoAdPlayer: FC<VideoAdPlayerProps> = ({ videoUrl, onComplete, onClose, 
         if (loading && !isContentReady && !hasError) {
             timeout = window.setTimeout(() => {
                 if (!isContentReady) {
-                    console.warn("Ad load timed out");
                     setHasError(true);
                     setLoading(false);
                 }

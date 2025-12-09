@@ -80,9 +80,10 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, 
             }
             setLoading(false);
         }, (err) => {
-            if (err.message.includes('permission_denied')) return;
-            console.error("Ranking fetch error:", err);
-            setError(err.message);
+            // Safe Error Handling: Check if message exists before using includes
+            const errMsg = err.message || '';
+            if (errMsg.includes('permission_denied')) return;
+            setError(errMsg || 'Unknown error occurred');
             setLoading(false);
         });
 

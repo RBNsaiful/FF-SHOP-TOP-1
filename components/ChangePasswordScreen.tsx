@@ -1,4 +1,3 @@
-
 import React, { useState, FC, FormEvent } from 'react';
 import { auth } from '../firebase';
 import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
@@ -70,7 +69,6 @@ const ChangePasswordScreen: FC<ChangePasswordScreenProps> = ({ texts, onPassword
       }, 2000);
 
     } catch (err: any) {
-        console.error("Change password error", err);
         if (err.code === 'auth/wrong-password') {
             setError(texts.incorrectCurrentPassword);
         } else if (err.code === 'auth/too-many-requests') {

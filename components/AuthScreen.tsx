@@ -1,4 +1,3 @@
-
 import React, { useState, FC, FormEvent } from 'react';
 import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, db } from '../firebase';
@@ -78,7 +77,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       const snapshot = await get(userRef);
 
       if (snapshot.exists()) {
-          console.log("Existing user logged in via Google. Data preserved.");
+          // Existing user logged in via Google. Data preserved.
       } else {
           await set(userRef, {
             name: user.displayName || 'User',
@@ -93,7 +92,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       }
       setSuccess(true);
     } catch (error: any) {
-      console.error("Google Login failed", error);
+      // Google Login failed
       let msg = "Google Login Failed.";
       if (error.code === 'auth/popup-closed-by-user') {
           msg = "Login canceled.";
@@ -152,7 +151,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       setLoading(false);
       setSuccess(true);
     } catch (err: any) {
-      console.error(err);
       setLoading(false);
       let msg = "Authentication failed.";
       if (err.code === 'auth/invalid-email') msg = texts.emailInvalid;

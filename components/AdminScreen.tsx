@@ -2,7 +2,7 @@
 import React, { useState, useEffect, FC, FormEvent, useMemo, useRef } from 'react';
 import { User, Screen, Transaction, Purchase, AppSettings, Language, PaymentMethod, AppVisibility, Notification, DeveloperSettings, Banner, Theme, PopupConfig } from '../types';
 import { db } from '../firebase';
-import { ref, update, onValue, get, remove, push, set, runTransaction, query, limitToLast } from 'firebase/database';
+import { ref, update, onValue, get, remove, push, set, runTransaction } from 'firebase/database';
 import { 
     APP_LOGO_URL,
     DEFAULT_AVATAR_URL,
@@ -287,9 +287,9 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 }
             });
 
-            // Fetch Recent Orders (Limit to last 500)
-            const recentOrdersQuery = query(ref(db, 'orders'), limitToLast(500));
-            onValue(recentOrdersQuery, (snap) => {
+            // Fetch ALL Orders (No Limit)
+            const allOrdersRef = ref(db, 'orders');
+            onValue(allOrdersRef, (snap) => {
                 if(snap.exists()) {
                     let allOrders: Purchase[] = [];
                     let pendingCount = 0;
@@ -304,19 +304,21 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 allOrders.push(order);
                                 if (order.status === 'Pending') pendingCount++;
                                 if (order.status === 'Completed' && new Date(order.date).toDateString() === todayStr) {
-                                    todayPurchaseAmt += order.offer.price;
+                                    todayPurchaseAmt += (order.offer?.price || 0); // Safety check
                                 }
                             });
                         }
                     });
                     setOrders(allOrders.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
                     setDashboardStats(prev => ({ ...prev, pendingOrders: pendingCount, todayPurchase: todayPurchaseAmt }));
+                } else {
+                    setOrders([]);
                 }
             });
 
-            // Fetch Recent Transactions (Limit to last 500)
-            const recentTxnQuery = query(ref(db, 'transactions'), limitToLast(500));
-            onValue(recentTxnQuery, (snap) => {
+            // Fetch ALL Transactions (No Limit)
+            const allTxnRef = ref(db, 'transactions');
+            onValue(allTxnRef, (snap) => {
                 if(snap.exists()) {
                     let allTxns: Transaction[] = [];
                     let pendingCount = 0;
@@ -346,6 +348,8 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                         todayAdRevenue: todayAdRevAmt,
                         totalDeposit: allTxns.filter(t => t.status === 'Completed' && t.type !== 'ad_reward').reduce((acc, curr) => acc + curr.amount, 0)
                     }));
+                } else {
+                    setTransactions([]);
                 }
             });
         };
@@ -436,9 +440,9 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         if (!userSearch) return users;
         const lowerTerm = userSearch.toLowerCase();
         return users.filter(u => 
-            u.name.toLowerCase().includes(lowerTerm) || 
-            u.email.toLowerCase().includes(lowerTerm) || 
-            u.uid.toLowerCase().includes(lowerTerm)
+            (u.name || '').toLowerCase().includes(lowerTerm) || 
+            (u.email || '').toLowerCase().includes(lowerTerm) || 
+            (u.uid || '').toLowerCase().includes(lowerTerm)
         );
     }, [users, userSearch]);
 
@@ -447,8 +451,8 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         if (orderSearch) {
             const lowerTerm = orderSearch.toLowerCase();
             result = result.filter(o => 
-                o.id.toLowerCase().includes(lowerTerm) || 
-                o.uid.toLowerCase().includes(lowerTerm)
+                (o.id || '').toLowerCase().includes(lowerTerm) || 
+                (o.uid || '').toLowerCase().includes(lowerTerm)
             );
         }
         return result;
@@ -459,8 +463,8 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         if (depositSearch) {
             const lowerTerm = depositSearch.toLowerCase();
             result = result.filter(t => 
-                t.transactionId.toLowerCase().includes(lowerTerm) ||
-                t.method.toLowerCase().includes(lowerTerm)
+                (t.transactionId || '').toLowerCase().includes(lowerTerm) ||
+                (t.method || '').toLowerCase().includes(lowerTerm)
             );
         }
         return result;
@@ -563,13 +567,21 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                     const userRef = ref(db, `users/${order.userId}`);
                     await runTransaction(userRef, (userData) => {
                         if (userData) {
-                            userData.balance = (Number(userData.balance) || 0) + Number(order.offer.price);
+                            const refundAmount = Number(order.offer?.price || 0);
+                            userData.balance = (Number(userData.balance) || 0) + refundAmount;
                         }
                         return userData;
                     });
                 }
             }
         }, `Confirm ${action}?`);
+    };
+
+    const handleDeleteOrder = (orderId: string, userId: string) => {
+        requestConfirmation(async () => {
+            const orderRef = ref(db, `orders/${userId}/${orderId}`);
+            await remove(orderRef);
+        }, "Are you sure you want to DELETE this order permanently?");
     };
 
     const handleTxnAction = (txn: Transaction, action: 'Completed' | 'Failed') => {
@@ -607,6 +619,13 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 }
             }
         });
+    };
+
+    const handleDeleteTransaction = (txnId: string, userId: string) => {
+        requestConfirmation(async () => {
+            const txnRef = ref(db, `transactions/${userId}/${txnId}`);
+            await remove(txnRef);
+        }, "Are you sure you want to DELETE this transaction permanently?");
     };
 
     const handleBalanceUpdate = () => {
@@ -972,25 +991,26 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                             </div>
                             <div className="space-y-3">
                                 {filteredOrders.length === 0 ? <div className="text-center py-10 text-gray-400 text-xs">No orders found</div> : filteredOrders.map(order => {
-                                    const isPremium = order.uid.includes('|');
+                                    const uidStr = order.uid || '';
+                                    const isPremium = uidStr.includes('|');
                                     let displayLabel = "Player UID";
-                                    let displayValueLine1 = order.uid;
+                                    let displayValueLine1 = uidStr;
                                     let displayValueLine2 = null;
 
                                     if (isPremium) {
-                                        const parts = order.uid.split('|');
+                                        const parts = uidStr.split('|');
                                         displayLabel = "Contact";
                                         displayValueLine1 = parts[0].trim();
                                         displayValueLine2 = parts[1] ? parts[1].trim() : null;
-                                    } else if (order.uid.includes('@')) {
+                                    } else if (uidStr.includes('@')) {
                                         displayLabel = "Gmail";
                                     }
 
                                     return (
                                     <div key={order.key} className={`bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border-l-4 ${order.status === 'Pending' ? 'border-l-yellow-500' : order.status === 'Completed' ? 'border-l-green-500' : 'border-l-red-500'}`}>
                                         <div className="flex justify-between items-start mb-3">
-                                            <div><span className="font-bold text-sm block text-gray-900 dark:text-white">{order.offer.diamonds || order.offer.name}</span><span className="text-[10px] text-gray-400 font-mono">{new Date(order.date).toLocaleString()}</span></div>
-                                            <div className="text-right"><span className="font-bold text-primary text-sm">৳{order.offer.price}</span></div>
+                                            <div><span className="font-bold text-sm block text-gray-900 dark:text-white">{order.offer?.diamonds || order.offer?.name || 'Unknown Item'}</span><span className="text-[10px] text-gray-400 font-mono">{new Date(order.date).toLocaleString()}</span></div>
+                                            <div className="text-right"><span className="font-bold text-primary text-sm">৳{order.offer?.price || 0}</span></div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2 mb-3">
                                             <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-[10px]">
@@ -1004,7 +1024,21 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                             </div>
                                             <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-[10px]"><p className="text-gray-400 mb-1">Order ID</p><SmartCopy text={order.id} /></div>
                                         </div>
-                                        {order.status === 'Pending' && <div className="flex gap-2 mt-2"><button onClick={() => handleOrderAction(order, 'Completed')} className="flex-1 bg-green-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-green-600 active:scale-95 transition-all">Approve</button><button onClick={() => handleOrderAction(order, 'Failed')} className="flex-1 bg-red-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-red-600 active:scale-95 transition-all">Reject</button></div>}
+                                        
+                                        {/* ACTION BUTTONS */}
+                                        <div className="flex gap-2 mt-2">
+                                            {order.status === 'Pending' && (
+                                                <>
+                                                    <button onClick={() => handleOrderAction(order, 'Completed')} className="flex-1 bg-green-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-green-600 active:scale-95 transition-all">Approve</button>
+                                                    <button onClick={() => handleOrderAction(order, 'Failed')} className="flex-1 bg-red-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-red-600 active:scale-95 transition-all">Reject</button>
+                                                </>
+                                            )}
+                                            {/* DELETE BUTTON FOR ALL ORDERS */}
+                                            <button onClick={() => handleDeleteOrder(order.key!, order.userId)} className="px-3 py-2.5 bg-gray-100 dark:bg-gray-700 text-red-500 rounded-lg shadow-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-all flex items-center justify-center" title="Delete">
+                                                <TrashIcon className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
                                         {order.status === 'Failed' && <div className="text-[10px] text-red-500 font-bold mt-1">Refunded</div>}
                                     </div>
                                 )})}
@@ -1029,7 +1063,20 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                             <div className="text-right"><span className="font-bold text-green-600 block text-sm">+৳{txn.amount}</span></div>
                                         </div>
                                         <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-[10px] mb-3 flex justify-between items-center"><span className="text-gray-500">TrxID:</span><SmartCopy text={txn.transactionId} label={txn.transactionId} /></div>
-                                        {txn.status === 'Pending' && <div className="flex gap-2"><button onClick={() => handleTxnAction(txn, 'Completed')} className="flex-1 bg-green-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-green-600 active:scale-95 transition-all">Approve</button><button onClick={() => handleTxnAction(txn, 'Failed')} className="flex-1 bg-red-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-red-600 active:scale-95 transition-all">Reject</button></div>}
+                                        
+                                        {/* ACTION BUTTONS */}
+                                        <div className="flex gap-2">
+                                            {txn.status === 'Pending' && (
+                                                <>
+                                                    <button onClick={() => handleTxnAction(txn, 'Completed')} className="flex-1 bg-green-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-green-600 active:scale-95 transition-all">Approve</button>
+                                                    <button onClick={() => handleTxnAction(txn, 'Failed')} className="flex-1 bg-red-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-red-600 active:scale-95 transition-all">Reject</button>
+                                                </>
+                                            )}
+                                            {/* DELETE BUTTON */}
+                                            <button onClick={() => handleDeleteTransaction(txn.key!, txn.userId)} className="px-3 py-2.5 bg-gray-100 dark:bg-gray-700 text-red-500 rounded-lg shadow-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-all flex items-center justify-center" title="Delete">
+                                                <TrashIcon className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -1611,6 +1658,40 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                         <div><label className="block text-[10px] text-gray-500 font-bold mb-1">Reward Per Ad (৳)</label><input type="number" value={settings.earnSettings?.rewardPerAd} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, rewardPerAd: Number(e.target.value) }})} className={inputClass} /></div>
                                         <div><label className="block text-[10px] text-gray-500 font-bold mb-1">Wait Time (s)</label><input type="number" value={settings.earnSettings?.adCooldownSeconds} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adCooldownSeconds: Number(e.target.value) }})} className={inputClass} /></div>
                                         <div><label className="block text-[10px] text-gray-500 font-bold mb-1">Lockdown Duration (h)</label><input type="number" value={settings.earnSettings?.resetHours} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, resetHours: Number(e.target.value) }})} className={inputClass} /></div>
+                                    </div>
+
+                                    {/* VPN Settings Group - NEW */}
+                                    <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-[10px] font-bold text-gray-500">VPN Notice (Web Only)</span>
+                                            <div 
+                                                onClick={() => setSettings({
+                                                    ...settings,
+                                                    earnSettings: {
+                                                        ...settings.earnSettings!,
+                                                        vpnNoticeActive: !settings.earnSettings?.vpnNoticeActive
+                                                    }
+                                                })}
+                                                className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.vpnNoticeActive ? 'bg-yellow-500' : 'bg-gray-300'}`}
+                                            >
+                                                <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.vpnNoticeActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[10px] font-bold text-gray-500">VPN Force Mode (APK)</span>
+                                            <div 
+                                                onClick={() => setSettings({
+                                                    ...settings,
+                                                    earnSettings: {
+                                                        ...settings.earnSettings!,
+                                                        vpnRequired: !settings.earnSettings?.vpnRequired
+                                                    }
+                                                })}
+                                                className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.vpnRequired ? 'bg-red-500' : 'bg-gray-300'}`}
+                                            >
+                                                <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.vpnRequired ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 

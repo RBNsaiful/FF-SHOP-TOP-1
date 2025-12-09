@@ -1,20 +1,19 @@
-
-
-
-
-
-
 import type { DiamondOffer, PaymentMethod, SupportContact, LevelUpPackage, Membership, PremiumApp, Banner } from './types';
 
 export const APP_LOGO_URL = 'https://i.ibb.co/k2nGxqwY/1763225878291.jpg';
 export const DEFAULT_AVATAR_URL = 'https://i.ibb.co/k2nGxqwY/1763225878291.jpg';
 
 // --- SECURITY KEY FOR DEVELOPER SETTINGS ---
-// This is stored in code, not database, to prevent unauthorized edits even if DB is compromised.
-export const PROTECTION_KEY = "SAIFUL ISLAM+999"; 
+export const PROTECTION_KEY = 
+  (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_PROTECTION_KEY) || 
+  (typeof process !== 'undefined' && process.env && process.env.REACT_APP_PROTECTION_KEY) || 
+  "SAIFULISLAM+999";
 
 // --- DEFAULT AI KEY (Fallback) ---
-export const DEFAULT_AI_KEY = "AIzaSyDhC67R1bLxvmW_LGG7ske3MxbAa0mrFbk";
+export const DEFAULT_AI_KEY = 
+  (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_DEFAULT_AI_KEY) || 
+  (typeof process !== 'undefined' && process.env && process.env.REACT_APP_DEFAULT_AI_KEY) || 
+  "";
 
 export const DIAMOND_OFFERS: DiamondOffer[] = [
   { id: 0, diamonds: 50, price: 45 },
@@ -121,6 +120,8 @@ export const DEFAULT_APP_SETTINGS = {
         rewardPerAd: REWARD_PER_AD,
         adCooldownSeconds: 10,
         resetHours: 24,
+        vpnRequired: false, // Default OFF (Legacy)
+        vpnNoticeActive: false, // Default OFF (New Web Toggle)
         webAds: {
             active: true,
             url: '',

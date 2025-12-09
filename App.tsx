@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, FC, useRef } from 'react';
 import AuthScreen from './components/AuthScreen';
 import HomeScreen from './components/HomeScreen';
@@ -301,8 +300,7 @@ const App: FC = () => {
         if (isLoggingOutRef.current) {
             // Force sign out again if a ghost user is detected during logout phase
             if (firebaseUser) {
-                console.log("Ghost session detected during logout. Killing session.");
-                signOut(auth).catch(err => console.error("Ghost session kill failed", err));
+                signOut(auth).catch(err => {}); // Ghost session kill failed
             }
             return;
         }
@@ -332,7 +330,7 @@ const App: FC = () => {
 
                 // CRITICAL FIX: Handle Permission Denied (e.g. Account Disabled, Logout Race Condition)
                 // If we cannot read data, we MUST NOT show a "0 Balance" user. We must log them out.
-                console.error("Auth Data Error (Permission Denied/Network):", error);
+                // Auth Data Error (Permission Denied/Network)
                 
                 // Force logout to clear invalid session state
                 setUser(null);
@@ -461,7 +459,7 @@ const App: FC = () => {
         await signOut(auth); 
 
     } catch (error) { 
-        console.error("Logout failed", error); 
+        // Logout failed
         // Even if API fails, ensure UI is logged out and lock is maintained
         setUser(null);
     }

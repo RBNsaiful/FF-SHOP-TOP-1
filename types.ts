@@ -1,3 +1,5 @@
+
+
 import type { FC } from 'react';
 
 export type Language = 'en' | 'bn';
@@ -95,6 +97,7 @@ export interface Purchase {
   id: string;
   key?: string;
   offer: DiamondOffer | GenericOffer;
+  price: number;
   date: string;
   status: PurchaseStatus;
   uid: string;
@@ -137,6 +140,8 @@ export interface EarnSettings {
     rewardPerAd: number;
     adCooldownSeconds: number;
     resetHours: number;
+    vpnRequired?: boolean; // Legacy flag, kept for compatibility but vpnNoticeActive is preferred for Web
+    vpnNoticeActive?: boolean; // NEW: Toggle popup in Admin
 
     // System A: Web Ads (Popup/Video)
     webAds: {

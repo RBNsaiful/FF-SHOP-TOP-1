@@ -1,4 +1,3 @@
-
 import React, { useState, FC, FormEvent, useRef, useEffect } from 'react';
 import type { User, Screen } from '../types';
 import { DEFAULT_AVATAR_URL } from '../constants';
@@ -122,7 +121,7 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
                  }
                  await updateProfile(auth.currentUser, profileUpdates);
             } catch (authErr) {
-                console.warn("Auth profile update skipped", authErr);
+                // Auth profile update skipped
             }
         }
 
@@ -130,7 +129,6 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
         setShowSuccess(true); 
 
     } catch (error) {
-        console.error("Error updating profile:", error);
         alert("Failed to update profile. Please try again.");
         setIsSaving(false);
     }

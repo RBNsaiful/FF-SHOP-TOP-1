@@ -5,36 +5,27 @@
     
     "config": {
       ".read": true,
-      // Only Admin can modify app settings
       ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
     },
 
     "ai_knowledge": {
       ".read": true,
-      // Only Admin can teach the AI
       ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
     },
 
     "users": {
-      // Authenticated users can read the list for Leaderboard/Ranking
       ".read": "auth != null",
       ".indexOn": ["totalEarned", "totalSpent", "totalDeposit", "balance"],
       
       "$uid": {
-        // Users can read their own profile, Admins can read all
         ".read": "auth != null && ($uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
-        
-        // Users can write their own data, Admins can write all
         ".write": "auth != null && ($uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
         
-        // DATA INTEGRITY & SECURITY RULES
         ".validate": "newData.hasChildren(['name', 'email']) && (
-          // 1. Role Protection: A user cannot change their own role to 'admin'
           (!newData.hasChild('role')) || 
           (newData.child('role').val() === data.child('role').val()) || 
           (root.child('users').child(auth.uid).child('role').val() === 'admin')
         ) && (
-          // 2. Balance Protection: Balance must be a number
           (!newData.hasChild('balance')) || newData.child('balance').isNumber()
         )"
       }
@@ -47,11 +38,10 @@
         ".write": "auth != null && ($uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
         
         "$orderId": {
-          // Serial-Time Rule: Order date cannot be in the future
-          ".validate": "newData.hasChildren(['offer', 'price']) && (!newData.hasChild('date') || newData.child('date').val() <= now)"
+          // Allow DELETE (!newData.exists) and Allow Full Admin Override regardless of schema
+          ".validate": "!newData.exists() || root.child('users').child(auth.uid).child('role').val() === 'admin' || (newData.hasChildren(['offer', 'price']))"
         }
       },
-      // Admin needs access to the root 'orders' for dashboard analytics
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
     },
 
@@ -62,17 +52,15 @@
         ".write": "auth != null && ($uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
         
         "$txnId": {
-           // Validation: Amount must be a number and date cannot be future
-           ".validate": "newData.child('amount').isNumber() && (!newData.hasChild('date') || newData.child('date').val() <= now)"
+           // Allow DELETE (!newData.exists) and Allow Full Admin Override regardless of schema
+           ".validate": "!newData.exists() || root.child('users').child(auth.uid).child('role').val() === 'admin' || (newData.child('amount').isNumber())"
         }
       },
-      // Admin needs access to the root 'transactions' for dashboard analytics
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
     },
 
     "notifications": {
       ".read": true,
-      // Only Admin can send notifications
       ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
       "$notifId": {
         ".validate": "newData.hasChildren(['title', 'message'])"
