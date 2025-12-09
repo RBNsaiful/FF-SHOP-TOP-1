@@ -13,7 +13,6 @@ import {
 // Icons
 const DashboardIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>);
 const UsersIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>);
-const UserIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>);
 const OrdersIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>);
 const MoneyIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>);
 const SettingsIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>);
@@ -41,26 +40,7 @@ const RobotIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http:/
 const LayoutIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></svg>);
 const DollarIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>);
 const AdMobIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6v12"/><path d="M8 10l4-4 4 4"/></svg>); 
-
-const SunIcon: FC<{className?: string}> = ({className}) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <circle cx="12" cy="12" r="5" />
-        <path d="M12 1v2" />
-        <path d="M12 21v2" />
-        <path d="M4.22 4.22l1.42 1.42" />
-        <path d="M18.36 18.36l1.42 1.42" />
-        <path d="M1 12h2" />
-        <path d="M21 12h2" />
-        <path d="M4.22 19.78l1.42-1.42" />
-        <path d="M18.36 5.64l1.42-1.42" />
-    </svg>
-);
-
-const MoonIcon: FC<{className?: string}> = ({className}) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-    </svg>
-);
+const GridIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>);
 
 // Offer Icons
 const DiamondIcon: FC<{className?: string}> = ({className}) => (<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className={className}><path d="M12 2L2 8.5l10 13.5L22 8.5 12 2z" /></svg>);
@@ -68,130 +48,6 @@ const StarIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://
 const IdCardIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="6" y1="9" x2="10" y2="9"/><line x1="6" y1="12" x2="10" y2="12"/><line x1="6" y1="15" x2="10" y2="15"/><line x1="14" y1="9" x2="18" y2="9"/><line x1="14" y1="12" x2="18" y2="12"/><line x1="14" y1="15" x2="18" y2="15"/></svg>);
 const CrownIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>);
 
-
-const ADMIN_TEXTS = {
-    en: {
-        dashboard: "Dashboard",
-        users: "Users",
-        orders: "Orders",
-        deposits: "Deposits",
-        tools: "Tools",
-        offers: "Offers",
-        wallet: "Wallet",
-        graphics: "Graphics",
-        notifications: "Notifications",
-        contacts: "Contacts",
-        ads: "Ads Manager",
-        settings: "Settings",
-        totalUsers: "Total Users",
-        totalDeposit: "Total Deposit",
-        pendingOrders: "Pending Orders",
-        pendingDeposits: "Pending Deposits",
-        approve: "Approve",
-        reject: "Reject",
-        refund: "Refund",
-        save: "Save",
-        cancel: "Cancel",
-        add: "Add",
-        edit: "Edit",
-        delete: "Delete",
-        send: "Send",
-        appName: "App Name",
-        maintenance: "Maintenance",
-        notice: "Notice Message",
-        logout: "Logout",
-        manageBalance: "Manage Balance",
-        addBalance: "Add Balance",
-        deductBalance: "Deduct Balance",
-        amount: "Amount",
-        bannerUrl: "Banner Image URL",
-        actionUrl: "Click Action URL",
-        appLogo: "App Logo URL",
-        visibility: "Visibility Control",
-        appControl: "App Access & Control",
-        diamond: "Diamond",
-        levelUp: "Level Up",
-        membership: "Membership",
-        premium: "Premium Apps",
-        special: "Special Event",
-        earn: "Earn Section",
-        permissionDenied: "Permission Denied. Check DB Rules.",
-        methodName: "Method Name",
-        accNum: "Account Number",
-        logo: "Logo URL",
-        instructions: "Instructions (Optional)",
-        notifTitle: "Notification Title",
-        notifBody: "Message Body",
-        notifType: "Type",
-        confirmTitle: "Are you sure?",
-        confirmMsg: "This action cannot be undone.",
-        confirmLogout: "Are you sure you want to logout?",
-        confirmYes: "Yes, Proceed",
-        confirmNo: "No, Cancel",
-        contactLabel: "Display Name",
-        contactLink: "Link/Number",
-        contactType: "Type",
-        earnConfig: "Earning Rules",
-        adsConfig: "Ads Configuration",
-        dailyLimit: "Daily Ad Limit",
-        rewardPerAd: "Reward Per Ad (৳)",
-        cooldown: "Wait Time (Seconds)",
-        resetHours: "Lockdown Duration (Hours)",
-        webAds: "Web Ads (Current Web)",
-        adMob: "AdMob (APK Only)",
-        adUrl: "Web Ads URL (YouTube / Link)",
-        adDuration: "Watch Duration (Sec)",
-        appId: "AdMob App ID",
-        rewardId: "Reward Ad ID",
-        bannerId: "Banner Ad ID",
-        interstitialId: "Interstitial Ad ID",
-        pending: "Pending",
-        completed: "Completed",
-        failed: "Cancelled",
-        adTitle: "Ad Title",
-        adCode: "Ad Code (HTML/JS)",
-        adStatus: "Status",
-        preview: "Preview",
-        active: "Active",
-        inactive: "Inactive",
-        searchUser: "Search Users...",
-        searchOrder: "Search Order ID, UID...",
-        searchTxn: "Search TrxID, Method...",
-        devInfo: "Developer Info (Restricted)",
-        devTitle: "Developer Title",
-        devUrl: "Developer URL",
-        devMsg: "Credit Message",
-        devDesc: "Description",
-        updateDev: "Save Developer Info",
-        unlockDev: "Unlock & Edit",
-        devLocked: "Developer Information Locked",
-        securityCheck: "Security Check",
-        enterKey: "Enter Secret Key",
-        unlock: "Unlock",
-        editBanner: "Edit Banner",
-        reorder: "Reorder",
-        homeAdCode: "Home Screen Ad Code",
-        earnAdCode: "Earn Screen Ad Code",
-        profileAdCode: "Profile Pages Ad Code",
-        adCodeInstructions: "Paste your HTML/JS ad code here. It will appear at the bottom of the screen.",
-        uiAppearance: "UI & Appearance",
-        cardSize: "Offer Card Size",
-        globalAnim: "Global Animation",
-        small: "Small",
-        medium: "Medium",
-        large: "Large",
-        aiManager: "AI Manager",
-        totalAiInteractions: "Total Interactions",
-        aiActiveUsers: "Active Users",
-        aiConfig: "AI Configuration",
-        enableAi: "Enable AI Support",
-        aiName: "Bot Name",
-        aiApiKey: "Gemini API Key",
-        contactSettings: "Contact Page Text",
-        contactMsg: "Support Message",
-        opHours: "Operating Hours Text",
-    }
-};
 
 interface AdminScreenProps {
     user: User;
@@ -205,9 +61,24 @@ interface AdminScreenProps {
     setTheme: (theme: Theme) => void;
 }
 
+// Sidebar Link Component
+const SidebarLink: FC<{ icon: FC<{className?: string}>, label: string, active: boolean, onClick: () => void }> = ({ icon: Icon, label, active, onClick }) => (
+    <button 
+        onClick={onClick}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+            active 
+            ? 'bg-primary/10 text-primary border-r-4 border-primary' 
+            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+        }`}
+    >
+        <Icon className={`w-5 h-5 transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-110'}`} />
+        <span className={`text-sm font-bold ${active ? 'translate-x-1' : ''} transition-transform duration-200`}>{label}</span>
+    </button>
+);
+
 // Confirmation Dialog
 const ConfirmationDialog: FC<{ title: string; message: string; onConfirm: () => void; onCancel: () => void; confirmText: string; cancelText: string; }> = ({ title, message, onConfirm, onCancel, confirmText, cancelText }) => (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-smart-fade-in">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-smart-fade-in">
         <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-xs animate-smart-pop-in shadow-2xl border border-gray-100 dark:border-gray-800">
             <h3 className="text-lg font-bold text-center mb-2">{title}</h3>
             <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-6">{message}</p>
@@ -269,8 +140,9 @@ const SearchInput: FC<{ value: string; onChange: (val: string) => void; placehol
 
 const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, language, setLanguage, appSettings, theme, setTheme }) => {
     // Navigation State
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'offers' | 'orders' | 'deposits' | 'tools'>('dashboard');
-    const [activeTool, setActiveTool] = useState<'users' | 'settings' | 'graphics' | 'wallet' | 'notifications' | 'contacts' | 'ads' | 'ai'>('users');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'offers' | 'orders' | 'deposits' | 'tools' | 'settings'>('dashboard');
+    const [activeTool, setActiveTool] = useState<'wallet' | 'ai' | 'graphics' | 'ads' | 'notifications' | 'contacts'>('wallet');
     
     // Filter States
     const [orderFilter, setOrderFilter] = useState<'Pending' | 'Completed' | 'Failed'>('Pending');
@@ -366,21 +238,19 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const [balanceAmount, setBalanceAmount] = useState('');
     const [balanceAction, setBalanceAction] = useState<'add' | 'deduct'>('add');
 
-    const t = ADMIN_TEXTS['en']; // FORCE ENGLISH
-
     // Helper for Confirmation
     const requestConfirmation = (action: () => void, messageOverride?: string) => {
         setConfirmDialog({
             show: true,
-            title: t.confirmTitle,
-            message: messageOverride || t.confirmMsg,
+            title: "Confirm Action",
+            message: messageOverride || "This action cannot be undone.",
             onConfirm: action
         });
     };
 
     // Handle Logout with Confirmation
     const handleLogoutClick = () => {
-        requestConfirmation(onLogout, t.confirmLogout);
+        requestConfirmation(onLogout, "Are you sure you want to logout?");
     };
 
     // --- Header Tap Logic for Hidden Dev Info ---
@@ -392,7 +262,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         
         if (newCount >= 5) {
             setShowDevCard(prev => !prev);
-            alert(showDevCard ? "Developer Info Hidden" : "Developer Info Unlocked");
             setHeaderTapCount(0);
         } else {
             tapTimeoutRef.current = window.setTimeout(() => setHeaderTapCount(0), 800);
@@ -400,17 +269,14 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     };
 
     // --- OPTIMIZED DATA FETCHING ---
-    // Instead of fetching EVERYTHING on load, we fetch what's needed.
     useEffect(() => {
         const fetchDashboardStats = () => {
-            // Fetch Users (Needed for Total Users count & Ad Revenue)
-            // Optimization: If user count is huge, we should only fetch minimal data, but Firebase RTDB doesn't support 'count'.
-            // We fetch once.
+            // Fetch Users
             onValue(ref(db, 'users'), (snap) => {
                 if(snap.exists()) {
                     const data = snap.val();
                     const uList: User[] = Object.keys(data).map(key => ({ ...data[key], uid: key }));
-                    setUsers(uList); // Store users for "Users" tool
+                    setUsers(uList); 
                     
                     const totalAdRev = uList.reduce((acc, u) => acc + (u.totalEarned || 0), 0);
                     setDashboardStats(prev => ({
@@ -421,7 +287,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 }
             });
 
-            // Fetch Recent Orders (Limit to last 500 for performance)
+            // Fetch Recent Orders (Limit to last 500)
             const recentOrdersQuery = query(ref(db, 'orders'), limitToLast(500));
             onValue(recentOrdersQuery, (snap) => {
                 if(snap.exists()) {
@@ -478,10 +344,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                         pendingDeposits: pendingCount, 
                         todayDeposit: todayDepositAmt,
                         todayAdRevenue: todayAdRevAmt,
-                        // Lifetime deposit calculation might be inaccurate with 'limitToLast', 
-                        // but for dashboard speed, we accept this trade-off or need a dedicated counter in DB.
-                        // Ideally, we'd iterate ALL for total, but that kills performance.
-                        // Current compromise: Total shows what's in cache/limit.
                         totalDeposit: allTxns.filter(t => t.status === 'Completed' && t.type !== 'ad_reward').reduce((acc, curr) => acc + curr.amount, 0)
                     }));
                 }
@@ -490,7 +352,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
 
         fetchDashboardStats();
 
-        // Config & Others (Lightweight)
+        // Config & Others
         onValue(ref(db, 'notifications'), (snap) => {
             if(snap.exists()) {
                 const data = snap.val();
@@ -562,7 +424,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
             }
         });
 
-    }, []); // Only runs once on mount
+    }, []);
 
     const aiStats = useMemo(() => {
         const totalInteractions = users.reduce((acc, u) => acc + (u.aiRequestCount || 0), 0);
@@ -646,8 +508,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         await update(ref(db, 'config/appSettings'), safeSettings);
         setSettings(finalSettings); 
         setOriginalSettings(finalSettings);
-        
-        alert("✅ Settings Saved Successfully!");
+        alert("Settings Saved!");
     };
 
     const handleUnlockDevInfo = () => {
@@ -678,15 +539,34 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const handleOrderAction = (order: Purchase, action: 'Completed' | 'Failed') => {
         requestConfirmation(async () => {
             if (order.key && order.userId) {
-                await update(ref(db, `orders/${order.userId}/${order.key}`), { status: action });
+                const orderRef = ref(db, `orders/${order.userId}/${order.key}`);
+                
+                // CRITICAL FIX: Fetch fresh status to prevent double processing
+                const snapshot = await get(orderRef);
+                if (snapshot.exists()) {
+                    const currentData = snapshot.val();
+                    
+                    // If already completed/failed, stop immediately
+                    if (currentData.status === action) {
+                        return;
+                    }
+                    
+                    // If trying to fail an order that is already failed, stop
+                    if (currentData.status === 'Failed' && action === 'Failed') {
+                        return;
+                    }
+                }
+
+                await update(orderRef, { status: action });
+                
                 if (action === 'Failed') {
                     const userRef = ref(db, `users/${order.userId}`);
-                    const snapshot = await get(userRef);
-                    if (snapshot.exists()) {
-                        const userData = snapshot.val();
-                        const currentBalance = userData.balance || 0;
-                        await update(userRef, { balance: currentBalance + order.offer.price });
-                    }
+                    await runTransaction(userRef, (userData) => {
+                        if (userData) {
+                            userData.balance = (Number(userData.balance) || 0) + Number(order.offer.price);
+                        }
+                        return userData;
+                    });
                 }
             }
         }, `Confirm ${action}?`);
@@ -695,12 +575,31 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const handleTxnAction = (txn: Transaction, action: 'Completed' | 'Failed') => {
         requestConfirmation(async () => {
             if (txn.key && txn.userId) {
-                await update(ref(db, `transactions/${txn.userId}/${txn.key}`), { status: action });
+                const txnRef = ref(db, `transactions/${txn.userId}/${txn.key}`);
+                
+                // CRITICAL FIX: Fetch fresh status to prevent double balance crediting
+                const snapshot = await get(txnRef);
+                if (snapshot.exists()) {
+                    const currentData = snapshot.val();
+                    
+                    // If already completed, STOP.
+                    if (currentData.status === 'Completed' && action === 'Completed') {
+                        return; 
+                    }
+                    
+                    // If status matches target action, stop (Idempotency)
+                    if (currentData.status === action) {
+                        return;
+                    }
+                }
+
+                await update(txnRef, { status: action });
+                
                 if (action === 'Completed') {
                     const userRef = ref(db, `users/${txn.userId}`);
                     await runTransaction(userRef, (userData) => {
                         if (userData) {
-                            userData.balance = (userData.balance || 0) + txn.amount;
+                            userData.balance = (Number(userData.balance) || 0) + Number(txn.amount);
                             return userData;
                         }
                         return userData;
@@ -849,930 +748,911 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         return (
             <div className="p-8 text-center text-red-500 bg-white h-screen flex flex-col items-center justify-center">
                 <LockIcon className="w-16 h-16 mb-4" />
-                <h2 className="text-xl font-bold mb-2">{t.permissionDenied}</h2>
+                <h2 className="text-xl font-bold mb-2">Permission Denied</h2>
             </div>
         );
     }
 
     const inputClass = "w-full p-2.5 border rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 focus:ring-1 focus:ring-primary outline-none transition-all text-sm";
 
-    // --- UI RENDER START ---
+    // --- Validation Logic ---
+    const isOfferValid = editingOffer?.name?.trim() && Number(editingOffer?.price) > 0 &&
+        (offerType === 'premium' || offerType === 'membership' || Number(editingOffer?.diamonds) > 0) &&
+        (offerType !== 'special' || editingOffer?.title?.trim());
+
+    const isMethodValid = editingMethod?.name?.trim() && editingMethod?.accountNumber?.trim() && editingMethod?.logo?.trim();
+    const isContactValid = editingContact?.title?.trim() && editingContact?.link?.trim();
+    const isBannerValid = tempBannerUrl?.trim();
+    const isNotifValid = newNotif.title.trim() && newNotif.message.trim();
+
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 pb-24 font-sans">
-            {/* ... Header ... */}
-            <div className="bg-white dark:bg-dark-card border-b border-gray-100 dark:border-gray-800 p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
-                <div onClick={handleHeaderTap} className="cursor-pointer select-none active:opacity-50 transition-opacity">
-                    <h1 className="text-lg font-bold text-gray-800 dark:text-white tracking-tight">Admin Dashboard</h1>
+        <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans overflow-hidden">
+            {/* Mobile Overlay */}
+            {isSidebarOpen && (
+                <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setIsSidebarOpen(false)}></div>
+            )}
+
+            {/* Sidebar */}
+            <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-dark-card border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                {/* Sidebar Header */}
+                <div className="h-16 flex items-center px-6 border-b border-gray-100 dark:border-gray-800">
+                    <span className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Admin Panel</span>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button onClick={handleLogoutClick} className="p-2 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-full hover:bg-red-50 hover:text-red-500 active:scale-95 transition-all"><LockIcon className="w-5 h-5" /></button>
-                </div>
-            </div>
 
-            <div className="p-4 max-w-lg mx-auto">
-                {/* ... Dashboard Tab ... */}
-                {activeTab === 'dashboard' && (
-                    <div className="animate-fade-in space-y-6">
-                        
-                        {/* 1. KEY STATS (Top) */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
-                                <div className="absolute right-0 top-0 w-16 h-16 bg-blue-500/5 rounded-bl-full -mr-2 -mt-2 group-hover:scale-110 transition-transform"></div>
-                                <div className="flex items-center gap-2 mb-2 text-blue-600"><UsersIcon className="w-4 h-4" /><span className="font-bold text-[10px] uppercase tracking-wider">{t.totalUsers}</span></div>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardStats.totalUsers}</p>
-                            </div>
+                {/* Nav Links */}
+                <nav className="p-4 space-y-1 overflow-y-auto h-[calc(100%-4rem)]">
+                    <SidebarLink icon={DashboardIcon} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
+                    <SidebarLink icon={UsersIcon} label="Users" active={activeTab === 'users'} onClick={() => { setActiveTab('users'); setIsSidebarOpen(false); }} />
+                    <SidebarLink icon={TagIcon} label="Offers" active={activeTab === 'offers'} onClick={() => { setActiveTab('offers'); setIsSidebarOpen(false); }} />
+                    <SidebarLink icon={OrdersIcon} label="Orders" active={activeTab === 'orders'} onClick={() => { setActiveTab('orders'); setIsSidebarOpen(false); }} />
+                    <SidebarLink icon={MoneyIcon} label="Deposits" active={activeTab === 'deposits'} onClick={() => { setActiveTab('deposits'); setIsSidebarOpen(false); }} />
+                    <SidebarLink icon={GridIcon} label="Tools" active={activeTab === 'tools'} onClick={() => { setActiveTab('tools'); setIsSidebarOpen(false); }} />
+                    <SidebarLink icon={SettingsIcon} label="Settings" active={activeTab === 'settings'} onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }} />
+                </nav>
+            </aside>
+
+            {/* Main Content Wrapper */}
+            <div className="flex-1 flex flex-col min-w-0">
+                {/* Header */}
+                <header className="h-16 bg-white dark:bg-dark-card border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 sticky top-0 z-30 shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+                            <MenuIcon className="w-6 h-6" />
+                        </button>
+                        {/* Hidden Dev Info Tap Area */}
+                        <h2 className="text-lg font-bold select-none cursor-pointer text-gray-800 dark:text-white" onClick={handleHeaderTap}>
+                            Admin Dashboard
+                        </h2>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button onClick={handleLogoutClick} className="p-2 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-full hover:bg-red-50 hover:text-red-500 active:scale-95 transition-all">
+                            <LockIcon className="w-5 h-5" />
+                        </button>
+                    </div>
+                </header>
+
+                <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
+                    {/* ... Dashboard Tab ... */}
+                    {activeTab === 'dashboard' && (
+                        <div className="animate-fade-in space-y-6">
                             
-                            <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
-                                <div className="absolute right-0 top-0 w-16 h-16 bg-green-500/5 rounded-bl-full -mr-2 -mt-2 group-hover:scale-110 transition-transform"></div>
-                                <div className="flex items-center gap-2 mb-2 text-green-600"><MoneyIcon className="w-4 h-4" /><span className="font-bold text-[10px] uppercase tracking-wider">{t.totalDeposit}</span></div>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">৳{dashboardStats.totalDeposit}</p>
-                            </div>
-
-                            <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
-                                <div className="absolute right-0 top-0 w-16 h-16 bg-orange-500/5 rounded-bl-full -mr-2 -mt-2 group-hover:scale-110 transition-transform"></div>
-                                <div className="flex items-center gap-2 mb-2 text-orange-500"><OrdersIcon className="w-4 h-4" /><span className="font-bold text-[10px] uppercase tracking-wider">{t.pendingOrders}</span></div>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardStats.pendingOrders}</p>
-                            </div>
-
-                            <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
-                                <div className="absolute right-0 top-0 w-16 h-16 bg-purple-500/5 rounded-bl-full -mr-2 -mt-2 group-hover:scale-110 transition-transform"></div>
-                                <div className="flex items-center gap-2 mb-2 text-purple-500"><WalletIcon className="w-4 h-4" /><span className="font-bold text-[10px] uppercase tracking-wider">{t.pendingDeposits}</span></div>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardStats.pendingDeposits}</p>
-                            </div>
-                        </div>
-
-                        {/* 2. QUICK JUMP (Middle) */}
-                        <div className="bg-white dark:bg-dark-card p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
-                            <h3 className="font-bold text-xs uppercase text-gray-400 mb-4 tracking-wider">Quick Actions</h3>
-                            <div className="grid grid-cols-2 gap-3">
-                                <button onClick={() => { setActiveTab('orders'); setOrderFilter('Pending'); }} className="p-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-bold text-sm transition-colors flex flex-col items-center justify-center gap-2 border border-gray-200 dark:border-gray-700 h-24">
-                                    <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full text-orange-600"><OrdersIcon className="w-5 h-5"/></div>
-                                    <span>Manage Orders</span>
-                                </button>
-                                <button onClick={() => { setActiveTab('deposits'); setDepositFilter('Pending'); }} className="p-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-bold text-sm transition-colors flex flex-col items-center justify-center gap-2 border border-gray-200 dark:border-gray-700 h-24">
-                                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full text-blue-600"><WalletIcon className="w-5 h-5"/></div>
-                                    <span>Verify Deposits</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* 3. TODAY'S PERFORMANCE & ADS (Bottom) */}
-                        <div className="bg-white dark:bg-dark-card p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                            <h3 className="font-bold text-xs uppercase text-gray-400 mb-4 tracking-wider">Today's Performance</h3>
-                            <div className="grid grid-cols-2 gap-3 mb-3">
-                                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
-                                    <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Deposit Today</p>
-                                    <p className="text-lg font-bold text-green-600">৳{dashboardStats.todayDeposit}</p>
+                            {/* 1. KEY STATS (Top) */}
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
+                                    <div className="absolute right-0 top-0 w-16 h-16 bg-blue-500/5 rounded-bl-full -mr-2 -mt-2 group-hover:scale-110 transition-transform"></div>
+                                    <div className="flex items-center gap-2 mb-2 text-blue-600"><UsersIcon className="w-4 h-4" /><span className="font-bold text-[10px] uppercase tracking-wider">Total Users</span></div>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardStats.totalUsers}</p>
                                 </div>
-                                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
-                                    <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Sales Today</p>
-                                    <p className="text-lg font-bold text-blue-600">৳{dashboardStats.todayPurchase}</p>
+                                
+                                <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
+                                    <div className="absolute right-0 top-0 w-16 h-16 bg-green-500/5 rounded-bl-full -mr-2 -mt-2 group-hover:scale-110 transition-transform"></div>
+                                    <div className="flex items-center gap-2 mb-2 text-green-600"><MoneyIcon className="w-4 h-4" /><span className="font-bold text-[10px] uppercase tracking-wider">Total Deposit</span></div>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">৳{dashboardStats.totalDeposit}</p>
+                                </div>
+
+                                <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
+                                    <div className="absolute right-0 top-0 w-16 h-16 bg-orange-500/5 rounded-bl-full -mr-2 -mt-2 group-hover:scale-110 transition-transform"></div>
+                                    <div className="flex items-center gap-2 mb-2 text-orange-500"><OrdersIcon className="w-4 h-4" /><span className="font-bold text-[10px] uppercase tracking-wider">Pending Orders</span></div>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardStats.pendingOrders}</p>
+                                </div>
+
+                                <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
+                                    <div className="absolute right-0 top-0 w-16 h-16 bg-purple-500/5 rounded-bl-full -mr-2 -mt-2 group-hover:scale-110 transition-transform"></div>
+                                    <div className="flex items-center gap-2 mb-2 text-purple-500"><WalletIcon className="w-4 h-4" /><span className="font-bold text-[10px] uppercase tracking-wider">Pending Deposits</span></div>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardStats.pendingDeposits}</p>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="bg-yellow-50 dark:bg-yellow-900/10 p-3 rounded-xl border border-yellow-100 dark:border-yellow-900/20">
-                                    <p className="text-[10px] uppercase font-bold text-yellow-700 dark:text-yellow-500 mb-1">Ad Rev Today</p>
-                                    <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">৳{dashboardStats.todayAdRevenue}</p>
-                                </div>
-                                <div className="bg-yellow-50 dark:bg-yellow-900/10 p-3 rounded-xl border border-yellow-100 dark:border-yellow-900/20">
-                                    <p className="text-[10px] uppercase font-bold text-yellow-700 dark:text-yellow-500 mb-1">Total Ad Rev</p>
-                                    <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">৳{dashboardStats.totalAdRevenue}</p>
+
+                            {/* 3. TODAY'S PERFORMANCE & ADS (Bottom) */}
+                            <div className="bg-white dark:bg-dark-card p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                                <h3 className="font-bold text-xs uppercase text-gray-400 mb-4 tracking-wider">Today's Performance</h3>
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                    <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
+                                        <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Deposit Today</p>
+                                        <p className="text-lg font-bold text-green-600">৳{dashboardStats.todayDeposit}</p>
+                                    </div>
+                                    <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
+                                        <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Sales Today</p>
+                                        <p className="text-lg font-bold text-blue-600">৳{dashboardStats.todayPurchase}</p>
+                                    </div>
+                                    <div className="bg-yellow-50 dark:bg-yellow-900/10 p-3 rounded-xl border border-yellow-100 dark:border-yellow-900/20">
+                                        <p className="text-[10px] uppercase font-bold text-yellow-700 dark:text-yellow-500 mb-1">Ad Rev Today</p>
+                                        <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">৳{dashboardStats.todayAdRevenue}</p>
+                                    </div>
+                                    <div className="bg-yellow-50 dark:bg-yellow-900/10 p-3 rounded-xl border border-yellow-100 dark:border-yellow-900/20">
+                                        <p className="text-[10px] uppercase font-bold text-yellow-700 dark:text-yellow-500 mb-1">Total Ad Rev</p>
+                                        <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">৳{dashboardStats.totalAdRevenue}</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {/* ... Offers Tab ... */}
-                {activeTab === 'offers' && (
-                    <div className="animate-fade-in">
-                        <div className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar">
-                            {['diamond', 'levelUp', 'membership', 'premium', 'special'].map((type) => (
-                                <button key={type} onClick={() => setOfferType(type as any)} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase whitespace-nowrap transition-all border ${offerType === type ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-white dark:bg-gray-800 text-gray-500 border-transparent'}`}>{t[type as keyof typeof t] || type}</button>
-                            ))}
-                        </div>
-                        <button onClick={openAddOfferModal} className="w-full py-3 mb-4 border border-dashed border-gray-300 dark:border-gray-700 text-gray-500 rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm">+ Add New Offer</button>
-                        <div className="grid grid-cols-2 gap-3">
-                            {offersData[offerType]?.map((offer: any, index: number) => (
-                                <div key={offer.id} className="relative p-3 bg-white dark:bg-dark-card rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col justify-between h-full shadow-sm">
-                                    {offerType === 'special' && (
-                                        <div className={`absolute top-3 right-3 w-2 h-2 rounded-full ${offer.isActive ? 'bg-green-500' : 'bg-red-500'}`} title={offer.isActive ? 'Active' : 'Inactive'}></div>
-                                    )}
-                                    <div>
-                                        <div className="bg-gray-50 dark:bg-gray-800 w-8 h-8 rounded-full flex items-center justify-center mb-2 text-primary font-bold text-xs">
-                                            {offerType === 'diamond' && <DiamondIcon className="w-4 h-4" />}
-                                            {offerType === 'levelUp' && <StarIcon className="w-4 h-4" />}
-                                            {offerType === 'membership' && <IdCardIcon className="w-4 h-4" />}
-                                            {offerType === 'premium' && <CrownIcon className="w-4 h-4" />}
-                                            {offerType === 'special' && <TagIcon className="w-4 h-4" />}
-                                        </div>
-                                        <p className="font-bold text-sm leading-tight mb-1 text-gray-900 dark:text-white">{offer.name || `${offer.diamonds} Diamonds`}</p>
-                                        <p className="text-[10px] text-gray-500">{offerType === 'diamond' || offerType === 'special' ? `${offer.diamonds} DM` : 'Package'}</p>
-                                    </div>
-                                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                                        <span className="font-bold text-sm text-primary">৳{offer.price}</span>
-                                        <div className="flex gap-1">
-                                            <button onClick={() => handleReorderOffer(index, 'up')} disabled={index === 0} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30"><ArrowUpIcon className="w-3 h-3"/></button>
-                                            <button onClick={() => handleReorderOffer(index, 'down')} disabled={index === offersData[offerType].length - 1} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30"><ArrowDownIcon className="w-3 h-3"/></button>
-                                            <button onClick={() => { setEditingOffer(offer); setIsOfferModalOpen(true); }} className="p-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg ml-1"><EditIcon className="w-3 h-3"/></button>
-                                            <button onClick={() => handleDeleteOffer(offer.id)} className="p-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-lg"><TrashIcon className="w-3 h-3"/></button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* ... Orders Tab ... */}
-                {activeTab === 'orders' && (
-                    <div className="space-y-4 animate-fade-in">
-                        <SearchInput value={orderSearch} onChange={setOrderSearch} placeholder="Search Order ID or UID..." />
-                        <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
-                            {(['Pending', 'Completed', 'Failed'] as const).map(status => (
-                                <button key={status} onClick={() => setOrderFilter(status)} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${orderFilter === status ? 'bg-white dark:bg-dark-card shadow-sm text-primary' : 'text-gray-500'}`}>{t[status.toLowerCase() as keyof typeof t] || status}</button>
-                            ))}
-                        </div>
-                        <div className="space-y-3">
-                            {filteredOrders.length === 0 ? <div className="text-center py-10 text-gray-400 text-xs">No orders found</div> : filteredOrders.map(order => {
-                                const isPremium = order.uid.includes('|');
-                                let displayLabel = "Player UID";
-                                let displayValueLine1 = order.uid;
-                                let displayValueLine2 = null;
-
-                                if (isPremium) {
-                                    const parts = order.uid.split('|');
-                                    displayLabel = "Contact";
-                                    displayValueLine1 = parts[0].trim();
-                                    displayValueLine2 = parts[1] ? parts[1].trim() : null;
-                                } else if (order.uid.includes('@')) {
-                                    displayLabel = "Gmail";
-                                }
-
-                                return (
-                                <div key={order.key} className={`bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border-l-4 ${order.status === 'Pending' ? 'border-l-yellow-500' : order.status === 'Completed' ? 'border-l-green-500' : 'border-l-red-500'}`}>
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div><span className="font-bold text-sm block text-gray-900 dark:text-white">{order.offer.diamonds || order.offer.name}</span><span className="text-[10px] text-gray-400 font-mono">{new Date(order.date).toLocaleString()}</span></div>
-                                        <div className="text-right"><span className="font-bold text-primary text-sm">৳{order.offer.price}</span></div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2 mb-3">
-                                        <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-[10px]">
-                                            <p className="text-gray-400 mb-1">{displayLabel}</p>
-                                            <div className="flex flex-col gap-1">
-                                                <SmartCopy text={displayValueLine1} label={displayValueLine1.substring(0, 15) + (displayValueLine1.length > 15 ? '...' : '')} />
-                                                {displayValueLine2 && (
-                                                    <SmartCopy text={displayValueLine2} />
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-[10px]"><p className="text-gray-400 mb-1">Order ID</p><SmartCopy text={order.id} /></div>
-                                    </div>
-                                    {order.status === 'Pending' && <div className="flex gap-2 mt-2"><button onClick={() => handleOrderAction(order, 'Completed')} className="flex-1 bg-green-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-green-600 active:scale-95 transition-all">{t.approve}</button><button onClick={() => handleOrderAction(order, 'Failed')} className="flex-1 bg-red-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-red-600 active:scale-95 transition-all">{t.reject}</button></div>}
-                                    {order.status === 'Failed' && <div className="text-[10px] text-red-500 font-bold mt-1">Refunded</div>}
-                                </div>
-                            )})}
-                        </div>
-                    </div>
-                )}
-
-                {/* ... Deposits Tab ... */}
-                {activeTab === 'deposits' && (
-                    <div className="space-y-4 animate-fade-in">
-                        <SearchInput value={depositSearch} onChange={setDepositSearch} placeholder="Search TrxID..." />
-                        <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
-                            {(['Pending', 'Completed', 'Failed'] as const).map(status => (
-                                <button key={status} onClick={() => setDepositFilter(status)} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${depositFilter === status ? 'bg-white dark:bg-dark-card shadow-sm text-primary' : 'text-gray-500'}`}>{t[status.toLowerCase() as keyof typeof t] || status}</button>
-                            ))}
-                        </div>
-                        <div className="space-y-3">
-                            {filteredTransactions.length === 0 ? <div className="text-center py-10 text-gray-400 text-xs">No deposits found</div> : filteredTransactions.map(txn => (
-                                <div key={txn.key} className={`bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border-l-4 ${txn.status === 'Pending' ? 'border-l-yellow-500' : txn.status === 'Completed' ? 'border-l-green-500' : 'border-l-red-500'}`}>
-                                    <div className="flex justify-between mb-3">
-                                        <div><span className="font-bold text-sm block text-gray-900 dark:text-white">{txn.method}</span><span className="text-[10px] text-gray-400">{new Date(txn.date).toLocaleString()}</span></div>
-                                        <div className="text-right"><span className="font-bold text-green-600 block text-sm">+৳{txn.amount}</span></div>
-                                    </div>
-                                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-[10px] mb-3 flex justify-between items-center"><span className="text-gray-500">TrxID:</span><SmartCopy text={txn.transactionId} label={txn.transactionId} /></div>
-                                    {txn.status === 'Pending' && <div className="flex gap-2"><button onClick={() => handleTxnAction(txn, 'Completed')} className="flex-1 bg-green-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-green-600 active:scale-95 transition-all">{t.approve}</button><button onClick={() => handleTxnAction(txn, 'Failed')} className="flex-1 bg-red-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-red-600 active:scale-95 transition-all">{t.reject}</button></div>}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* TOOLS TAB */}
-                {activeTab === 'tools' && (
-                    <div className="animate-fade-in">
-                        <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
-                            {[
-                                { id: 'users', label: t.users, icon: UsersIcon },
-                                { id: 'wallet', label: t.wallet, icon: WalletIcon },
-                                { id: 'ai', label: t.aiManager, icon: RobotIcon },
-                                { id: 'graphics', label: t.graphics, icon: ImageIcon },
-                                { id: 'ads', label: t.ads, icon: MegaphoneIcon },
-                                { id: 'notifications', label: t.notifications, icon: BellIcon },
-                                { id: 'contacts', label: t.contacts, icon: ContactIcon },
-                                { id: 'settings', label: t.settings, icon: SettingsIcon },
-                            ].map(tool => (
-                                <button key={tool.id} onClick={() => setActiveTool(tool.id as any)} className={`flex flex-col items-center justify-center min-w-[70px] p-2.5 rounded-xl transition-all border ${activeTool === tool.id ? 'bg-primary text-white border-primary shadow-lg' : 'bg-white dark:bg-dark-card text-gray-500 border-transparent'}`}><tool.icon className="w-5 h-5 mb-1" /><span className="text-[9px] font-bold uppercase">{tool.label}</span></button>
-                            ))}
-                        </div>
-
-                        <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm min-h-[300px] border border-gray-100 dark:border-gray-800">
-                            
-                            {/* USERS TOOL (Updated with Selective Notification) */}
-                            {activeTool === 'users' && (
-                                <div className="space-y-4 animate-fade-in">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <h2 className="text-base font-bold text-gray-800 dark:text-white">User Management</h2>
-                                        {selectedUserIds.size > 0 && (
-                                            <button 
-                                                onClick={() => setIsNotifModalOpen(true)}
-                                                className="px-3 py-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full shadow-lg animate-pulse"
-                                            >
-                                                Msg {selectedUserIds.size}
-                                            </button>
-                                        )}
-                                    </div>
-                                    <SearchInput value={userSearch} onChange={setUserSearch} placeholder="Search User..." />
-                                    {filteredUsers.length === 0 && <p className="text-gray-400 text-center text-xs py-4">No users found.</p>}
-                                    {filteredUsers.slice(0, 50).map(u => (
-                                        <div key={u.uid} className={`relative bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border flex flex-col gap-2 transition-colors ${selectedUserIds.has(u.uid) ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-100 dark:border-gray-700'}`}>
-                                            
-                                            {/* Selection Checkbox */}
-                                            <div className="absolute top-3 right-3">
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={selectedUserIds.has(u.uid)} 
-                                                    onChange={() => toggleUserSelection(u.uid)}
-                                                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300"
-                                                />
-                                            </div>
-
-                                            <div className="flex items-center gap-3">
-                                                <img src={u.avatarUrl || DEFAULT_AVATAR_URL} alt={u.name} className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-600 flex-shrink-0" />
-                                                <div className="flex-1 min-w-0 overflow-hidden pr-6">
-                                                    <p className="font-bold text-sm truncate text-gray-900 dark:text-white">{u.name}</p>
-                                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{u.email}</p>
-                                                    <div className="flex items-center gap-2 mt-1"><span className="text-[9px] font-mono bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-gray-500">UID</span><SmartCopy text={u.uid} label={u.uid} iconOnly={false} /></div>
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-between items-center bg-white dark:bg-gray-700/30 p-2 rounded-lg border border-gray-200 dark:border-gray-700/50">
-                                                <div><p className="text-[9px] text-gray-500 uppercase font-bold">Wallet</p><p className="text-sm font-black text-primary truncate max-w-[100px]">৳{Math.floor(u.balance)}</p></div>
-                                                <div className="flex gap-2">
-                                                    <button onClick={() => { setBalanceModalUser(u); setBalanceAction('add'); setBalanceAmount(''); }} className="bg-green-100 text-green-700 p-1.5 rounded-lg hover:bg-green-200 active:scale-95 transition-transform"><PlusIcon className="w-3 h-3" /></button>
-                                                    <button onClick={() => { setBalanceModalUser(u); setBalanceAction('deduct'); setBalanceAmount(''); }} className="bg-red-100 text-red-700 p-1.5 rounded-lg hover:bg-red-200 active:scale-95 transition-transform"><MinusIcon className="w-3 h-3" /></button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {filteredUsers.length > 50 && <p className="text-center text-[10px] text-gray-400 mt-2">Showing 50 of {filteredUsers.length} users.</p>}
-                                </div>
-                            )}
-
-                            {activeTool === 'wallet' && (
-                                <div>
-                                    <button onClick={openAddMethodModal} className="w-full py-3 mb-4 border border-dashed border-gray-300 dark:border-gray-700 rounded-xl text-gray-500 font-bold hover:bg-gray-50 dark:hover:bg-gray-800 text-xs">+ Add Wallet</button>
-                                    <div className="space-y-3">
-                                        {paymentMethods.map((method, index) => (
-                                            <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
-                                                <div className="flex items-center gap-3"><img src={method.logo} className="w-8 h-8 object-contain bg-white rounded p-0.5" /><div><p className="font-bold text-sm text-gray-900 dark:text-white">{method.name}</p><SmartCopy text={method.accountNumber} /></div></div>
-                                                <div className="flex gap-2"><button onClick={() => openEditMethodModal(method, index)} className="p-1.5 bg-blue-100 text-blue-600 rounded"><EditIcon className="w-3 h-3"/></button><button onClick={() => handleDeleteMethod(index)} className="p-1.5 bg-red-100 text-red-600 rounded"><TrashIcon className="w-3 h-3"/></button></div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTool === 'ai' && (
-                                <div className="space-y-6 animate-fade-in">
-                                    {/* Stats Card */}
-                                    <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl text-white shadow-lg">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <RobotIcon className="w-6 h-6 text-white/90" />
-                                            <h3 className="font-bold text-sm">{t.aiManager}</h3>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl border border-white/10">
-                                                <p className="text-xl font-black mb-1">{aiStats.totalInteractions}</p>
-                                                <p className="text-[9px] uppercase font-bold text-white/80">{t.totalAiInteractions}</p>
-                                            </div>
-                                            <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl border border-white/10">
-                                                <p className="text-xl font-black mb-1">{aiStats.activeAiUsers}</p>
-                                                <p className="text-[9px] uppercase font-bold text-white/80">{t.aiActiveUsers}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Configuration Card */}
-                                    <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                                        <h4 className="font-bold text-xs mb-3 uppercase text-indigo-600 dark:text-indigo-400">{t.aiConfig}</h4>
+                    {/* ... Users Tab (Promoted) ... */}
+                    {activeTab === 'users' && (
+                        <div className="space-y-4 animate-fade-in">
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="font-bold text-lg">User Management</h3>
+                                {selectedUserIds.size > 0 && (
+                                    <button 
+                                        onClick={() => setIsNotifModalOpen(true)}
+                                        className="px-3 py-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full shadow-lg animate-pulse ml-auto"
+                                    >
+                                        Msg {selectedUserIds.size}
+                                    </button>
+                                )}
+                            </div>
+                            <SearchInput value={userSearch} onChange={setUserSearch} placeholder="Search User..." />
+                            {filteredUsers.length === 0 && <p className="text-gray-400 text-center text-xs py-4">No users found.</p>}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                {filteredUsers.slice(0, 50).map(u => (
+                                    <div key={u.uid} className={`relative bg-white dark:bg-dark-card p-3 rounded-xl border flex flex-col gap-2 transition-colors ${selectedUserIds.has(u.uid) ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-100 dark:border-gray-800'}`}>
                                         
+                                        {/* Selection Checkbox */}
+                                        <div className="absolute top-3 right-3">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedUserIds.has(u.uid)} 
+                                                onChange={() => toggleUserSelection(u.uid)}
+                                                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300"
+                                            />
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            <img src={u.avatarUrl || DEFAULT_AVATAR_URL} alt={u.name} className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-600 flex-shrink-0" />
+                                            <div className="flex-1 min-w-0 overflow-hidden pr-6">
+                                                <p className="font-bold text-sm truncate text-gray-900 dark:text-white">{u.name}</p>
+                                                <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{u.email}</p>
+                                                <div className="flex items-center gap-2 mt-1"><span className="text-[9px] font-mono bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-gray-500">UID</span><SmartCopy text={u.uid} label={u.uid} iconOnly={false} /></div>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/30 p-2 rounded-lg border border-gray-200 dark:border-gray-700/50">
+                                            <div><p className="text-[9px] text-gray-500 font-bold">Wallet</p><p className="text-sm font-black text-primary truncate max-w-[100px]">৳{Math.floor(u.balance)}</p></div>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => { setBalanceModalUser(u); setBalanceAction('add'); setBalanceAmount(''); }} className="bg-green-100 text-green-700 p-1.5 rounded-lg hover:bg-green-200 active:scale-95 transition-transform"><PlusIcon className="w-3 h-3" /></button>
+                                                <button onClick={() => { setBalanceModalUser(u); setBalanceAction('deduct'); setBalanceAmount(''); }} className="bg-red-100 text-red-700 p-1.5 rounded-lg hover:bg-red-200 active:scale-95 transition-transform"><MinusIcon className="w-3 h-3" /></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {filteredUsers.length > 50 && <p className="text-center text-[10px] text-gray-400 mt-2">Showing 50 of {filteredUsers.length} users.</p>}
+                        </div>
+                    )}
+
+                    {/* ... Offers Tab ... */}
+                    {activeTab === 'offers' && (
+                        <div className="animate-fade-in">
+                            <div className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar">
+                                {['diamond', 'levelUp', 'membership', 'premium', 'special'].map((type) => (
+                                    <button key={type} onClick={() => setOfferType(type as any)} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase whitespace-nowrap transition-all border ${offerType === type ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-white dark:bg-dark-card text-gray-500 border-transparent'}`}>{type}</button>
+                                ))}
+                            </div>
+                            <button onClick={openAddOfferModal} className="w-full py-3 mb-4 border border-dashed border-gray-300 dark:border-gray-700 text-gray-500 rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm">+ Add New Offer</button>
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                                {offersData[offerType]?.map((offer: any, index: number) => (
+                                    <div key={offer.id} className="relative p-3 bg-white dark:bg-dark-card rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col justify-between h-full shadow-sm">
+                                        {offerType === 'special' && (
+                                            <div className={`absolute top-3 right-3 w-2 h-2 rounded-full ${offer.isActive ? 'bg-green-500' : 'bg-red-500'}`} title={offer.isActive ? 'Active' : 'Inactive'}></div>
+                                        )}
+                                        <div>
+                                            <div className="bg-gray-50 dark:bg-gray-800 w-8 h-8 rounded-full flex items-center justify-center mb-2 text-primary font-bold text-xs">
+                                                {offerType === 'diamond' && <DiamondIcon className="w-4 h-4" />}
+                                                {offerType === 'levelUp' && <StarIcon className="w-4 h-4" />}
+                                                {offerType === 'membership' && <IdCardIcon className="w-4 h-4" />}
+                                                {offerType === 'premium' && <CrownIcon className="w-4 h-4" />}
+                                                {offerType === 'special' && <TagIcon className="w-4 h-4" />}
+                                            </div>
+                                            <p className="font-bold text-sm leading-tight mb-1 text-gray-900 dark:text-white">{offer.name || `${offer.diamonds} Diamonds`}</p>
+                                            <p className="text-[10px] text-gray-500">{offerType === 'diamond' || offerType === 'special' ? `${offer.diamonds} DM` : 'Package'}</p>
+                                        </div>
+                                        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                                            <span className="font-bold text-sm text-primary">৳{offer.price}</span>
+                                            <div className="flex gap-1">
+                                                <button onClick={() => handleReorderOffer(index, 'up')} disabled={index === 0} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30"><ArrowUpIcon className="w-3 h-3"/></button>
+                                                <button onClick={() => handleReorderOffer(index, 'down')} disabled={index === offersData[offerType].length - 1} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30"><ArrowDownIcon className="w-3 h-3"/></button>
+                                                <button onClick={() => { setEditingOffer(offer); setIsOfferModalOpen(true); }} className="p-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg ml-1"><EditIcon className="w-3 h-3"/></button>
+                                                <button onClick={() => handleDeleteOffer(offer.id)} className="p-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-lg"><TrashIcon className="w-3 h-3"/></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ... Orders Tab ... */}
+                    {activeTab === 'orders' && (
+                        <div className="space-y-4 animate-fade-in">
+                            <SearchInput value={orderSearch} onChange={setOrderSearch} placeholder="Search Order ID or UID..." />
+                            <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                                {(['Pending', 'Completed', 'Failed'] as const).map(status => (
+                                    <button key={status} onClick={() => setOrderFilter(status)} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${orderFilter === status ? 'bg-white dark:bg-dark-card shadow-sm text-primary' : 'text-gray-500'}`}>{status}</button>
+                                ))}
+                            </div>
+                            <div className="space-y-3">
+                                {filteredOrders.length === 0 ? <div className="text-center py-10 text-gray-400 text-xs">No orders found</div> : filteredOrders.map(order => {
+                                    const isPremium = order.uid.includes('|');
+                                    let displayLabel = "Player UID";
+                                    let displayValueLine1 = order.uid;
+                                    let displayValueLine2 = null;
+
+                                    if (isPremium) {
+                                        const parts = order.uid.split('|');
+                                        displayLabel = "Contact";
+                                        displayValueLine1 = parts[0].trim();
+                                        displayValueLine2 = parts[1] ? parts[1].trim() : null;
+                                    } else if (order.uid.includes('@')) {
+                                        displayLabel = "Gmail";
+                                    }
+
+                                    return (
+                                    <div key={order.key} className={`bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border-l-4 ${order.status === 'Pending' ? 'border-l-yellow-500' : order.status === 'Completed' ? 'border-l-green-500' : 'border-l-red-500'}`}>
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div><span className="font-bold text-sm block text-gray-900 dark:text-white">{order.offer.diamonds || order.offer.name}</span><span className="text-[10px] text-gray-400 font-mono">{new Date(order.date).toLocaleString()}</span></div>
+                                            <div className="text-right"><span className="font-bold text-primary text-sm">৳{order.offer.price}</span></div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 mb-3">
+                                            <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-[10px]">
+                                                <p className="text-gray-400 mb-1">{displayLabel}</p>
+                                                <div className="flex flex-col gap-1">
+                                                    <SmartCopy text={displayValueLine1} label={displayValueLine1.substring(0, 15) + (displayValueLine1.length > 15 ? '...' : '')} />
+                                                    {displayValueLine2 && (
+                                                        <SmartCopy text={displayValueLine2} />
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-[10px]"><p className="text-gray-400 mb-1">Order ID</p><SmartCopy text={order.id} /></div>
+                                        </div>
+                                        {order.status === 'Pending' && <div className="flex gap-2 mt-2"><button onClick={() => handleOrderAction(order, 'Completed')} className="flex-1 bg-green-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-green-600 active:scale-95 transition-all">Approve</button><button onClick={() => handleOrderAction(order, 'Failed')} className="flex-1 bg-red-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-red-600 active:scale-95 transition-all">Reject</button></div>}
+                                        {order.status === 'Failed' && <div className="text-[10px] text-red-500 font-bold mt-1">Refunded</div>}
+                                    </div>
+                                )})}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ... Deposits Tab ... */}
+                    {activeTab === 'deposits' && (
+                        <div className="space-y-4 animate-fade-in">
+                            <SearchInput value={depositSearch} onChange={setDepositSearch} placeholder="Search TrxID..." />
+                            <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                                {(['Pending', 'Completed', 'Failed'] as const).map(status => (
+                                    <button key={status} onClick={() => setDepositFilter(status)} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${depositFilter === status ? 'bg-white dark:bg-dark-card shadow-sm text-primary' : 'text-gray-500'}`}>{status}</button>
+                                ))}
+                            </div>
+                            <div className="space-y-3">
+                                {filteredTransactions.length === 0 ? <div className="text-center py-10 text-gray-400 text-xs">No deposits found</div> : filteredTransactions.map(txn => (
+                                    <div key={txn.key} className={`bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border-l-4 ${txn.status === 'Pending' ? 'border-l-yellow-500' : txn.status === 'Completed' ? 'border-l-green-500' : 'border-l-red-500'}`}>
+                                        <div className="flex justify-between mb-3">
+                                            <div><span className="font-bold text-sm block text-gray-900 dark:text-white">{txn.method}</span><span className="text-[10px] text-gray-400">{new Date(txn.date).toLocaleString()}</span></div>
+                                            <div className="text-right"><span className="font-bold text-green-600 block text-sm">+৳{txn.amount}</span></div>
+                                        </div>
+                                        <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-[10px] mb-3 flex justify-between items-center"><span className="text-gray-500">TrxID:</span><SmartCopy text={txn.transactionId} label={txn.transactionId} /></div>
+                                        {txn.status === 'Pending' && <div className="flex gap-2"><button onClick={() => handleTxnAction(txn, 'Completed')} className="flex-1 bg-green-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-green-600 active:scale-95 transition-all">Approve</button><button onClick={() => handleTxnAction(txn, 'Failed')} className="flex-1 bg-red-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-red-600 active:scale-95 transition-all">Reject</button></div>}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TOOLS TAB (Secondary Tools) */}
+                    {activeTab === 'tools' && (
+                        <div className="animate-fade-in">
+                            <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
+                                {[
+                                    { id: 'wallet', label: 'Wallet', icon: WalletIcon },
+                                    { id: 'ai', label: 'AI Manager', icon: RobotIcon },
+                                    { id: 'graphics', label: 'Graphics', icon: ImageIcon },
+                                    { id: 'ads', label: 'Ads Manager', icon: MegaphoneIcon },
+                                    { id: 'notifications', label: 'Notifs', icon: BellIcon },
+                                    { id: 'contacts', label: 'Contacts', icon: ContactIcon },
+                                ].map(tool => (
+                                    <button key={tool.id} onClick={() => setActiveTool(tool.id as any)} className={`flex flex-col items-center justify-center min-w-[70px] p-2.5 rounded-xl transition-all border ${activeTool === tool.id ? 'bg-primary text-white border-primary shadow-lg' : 'bg-white dark:bg-dark-card text-gray-500 border-transparent'}`}><tool.icon className="w-5 h-5 mb-1" /><span className="text-[9px] font-bold uppercase">{tool.label}</span></button>
+                                ))}
+                            </div>
+
+                            <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm min-h-[300px] border border-gray-100 dark:border-gray-800">
+                                
+                                {activeTool === 'wallet' && (
+                                    <div>
+                                        <button onClick={openAddMethodModal} className="w-full py-3 mb-4 border border-dashed border-gray-300 dark:border-gray-700 rounded-xl text-gray-500 font-bold hover:bg-gray-50 dark:hover:bg-gray-800 text-xs">+ Add Wallet</button>
                                         <div className="space-y-3">
-                                            {/* Toggle Switch */}
-                                            <div className="flex justify-between items-center p-3 bg-white dark:bg-dark-card rounded-xl border border-gray-100 dark:border-gray-700">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-xs">{t.enableAi}</span>
-                                                </div>
-                                                <div 
-                                                    onClick={() => setSettings({...settings, aiSupportActive: !settings.aiSupportActive})}
-                                                    className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.aiSupportActive ? 'bg-green-500' : 'bg-gray-300'}`}
-                                                >
-                                                    <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.aiSupportActive ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                                                </div>
-                                            </div>
-
-                                            {/* AI Name Input */}
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">{t.aiName}</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={settings.aiName || ''} 
-                                                    onChange={(e) => setSettings({...settings, aiName: e.target.value})} 
-                                                    className={inputClass}
-                                                    placeholder="AI Tuktuki"
-                                                />
-                                            </div>
-
-                                            {/* API Key Input */}
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">{t.aiApiKey}</label>
-                                                <div className="relative">
-                                                    <input 
-                                                        type="password" 
-                                                        value={settings.aiApiKey || ''} 
-                                                        onChange={(e) => {
-                                                            setSettings({...settings, aiApiKey: e.target.value});
-                                                            if (apiKeyError) setApiKeyError(''); // Clear error on change
-                                                        }} 
-                                                        className={`${inputClass} pr-8 ${apiKeyError ? 'border-red-500 focus:ring-red-500' : ''}`}
-                                                        placeholder="AIzaSy..."
-                                                    />
-                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                                                        <LockIcon className="w-3 h-3" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <button 
-                                            onClick={handleSettingsSave} 
-                                            disabled={!isSettingsChanged}
-                                            className={`w-full mt-4 py-2.5 font-bold text-sm rounded-xl shadow-md transition-all ${isSettingsChanged ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                                        >
-                                            {t.save} Settings
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTool === 'graphics' && (
-                                <div className="space-y-6">
-                                    <div>
-                                        <h3 className="font-bold mb-2 text-xs uppercase text-gray-500">{t.appLogo}</h3>
-                                        <div className="flex gap-3"><img src={settings.logoUrl || APP_LOGO_URL} className="w-10 h-10 rounded-full border" /><input type="text" value={settings.logoUrl || ''} onChange={(e) => setSettings({...settings, logoUrl: e.target.value})} className={inputClass} placeholder="Image URL" /></div>
-                                        <button onClick={handleUpdateLogo} className="mt-2 text-[10px] bg-primary text-white px-3 py-1 rounded font-bold uppercase tracking-wide">Update Logo</button>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold mb-2 text-xs uppercase text-gray-500">Banners</h3>
-                                        <div className="flex gap-2 mb-3">
-                                            <input type="text" value={newBannerUrl} onChange={(e) => setNewBannerUrl(e.target.value)} className={inputClass} placeholder="Image URL" />
-                                            <input type="text" value={newActionUrl} onChange={(e) => setNewActionUrl(e.target.value)} className={inputClass} placeholder="Action URL (Optional)" />
-                                            <button onClick={handleAddBanner} className="bg-green-500 text-white px-3 rounded font-bold text-xs">{t.add}</button>
-                                        </div>
-                                        <div className="space-y-2">
-                                            {banners.map((banner, index) => (
-                                                <div key={index} className="relative h-20 rounded-lg overflow-hidden group">
-                                                    <img src={banner.imageUrl} className="w-full h-full object-cover" />
-                                                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button onClick={() => openEditBannerModal(index, banner)} className="bg-blue-600 text-white p-1 rounded shadow-md hover:bg-blue-700">
-                                                            <EditIcon className="w-3 h-3" />
-                                                        </button>
-                                                        <button onClick={() => handleDeleteBanner(index)} className="bg-red-600 text-white p-1 rounded shadow-md hover:bg-red-700">
-                                                            <TrashIcon className="w-3 h-3"/>
-                                                        </button>
-                                                    </div>
+                                            {paymentMethods.map((method, index) => (
+                                                <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                                                    <div className="flex items-center gap-3"><img src={method.logo} className="w-8 h-8 object-contain bg-white rounded p-0.5" /><div><p className="font-bold text-sm text-gray-900 dark:text-white">{method.name}</p><SmartCopy text={method.accountNumber} /></div></div>
+                                                    <div className="flex gap-2"><button onClick={() => openEditMethodModal(method, index)} className="p-1.5 bg-blue-100 text-blue-600 rounded"><EditIcon className="w-3 h-3"/></button><button onClick={() => handleDeleteMethod(index)} className="p-1.5 bg-red-100 text-red-600 rounded"><TrashIcon className="w-3 h-3"/></button></div>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {activeTool === 'ads' && (
-                                <div>
-                                    <h4 className="font-bold text-xs mb-3 uppercase text-purple-600">{t.adsConfig}</h4>
-                                    
-                                    {/* VIDEO & REWARD ADS CONFIGURATION */}
-                                    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
-                                        <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                            <MegaphoneIcon className="w-4 h-4 text-orange-500" />
-                                            <h4 className="font-bold text-xs uppercase text-gray-600 dark:text-gray-300">Video Ads</h4>
+                                {activeTool === 'ai' && (
+                                    <div className="space-y-6 animate-fade-in">
+                                        {/* Stats Card */}
+                                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl text-white shadow-lg">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <RobotIcon className="w-6 h-6 text-white/90" />
+                                                <h3 className="font-bold text-sm">AI Manager</h3>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl border border-white/10">
+                                                    <p className="text-xl font-black mb-1">{aiStats.totalInteractions}</p>
+                                                    <p className="text-[9px] font-bold text-white/80">Total Interactions</p>
+                                                </div>
+                                                <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl border border-white/10">
+                                                    <p className="text-xl font-black mb-1">{aiStats.activeAiUsers}</p>
+                                                    <p className="text-[9px] font-bold text-white/80">Active Users</p>
+                                                </div>
+                                            </div>
                                         </div>
 
-                                        {/* Web Ads Config */}
-                                        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className="font-bold text-[10px] text-blue-600 uppercase">{t.webAds}</span>
+                                        {/* Configuration Card */}
+                                        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                                            <h4 className="font-bold text-xs mb-3 text-indigo-600 dark:text-indigo-400">AI Configuration</h4>
+                                            
+                                            <div className="space-y-3">
+                                                {/* Toggle Switch */}
+                                                <div className="flex justify-between items-center p-3 bg-white dark:bg-dark-card rounded-xl border border-gray-100 dark:border-gray-700">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold text-xs">Enable AI Support</span>
+                                                    </div>
+                                                    <div 
+                                                        onClick={() => setSettings({...settings, aiSupportActive: !settings.aiSupportActive})}
+                                                        className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.aiSupportActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                                                    >
+                                                        <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.aiSupportActive ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                                    </div>
+                                                </div>
+
+                                                {/* AI Name Input */}
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Bot Name</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.aiName || ''} 
+                                                        onChange={(e) => setSettings({...settings, aiName: e.target.value})} 
+                                                        className={inputClass}
+                                                        placeholder="AI Tuktuki"
+                                                    />
+                                                </div>
+
+                                                {/* API Key Input */}
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Gemini API Key</label>
+                                                    <div className="relative">
+                                                        <input 
+                                                            type="password" 
+                                                            value={settings.aiApiKey || ''} 
+                                                            onChange={(e) => {
+                                                                setSettings({...settings, aiApiKey: e.target.value});
+                                                                if (apiKeyError) setApiKeyError(''); // Clear error on change
+                                                            }} 
+                                                            className={`${inputClass} pr-8 ${apiKeyError ? 'border-red-500 focus:ring-red-500' : ''}`}
+                                                            placeholder="AIzaSy..."
+                                                        />
+                                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                                            <LockIcon className="w-3 h-3" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <button 
+                                                onClick={handleSettingsSave} 
+                                                disabled={!isSettingsChanged}
+                                                className={`w-full mt-4 py-2.5 font-bold text-sm rounded-xl shadow-md transition-all ${isSettingsChanged ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                                            >
+                                                Save Settings
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTool === 'graphics' && (
+                                    <div className="space-y-6">
+                                        <div>
+                                            <h3 className="font-bold mb-2 text-xs text-gray-500">App Logo URL</h3>
+                                            <div className="flex gap-3"><img src={settings.logoUrl || APP_LOGO_URL} className="w-10 h-10 rounded-full border" /><input type="text" value={settings.logoUrl || ''} onChange={(e) => setSettings({...settings, logoUrl: e.target.value})} className={inputClass} placeholder="Image URL" /></div>
+                                            <button onClick={handleUpdateLogo} className="mt-2 text-[10px] bg-primary text-white px-3 py-1 rounded font-bold tracking-wide">Update Logo</button>
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold mb-2 text-xs text-gray-500">Banners</h3>
+                                            <div className="flex gap-2 mb-3">
+                                                <input type="text" value={newBannerUrl} onChange={(e) => setNewBannerUrl(e.target.value)} className={inputClass} placeholder="Image URL" />
+                                                <input type="text" value={newActionUrl} onChange={(e) => setNewActionUrl(e.target.value)} className={inputClass} placeholder="Action URL (Optional)" />
+                                                <button onClick={handleAddBanner} disabled={!isBannerValid} className={`px-3 rounded font-bold text-xs text-white ${isBannerValid ? 'bg-green-500' : 'bg-gray-300'}`}>Add</button>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {banners.map((banner, index) => (
+                                                    <div key={index} className="relative h-20 rounded-lg overflow-hidden group">
+                                                        <img src={banner.imageUrl} className="w-full h-full object-cover" />
+                                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button onClick={() => openEditBannerModal(index, banner)} className="bg-blue-600 text-white p-1 rounded shadow-md hover:bg-blue-700">
+                                                                <EditIcon className="w-3 h-3" />
+                                                            </button>
+                                                            <button onClick={() => handleDeleteBanner(index)} className="bg-red-600 text-white p-1 rounded shadow-md hover:bg-red-700">
+                                                                <TrashIcon className="w-3 h-3"/>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTool === 'ads' && (
+                                    <div>
+                                        <h4 className="font-bold text-xs mb-3 text-purple-600">Ads Configuration</h4>
+                                        
+                                        {/* VIDEO & REWARD ADS CONFIGURATION */}
+                                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
+                                            <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
+                                                <MegaphoneIcon className="w-4 h-4 text-orange-500" />
+                                                <h4 className="font-bold text-xs text-gray-600 dark:text-gray-300">Video Ads</h4>
+                                            </div>
+
+                                            {/* Web Ads Config */}
+                                            <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="font-bold text-[10px] text-blue-600">Web Ads (Current Web)</span>
+                                                    <div 
+                                                        onClick={() => setSettings({
+                                                            ...settings,
+                                                            earnSettings: {
+                                                                ...settings.earnSettings!,
+                                                                webAds: { ...settings.earnSettings!.webAds, active: !settings.earnSettings!.webAds.active }
+                                                            }
+                                                        })}
+                                                        className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.webAds?.active ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                                    >
+                                                        <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.webAds?.active ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.earnSettings?.webAds?.url || ''} 
+                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, url: e.target.value } }})} 
+                                                        className={inputClass} 
+                                                        placeholder="URL (YouTube/MP4)" 
+                                                    />
+                                                    <div className="flex items-center gap-2">
+                                                        <label className="text-[10px] text-gray-500 font-bold whitespace-nowrap">Duration (s)</label>
+                                                        <input 
+                                                            type="number" 
+                                                            value={settings.earnSettings?.webAds?.duration || 15} 
+                                                            onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, duration: Number(e.target.value) } }})} 
+                                                            className={inputClass} 
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* AdMob Config */}
+                                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
+                                            <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
+                                                <AdMobIcon className="w-4 h-4 text-blue-600" />
+                                                <h4 className="font-bold text-xs text-gray-600 dark:text-gray-300">AdMob (APK Only)</h4>
+                                            </div>
+                                            <div className="flex justify-between items-center mb-4">
+                                                <span className="font-bold text-[10px] text-gray-500">Enable AdMob</span>
                                                 <div 
                                                     onClick={() => setSettings({
                                                         ...settings,
                                                         earnSettings: {
                                                             ...settings.earnSettings!,
-                                                            webAds: { ...settings.earnSettings!.webAds, active: !settings.earnSettings!.webAds.active }
+                                                            adMob: { ...settings.earnSettings!.adMob, active: !settings.earnSettings!.adMob.active }
                                                         }
                                                     })}
-                                                    className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.webAds?.active ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                                    className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.adMob?.active ? 'bg-blue-600' : 'bg-gray-300'}`}
                                                 >
-                                                    <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.webAds?.active ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                                    <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.adMob?.active ? 'translate-x-4' : 'translate-x-0'}`}></div>
                                                 </div>
                                             </div>
-                                            <div className="space-y-2">
-                                                <input 
-                                                    type="text" 
-                                                    value={settings.earnSettings?.webAds?.url || ''} 
-                                                    onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, url: e.target.value } }})} 
-                                                    className={inputClass} 
-                                                    placeholder="URL (YouTube/MP4)" 
-                                                />
-                                                <div className="flex items-center gap-2">
-                                                    <label className="text-[10px] text-gray-500 font-bold whitespace-nowrap">Duration (s)</label>
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">AdMob App ID</label>
                                                     <input 
-                                                        type="number" 
-                                                        value={settings.earnSettings?.webAds?.duration || 15} 
-                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, duration: Number(e.target.value) } }})} 
+                                                        type="text" 
+                                                        value={settings.earnSettings?.adMob?.appId || ''} 
+                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, appId: e.target.value } }})} 
                                                         className={inputClass} 
+                                                        placeholder="ca-app-pub-..." 
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Reward Ad ID</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.earnSettings?.adMob?.rewardId || ''} 
+                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, rewardId: e.target.value } }})} 
+                                                        className={inputClass} 
+                                                        placeholder="ca-app-pub-.../..." 
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Banner Ad ID</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.earnSettings?.adMob?.bannerId || ''} 
+                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, bannerId: e.target.value } }})} 
+                                                        className={inputClass} 
+                                                        placeholder="ca-app-pub-.../..." 
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Interstitial Ad ID</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.earnSettings?.adMob?.interstitialId || ''} 
+                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, interstitialId: e.target.value } }})} 
+                                                        className={inputClass} 
+                                                        placeholder="ca-app-pub-.../..." 
                                                     />
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    {/* AdMob Config */}
-                                    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
-                                        <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                            <AdMobIcon className="w-4 h-4 text-blue-600" />
-                                            <h4 className="font-bold text-xs uppercase text-gray-600 dark:text-gray-300">{t.adMob}</h4>
-                                        </div>
-                                        <div className="flex justify-between items-center mb-4">
-                                            <span className="font-bold text-[10px] text-gray-500 uppercase">Enable AdMob</span>
-                                            <div 
-                                                onClick={() => setSettings({
-                                                    ...settings,
-                                                    earnSettings: {
-                                                        ...settings.earnSettings!,
-                                                        adMob: { ...settings.earnSettings!.adMob, active: !settings.earnSettings!.adMob.active }
-                                                    }
-                                                })}
-                                                className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.adMob?.active ? 'bg-blue-600' : 'bg-gray-300'}`}
-                                            >
-                                                <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.adMob?.active ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                        
+                                        {/* Home Screen Ads */}
+                                        <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label className="block text-[10px] font-bold text-gray-500">Home Screen Ad Code</label>
+                                                <div 
+                                                    onClick={() => setSettings({
+                                                        ...settings,
+                                                        earnSettings: {
+                                                            ...settings.earnSettings!,
+                                                            homeAdActive: !settings.earnSettings!.homeAdActive
+                                                        }
+                                                    })}
+                                                    className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.homeAdActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                                                >
+                                                    <div className={`bg-white w-3 h-3 rounded-full shadow-md transform transition-transform ${settings.earnSettings?.homeAdActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="space-y-3">
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-gray-500 mb-1">{t.appId}</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={settings.earnSettings?.adMob?.appId || ''} 
-                                                    onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, appId: e.target.value } }})} 
-                                                    className={inputClass} 
-                                                    placeholder="ca-app-pub-..." 
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-gray-500 mb-1">{t.rewardId}</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={settings.earnSettings?.adMob?.rewardId || ''} 
-                                                    onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, rewardId: e.target.value } }})} 
-                                                    className={inputClass} 
-                                                    placeholder="ca-app-pub-.../..." 
-                                                />
-                                            </div>
-                                            {/* NEW: Banner & Interstitial IDs */}
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-gray-500 mb-1">{t.bannerId}</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={settings.earnSettings?.adMob?.bannerId || ''} 
-                                                    onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, bannerId: e.target.value } }})} 
-                                                    className={inputClass} 
-                                                    placeholder="ca-app-pub-.../..." 
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-gray-500 mb-1">{t.interstitialId}</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={settings.earnSettings?.adMob?.interstitialId || ''} 
-                                                    onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, interstitialId: e.target.value } }})} 
-                                                    className={inputClass} 
-                                                    placeholder="ca-app-pub-.../..." 
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Home Screen Ads */}
-                                    <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <label className="block text-[10px] font-bold text-gray-500 uppercase">{t.homeAdCode}</label>
-                                            <div 
-                                                onClick={() => setSettings({
-                                                    ...settings,
-                                                    earnSettings: {
-                                                        ...settings.earnSettings!,
-                                                        homeAdActive: !settings.earnSettings!.homeAdActive
-                                                    }
-                                                })}
-                                                className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.homeAdActive ? 'bg-green-500' : 'bg-gray-300'}`}
-                                            >
-                                                <div className={`bg-white w-3 h-3 rounded-full shadow-md transform transition-transform ${settings.earnSettings?.homeAdActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                            </div>
-                                        </div>
-                                        <textarea 
-                                            value={settings.earnSettings?.homeAdCode || ''} 
-                                            onChange={(e) => setSettings({
-                                                ...settings, 
-                                                earnSettings: { 
-                                                    ...settings.earnSettings!, 
-                                                    homeAdCode: e.target.value 
-                                                }
-                                            })} 
-                                            className={`${inputClass} font-mono text-[10px] h-20 mb-1`} 
-                                            placeholder="HTML/JS Code"
-                                        />
-                                    </div>
-
-                                    {/* Earn Screen Ads */}
-                                    <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <label className="block text-[10px] font-bold text-gray-500 uppercase">{t.earnAdCode}</label>
-                                            <div 
-                                                onClick={() => setSettings({
-                                                    ...settings,
-                                                    earnSettings: {
-                                                        ...settings.earnSettings!,
-                                                        earnAdActive: !settings.earnSettings!.earnAdActive
-                                                    }
-                                                })}
-                                                className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.earnAdActive ? 'bg-green-500' : 'bg-gray-300'}`}
-                                            >
-                                                <div className={`bg-white w-3 h-3 rounded-full shadow-md transform transition-transform ${settings.earnSettings?.earnAdActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                            </div>
-                                        </div>
-                                        <textarea 
-                                            value={settings.earnSettings?.earnAdCode || ''} 
-                                            onChange={(e) => setSettings({
-                                                ...settings, 
-                                                earnSettings: { 
-                                                    ...settings.earnSettings!, 
-                                                    earnAdCode: e.target.value 
-                                                }
-                                            })} 
-                                            className={`${inputClass} font-mono text-[10px] h-20 mb-1`} 
-                                            placeholder={t.adCodeInstructions}
-                                        />
-                                    </div>
-
-                                    {/* Profile Screen Ads */}
-                                    <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <label className="block text-[10px] font-bold text-gray-500 uppercase">{t.profileAdCode}</label>
-                                            <div 
-                                                onClick={() => setSettings({
-                                                    ...settings,
-                                                    earnSettings: {
-                                                        ...settings.earnSettings!,
-                                                        profileAdActive: !settings.earnSettings!.profileAdActive
-                                                    }
-                                                })}
-                                                className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.profileAdActive ? 'bg-green-500' : 'bg-gray-300'}`}
-                                            >
-                                                <div className={`bg-white w-3 h-3 rounded-full shadow-md transform transition-transform ${settings.earnSettings?.profileAdActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                            </div>
-                                        </div>
-                                        <textarea 
-                                            value={settings.earnSettings?.profileAdCode || ''} 
-                                            onChange={(e) => setSettings({
-                                                ...settings, 
-                                                earnSettings: { 
-                                                    ...settings.earnSettings!, 
-                                                    profileAdCode: e.target.value 
-                                                }
-                                            })} 
-                                            className={`${inputClass} font-mono text-[10px] h-20 mb-1`} 
-                                            placeholder={t.adCodeInstructions}
-                                        />
-                                    </div>
-
-                                    <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full py-3 font-bold text-sm rounded-xl shadow-md transition-all ${isSettingsChanged ? 'bg-primary text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>{t.save}</button>
-                                </div>
-                            )}
-
-                            {activeTool === 'notifications' && (
-                                <div className="space-y-6">
-                                    {/* SEND NOTIFICATION */}
-                                    <div className="bg-purple-50 dark:bg-purple-900/10 p-4 rounded-xl border border-purple-100 dark:border-purple-900/20">
-                                        <h3 className="text-sm font-bold text-purple-600 dark:text-purple-400 mb-3">Quick Send</h3>
-                                        <button onClick={() => setIsNotifModalOpen(true)} className="w-full py-2.5 bg-purple-600 text-white rounded-xl font-bold shadow-md hover:bg-purple-700 transition-colors text-sm">+ Create Message</button>
-                                        <p className="text-[10px] text-gray-400 mt-2 text-center">To send to specific users, select them in the "Users" tool first.</p>
-                                    </div>
-
-                                    {/* LOGIN POPUP SETTINGS */}
-                                    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                                        <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">
-                                            <h4 className="font-bold text-xs uppercase text-indigo-600 dark:text-indigo-400">Login Popup</h4>
-                                            
-                                            {/* Toggle Switch */}
-                                            <div 
-                                                onClick={() => setPopupConfig({...popupConfig, active: !popupConfig.active})}
-                                                className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${popupConfig.active ? 'bg-green-500' : 'bg-gray-300'}`}
-                                            >
-                                                <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${popupConfig.active ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-3">
-                                            <input 
-                                                type="text" 
-                                                placeholder="Title" 
-                                                value={popupConfig.title} 
-                                                onChange={(e) => setPopupConfig({...popupConfig, title: e.target.value})} 
-                                                className={inputClass} 
-                                            />
                                             <textarea 
-                                                placeholder="Message..." 
-                                                value={popupConfig.message} 
-                                                onChange={(e) => setPopupConfig({...popupConfig, message: e.target.value})} 
-                                                className={inputClass} 
-                                                rows={2} 
+                                                value={settings.earnSettings?.homeAdCode || ''} 
+                                                onChange={(e) => setSettings({
+                                                    ...settings, 
+                                                    earnSettings: { 
+                                                        ...settings.earnSettings!, 
+                                                        homeAdCode: e.target.value 
+                                                    }
+                                                })} 
+                                                className={`${inputClass} font-mono text-[10px] h-20 mb-1`} 
+                                                placeholder="HTML/JS Code"
                                             />
-                                            <input 
-                                                type="text" 
-                                                placeholder="Image URL (Optional)" 
-                                                value={popupConfig.imageUrl || ''} 
-                                                onChange={(e) => setPopupConfig({...popupConfig, imageUrl: e.target.value})} 
-                                                className={inputClass} 
+                                        </div>
+
+                                        {/* Earn Screen Ads */}
+                                        <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label className="block text-[10px] font-bold text-gray-500">Earn Screen Ad Code</label>
+                                                <div 
+                                                    onClick={() => setSettings({
+                                                        ...settings,
+                                                        earnSettings: {
+                                                            ...settings.earnSettings!,
+                                                            earnAdActive: !settings.earnSettings!.earnAdActive
+                                                        }
+                                                    })}
+                                                    className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.earnAdActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                                                >
+                                                    <div className={`bg-white w-3 h-3 rounded-full shadow-md transform transition-transform ${settings.earnSettings?.earnAdActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                                </div>
+                                            </div>
+                                            <textarea 
+                                                value={settings.earnSettings?.earnAdCode || ''} 
+                                                onChange={(e) => setSettings({
+                                                    ...settings, 
+                                                    earnSettings: { 
+                                                        ...settings.earnSettings!, 
+                                                        earnAdCode: e.target.value 
+                                                    }
+                                                })} 
+                                                className={`${inputClass} font-mono text-[10px] h-20 mb-1`} 
+                                                placeholder="HTML/JS Code"
                                             />
-                                            <button 
-                                                onClick={handleSavePopupConfig} 
-                                                className="w-full py-2 bg-indigo-600 text-white rounded-lg font-bold text-xs mt-2 hover:bg-indigo-700"
-                                            >
-                                                Save Popup
+                                        </div>
+
+                                        {/* Profile Screen Ads */}
+                                        <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label className="block text-[10px] font-bold text-gray-500">Profile Pages Ad Code</label>
+                                                <div 
+                                                    onClick={() => setSettings({
+                                                        ...settings,
+                                                        earnSettings: {
+                                                            ...settings.earnSettings!,
+                                                            profileAdActive: !settings.earnSettings!.profileAdActive
+                                                        }
+                                                    })}
+                                                    className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.profileAdActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                                                >
+                                                    <div className={`bg-white w-3 h-3 rounded-full shadow-md transform transition-transform ${settings.earnSettings?.profileAdActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                                </div>
+                                            </div>
+                                            <textarea 
+                                                value={settings.earnSettings?.profileAdCode || ''} 
+                                                onChange={(e) => setSettings({
+                                                    ...settings, 
+                                                    earnSettings: { 
+                                                        ...settings.earnSettings!, 
+                                                        profileAdCode: e.target.value 
+                                                    }
+                                                })} 
+                                                className={`${inputClass} font-mono text-[10px] h-20 mb-1`} 
+                                                placeholder="HTML/JS Code"
+                                            />
+                                        </div>
+
+                                        <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full py-3 font-bold text-sm rounded-xl shadow-md transition-all ${isSettingsChanged ? 'bg-primary text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Save Settings</button>
+                                    </div>
+                                )}
+
+                                {activeTool === 'notifications' && (
+                                    <div className="space-y-6">
+                                        {/* SEND NOTIFICATION */}
+                                        <div className="bg-purple-50 dark:bg-purple-900/10 p-4 rounded-xl border border-purple-100 dark:border-purple-900/20">
+                                            <h3 className="text-sm font-bold text-purple-600 dark:text-purple-400 mb-3">Quick Send</h3>
+                                            <button onClick={() => setIsNotifModalOpen(true)} className="w-full py-2.5 bg-purple-600 text-white rounded-xl font-bold shadow-md hover:bg-purple-700 transition-colors text-sm">+ Create Message</button>
+                                            <p className="text-[10px] text-gray-400 mt-2 text-center">To send to specific users, select them in the "Users" section first.</p>
+                                        </div>
+
+                                        {/* LOGIN POPUP SETTINGS */}
+                                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                                            <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">
+                                                <h4 className="font-bold text-xs text-indigo-600 dark:text-indigo-400">Login Popup</h4>
+                                                
+                                                {/* Toggle Switch */}
+                                                <div 
+                                                    onClick={() => setPopupConfig({...popupConfig, active: !popupConfig.active})}
+                                                    className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${popupConfig.active ? 'bg-green-500' : 'bg-gray-300'}`}
+                                                >
+                                                    <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${popupConfig.active ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Title" 
+                                                    value={popupConfig.title} 
+                                                    onChange={(e) => setPopupConfig({...popupConfig, title: e.target.value})} 
+                                                    className={inputClass} 
+                                                />
+                                                <textarea 
+                                                    placeholder="Message..." 
+                                                    value={popupConfig.message} 
+                                                    onChange={(e) => setPopupConfig({...popupConfig, message: e.target.value})} 
+                                                    className={inputClass} 
+                                                    rows={2} 
+                                                />
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Image URL (Optional)" 
+                                                    value={popupConfig.imageUrl || ''} 
+                                                    onChange={(e) => setPopupConfig({...popupConfig, imageUrl: e.target.value})} 
+                                                    className={inputClass} 
+                                                />
+                                                <button 
+                                                    onClick={handleSavePopupConfig} 
+                                                    className="w-full py-2 bg-indigo-600 text-white rounded-lg font-bold text-xs mt-2 hover:bg-indigo-700"
+                                                >
+                                                    Save Popup
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* HISTORY */}
+                                        <div>
+                                            <h3 className="text-xs font-bold text-gray-500 mb-2">History</h3>
+                                            <div className="space-y-2">
+                                                {notifications.map(n => (
+                                                    <div key={n.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex justify-between items-start border border-gray-100 dark:border-gray-700">
+                                                        <div>
+                                                            <p className="font-bold text-xs text-gray-900 dark:text-white">{n.title}</p>
+                                                            <p className="text-[10px] text-gray-500 line-clamp-1">{n.message}</p>
+                                                            {n.targetUid && <span className="text-[9px] bg-blue-100 text-blue-600 px-1.5 rounded-sm font-bold">Private</span>}
+                                                        </div>
+                                                        <button onClick={() => handleDeleteNotification(n.id)} className="text-red-500 p-1"><TrashIcon className="w-3 h-3"/></button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                {activeTool === 'contacts' && (
+                                    <div>
+                                        {/* General Settings Card */}
+                                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
+                                            <h4 className="font-bold text-xs mb-3 text-blue-600 dark:text-blue-400">Contact Page Text</h4>
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Support Message</label>
+                                                    <textarea 
+                                                        value={settings.contactMessage || ''} 
+                                                        onChange={(e) => setSettings({...settings, contactMessage: e.target.value})} 
+                                                        className={inputClass} 
+                                                        rows={3}
+                                                        placeholder="Have a question..."
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Operating Hours Text</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.operatingHours || ''} 
+                                                        onChange={(e) => setSettings({...settings, operatingHours: e.target.value})} 
+                                                        className={inputClass}
+                                                        placeholder="10:00 AM - 10:00 PM"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full mt-3 py-2.5 font-bold text-xs rounded-xl shadow-md transition-all ${isSettingsChanged ? 'bg-blue-600 text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
+                                                Save Settings
                                             </button>
                                         </div>
-                                    </div>
 
-                                    {/* HISTORY */}
-                                    <div>
-                                        <h3 className="text-xs font-bold text-gray-500 mb-2 uppercase">History</h3>
+                                        <button onClick={openAddContactModal} className="w-full py-3 mb-4 bg-blue-50 text-blue-600 rounded-xl font-bold text-sm">+ Add Contact</button>
                                         <div className="space-y-2">
-                                            {notifications.map(n => (
-                                                <div key={n.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex justify-between items-start border border-gray-100 dark:border-gray-700">
-                                                    <div>
-                                                        <p className="font-bold text-xs text-gray-900 dark:text-white">{n.title}</p>
-                                                        <p className="text-[10px] text-gray-500 line-clamp-1">{n.message}</p>
-                                                        {n.targetUid && <span className="text-[9px] bg-blue-100 text-blue-600 px-1.5 rounded-sm font-bold">Private</span>}
+                                            {contacts.map((c, i) => (
+                                                <div key={i} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex justify-between items-center border border-gray-100 dark:border-gray-700">
+                                                    <div><p className="font-bold text-xs text-gray-900 dark:text-white">{c.title || c.labelKey}</p><p className="text-[10px] text-gray-500 uppercase">{c.type}</p></div>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => openEditContactModal(c, i)} className="text-blue-500"><EditIcon className="w-4 h-4"/></button>
+                                                        <button onClick={() => handleDeleteContact(i)} className="text-red-500"><TrashIcon className="w-4 h-4"/></button>
                                                     </div>
-                                                    <button onClick={() => handleDeleteNotification(n.id)} className="text-red-500 p-1"><TrashIcon className="w-3 h-3"/></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SETTINGS TAB (Promoted) */}
+                    {activeTab === 'settings' && (
+                        <div className="space-y-6 animate-fade-in">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                
+                                {/* 1. App Identity Card */}
+                                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                                    <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
+                                        <SettingsIcon className="w-4 h-4 text-blue-500" />
+                                        <h4 className="font-bold text-xs text-gray-600 dark:text-gray-300">Identity</h4>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-500 mb-1">App Name</label>
+                                            <input type="text" value={settings.appName} onChange={(e) => setSettings({...settings, appName: e.target.value})} className={inputClass} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-500 mb-1">App Logo URL</label>
+                                            <input type="text" value={settings.logoUrl || ''} onChange={(e) => setSettings({...settings, logoUrl: e.target.value})} className={inputClass} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-500 mb-1">Notice Message</label>
+                                            <textarea value={settings.notice || ''} onChange={(e) => setSettings({...settings, notice: e.target.value})} className={inputClass} rows={2} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 2. Control & Visibility Card */}
+                                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                                    <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
+                                        <EyeIcon className="w-4 h-4 text-purple-500" />
+                                        <h4 className="font-bold text-xs text-gray-600 dark:text-gray-300">App Access & Control</h4>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {/* Maintenance Mode */}
+                                        <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                            <span className="font-bold text-xs text-red-500">Maintenance</span>
+                                            <div onClick={() => setSettings({...settings, maintenanceMode: !settings.maintenanceMode})} className={`w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.maintenanceMode ? 'bg-red-500' : 'bg-gray-300'}`}>
+                                                <div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.maintenanceMode ? 'translate-x-4' : ''}`}></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-2 mt-2">
+                                            {Object.keys(settings.visibility || {}).map((key) => (
+                                                <div key={key} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                                    <span className="capitalize text-[10px] font-bold truncate pr-2">{key}</span>
+                                                    <div onClick={() => setSettings({...settings, visibility: {...settings.visibility!, [key]: !settings.visibility![key as keyof AppVisibility]}})} className={`flex-shrink-0 w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.visibility![key as keyof AppVisibility] ? 'bg-green-500' : 'bg-gray-300'}`}>
+                                                        <div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.visibility![key as keyof AppVisibility] ? 'translate-x-4' : ''}`}></div>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
                                 </div>
-                            )}
-                            {activeTool === 'contacts' && (
-                                <div>
-                                    {/* General Settings Card */}
-                                    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
-                                        <h4 className="font-bold text-xs mb-3 uppercase text-blue-600 dark:text-blue-400">{t.contactSettings}</h4>
-                                        <div className="space-y-3">
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">{t.contactMsg}</label>
-                                                <textarea 
-                                                    value={settings.contactMessage || ''} 
-                                                    onChange={(e) => setSettings({...settings, contactMessage: e.target.value})} 
-                                                    className={inputClass} 
-                                                    rows={3}
-                                                    placeholder="Have a question..."
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">{t.opHours}</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={settings.operatingHours || ''} 
-                                                    onChange={(e) => setSettings({...settings, operatingHours: e.target.value})} 
-                                                    className={inputClass}
-                                                    placeholder="10:00 AM - 10:00 PM"
-                                                />
+
+                                {/* 3. UI Appearance Card */}
+                                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                                    <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
+                                        <LayoutIcon className="w-4 h-4 text-teal-500" />
+                                        <h4 className="font-bold text-xs text-gray-600 dark:text-gray-300">UI & Appearance</h4>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-500 mb-2">Offer Card Size</label>
+                                            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                                                {['small', 'medium', 'large'].map((size) => (
+                                                    <button
+                                                        key={size}
+                                                        onClick={() => setSettings({ ...settings, uiSettings: { ...settings.uiSettings!, cardSize: size as 'small' | 'medium' | 'large' } })}
+                                                        className={`flex-1 py-1 rounded-md text-[10px] font-bold capitalize transition-all ${settings.uiSettings?.cardSize === size ? 'bg-white dark:bg-gray-600 shadow text-primary' : 'text-gray-500'}`}
+                                                    >
+                                                        {size}
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
-                                        <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full mt-3 py-2.5 font-bold text-xs rounded-xl shadow-md transition-all ${isSettingsChanged ? 'bg-blue-600 text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
-                                            {t.save} Settings
-                                        </button>
-                                    </div>
-
-                                    <button onClick={openAddContactModal} className="w-full py-3 mb-4 bg-blue-50 text-blue-600 rounded-xl font-bold text-sm">+ Add Contact</button>
-                                    <div className="space-y-2">
-                                        {contacts.map((c, i) => (
-                                            <div key={i} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex justify-between items-center border border-gray-100 dark:border-gray-700">
-                                                <div><p className="font-bold text-xs text-gray-900 dark:text-white">{c.title || c.labelKey}</p><p className="text-[10px] text-gray-500 uppercase">{c.type}</p></div>
-                                                <div className="flex gap-2">
-                                                    <button onClick={() => openEditContactModal(c, i)} className="text-blue-500"><EditIcon className="w-4 h-4"/></button>
-                                                    <button onClick={() => handleDeleteContact(i)} className="text-red-500"><TrashIcon className="w-4 h-4"/></button>
-                                                </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300">Global Animation</span>
+                                            <div onClick={() => setSettings({ ...settings, uiSettings: { ...settings.uiSettings!, animationsEnabled: !settings.uiSettings?.animationsEnabled } })} className={`w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.uiSettings?.animationsEnabled ? 'bg-green-500' : 'bg-gray-300'}`}>
+                                                <div className={`w-3 h-3 bg-white rounded-full shadow-sm transform transition-transform ${settings.uiSettings?.animationsEnabled ? 'translate-x-4' : 'translate-x-0'}`}></div>
                                             </div>
-                                        ))}
+                                        </div>
                                     </div>
                                 </div>
-                            )}
 
-                            {/* SETTINGS TOOL */}
-                            {activeTool === 'settings' && (
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        
-                                        {/* 0. Admin Preferences Card (Local) */}
-                                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                                            <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                                <UserIcon className="w-4 h-4 text-pink-500" />
-                                                <h4 className="font-bold text-xs uppercase text-gray-600 dark:text-gray-300">Preferences</h4>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-xs font-bold text-gray-600 dark:text-gray-300">Theme</span>
-                                                <div className="flex items-center gap-2">
-                                                    <button 
-                                                        onClick={() => setTheme('light')} 
-                                                        className={`p-1.5 rounded-lg transition-all ${theme === 'light' ? 'bg-orange-100 text-orange-500' : 'text-gray-400'}`}
-                                                    >
-                                                        <SunIcon className="w-4 h-4" />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => setTheme('dark')} 
-                                                        className={`p-1.5 rounded-lg transition-all ${theme === 'dark' ? 'bg-indigo-100 text-indigo-500' : 'text-gray-400'}`}
-                                                    >
-                                                        <MoonIcon className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* 1. App Identity Card */}
-                                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                                            <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                                <SettingsIcon className="w-4 h-4 text-blue-500" />
-                                                <h4 className="font-bold text-xs uppercase text-gray-600 dark:text-gray-300">Identity</h4>
-                                            </div>
-                                            <div className="space-y-3">
-                                                <div>
-                                                    <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">{t.appName}</label>
-                                                    <input type="text" value={settings.appName} onChange={(e) => setSettings({...settings, appName: e.target.value})} className={inputClass} />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">{t.appLogo}</label>
-                                                    <input type="text" value={settings.logoUrl || ''} onChange={(e) => setSettings({...settings, logoUrl: e.target.value})} className={inputClass} />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">{t.notice}</label>
-                                                    <textarea value={settings.notice || ''} onChange={(e) => setSettings({...settings, notice: e.target.value})} className={inputClass} rows={2} />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* 2. Control & Visibility Card */}
-                                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                                            <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                                <EyeIcon className="w-4 h-4 text-purple-500" />
-                                                <h4 className="font-bold text-xs uppercase text-gray-600 dark:text-gray-300">{t.appControl}</h4>
-                                            </div>
-                                            <div className="space-y-2">
-                                                {/* Maintenance Mode */}
-                                                <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                                    <span className="font-bold text-xs text-red-500">{t.maintenance}</span>
-                                                    <div onClick={() => setSettings({...settings, maintenanceMode: !settings.maintenanceMode})} className={`w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.maintenanceMode ? 'bg-red-500' : 'bg-gray-300'}`}>
-                                                        <div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.maintenanceMode ? 'translate-x-4' : ''}`}></div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div className="grid grid-cols-2 gap-2 mt-2">
-                                                    {Object.keys(settings.visibility || {}).map((key) => (
-                                                        <div key={key} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                                            <span className="capitalize text-[10px] font-bold truncate pr-2">{t[key as keyof typeof t] || key}</span>
-                                                            <div onClick={() => setSettings({...settings, visibility: {...settings.visibility!, [key]: !settings.visibility![key as keyof AppVisibility]}})} className={`flex-shrink-0 w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.visibility![key as keyof AppVisibility] ? 'bg-green-500' : 'bg-gray-300'}`}>
-                                                                <div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.visibility![key as keyof AppVisibility] ? 'translate-x-4' : ''}`}></div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* 3. UI Appearance Card */}
-                                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                                            <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                                <LayoutIcon className="w-4 h-4 text-teal-500" />
-                                                <h4 className="font-bold text-xs uppercase text-gray-600 dark:text-gray-300">{t.uiAppearance}</h4>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-2">{t.cardSize}</label>
-                                                    <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                                                        {['small', 'medium', 'large'].map((size) => (
-                                                            <button
-                                                                key={size}
-                                                                onClick={() => setSettings({ ...settings, uiSettings: { ...settings.uiSettings!, cardSize: size as 'small' | 'medium' | 'large' } })}
-                                                                className={`flex-1 py-1 rounded-md text-[10px] font-bold capitalize transition-all ${settings.uiSettings?.cardSize === size ? 'bg-white dark:bg-gray-600 shadow text-primary' : 'text-gray-500'}`}
-                                                            >
-                                                                {t[size as keyof typeof t] || size}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300">{t.globalAnim}</span>
-                                                    <div onClick={() => setSettings({ ...settings, uiSettings: { ...settings.uiSettings!, animationsEnabled: !settings.uiSettings?.animationsEnabled } })} className={`w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.uiSettings?.animationsEnabled ? 'bg-green-500' : 'bg-gray-300'}`}>
-                                                        <div className={`w-3 h-3 bg-white rounded-full shadow-sm transform transition-transform ${settings.uiSettings?.animationsEnabled ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* 4. Earning Rules Card */}
-                                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                                            <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                                <DollarIcon className="w-4 h-4 text-yellow-500" />
-                                                <h4 className="font-bold text-xs uppercase text-gray-600 dark:text-gray-300">{t.earnConfig}</h4>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div><label className="block text-[10px] text-gray-500 font-bold uppercase mb-1">{t.dailyLimit}</label><input type="number" value={settings.earnSettings?.dailyLimit} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, dailyLimit: Number(e.target.value) }})} className={inputClass} /></div>
-                                                <div><label className="block text-[10px] text-gray-500 font-bold uppercase mb-1">{t.rewardPerAd}</label><input type="number" value={settings.earnSettings?.rewardPerAd} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, rewardPerAd: Number(e.target.value) }})} className={inputClass} /></div>
-                                                <div><label className="block text-[10px] text-gray-500 font-bold uppercase mb-1">{t.cooldown} (s)</label><input type="number" value={settings.earnSettings?.adCooldownSeconds} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adCooldownSeconds: Number(e.target.value) }})} className={inputClass} /></div>
-                                                <div><label className="block text-[10px] text-gray-500 font-bold uppercase mb-1">{t.resetHours} (h)</label><input type="number" value={settings.earnSettings?.resetHours} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, resetHours: Number(e.target.value) }})} className={inputClass} /></div>
-                                            </div>
-                                        </div>
-
-                                        {/* 5. Developer Card (Secure - HIDDEN BY DEFAULT) */}
-                                        {showDevCard && (
-                                            <div className="md:col-span-2 bg-red-50 dark:bg-red-900/10 p-4 rounded-xl border border-red-200 dark:border-red-900/30 relative overflow-hidden animate-smart-pop-in">
-                                                <div className="relative z-10">
-                                                    <div className="flex items-center gap-2 mb-3">
-                                                        <CodeIcon className="w-4 h-4 text-red-600 dark:text-red-400" />
-                                                        <h4 className="font-bold text-xs uppercase text-red-700 dark:text-red-300">{t.devInfo}</h4>
-                                                        {isDevUnlocked ? (
-                                                            <span className="bg-green-100 text-green-700 text-[9px] px-2 py-0.5 rounded font-bold border border-green-200 animate-pulse">UNLOCKED</span>
-                                                        ) : (
-                                                            <span className="bg-red-100 text-red-700 text-[9px] px-2 py-0.5 rounded font-bold border border-red-200 flex items-center gap-1"><LockIcon className="w-3 h-3"/> LOCKED</span>
-                                                        )}
-                                                    </div>
-                                                    
-                                                    {isDevUnlocked ? (
-                                                        <div className="animate-smart-slide-down">
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mb-3">
-                                                                <div><label className="block mb-1 text-gray-500">{t.devTitle}</label><input type="text" value={devSettings.title} onChange={(e) => setDevSettings({...devSettings, title: e.target.value})} className={inputClass} /></div>
-                                                                <div><label className="block mb-1 text-gray-500">{t.devUrl}</label><input type="text" value={devSettings.url} onChange={(e) => setDevSettings({...devSettings, url: e.target.value})} className={inputClass} /></div>
-                                                                <div><label className="block mb-1 text-gray-500">{t.devMsg}</label><input type="text" value={devSettings.message} onChange={(e) => setDevSettings({...devSettings, message: e.target.value})} className={inputClass} /></div>
-                                                                <div><label className="block mb-1 text-gray-500">{t.devDesc}</label><input type="text" value={devSettings.description} onChange={(e) => setDevSettings({...devSettings, description: e.target.value})} className={inputClass} /></div>
-                                                            </div>
-                                                            <button onClick={handleSaveDeveloperInfo} className="w-full py-2 bg-green-600 text-white font-bold rounded-lg shadow-md hover:bg-green-700 active:scale-95 transition-all text-xs flex items-center justify-center gap-2"><CheckIcon className="w-3 h-3" /> {t.updateDev}</button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-center py-4 bg-white/50 dark:bg-black/20 rounded-lg border border-red-100 dark:border-red-900/20 backdrop-blur-sm">
-                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 font-medium">{t.devLocked}</p>
-                                                            <button onClick={handleUnlockDevInfo} className="mx-auto px-4 py-2 bg-red-500 text-white font-bold rounded-lg shadow-md hover:bg-red-600 active:scale-95 transition-all text-xs flex items-center gap-2"><UnlockIcon className="w-3 h-3" /> {t.unlockDev}</button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
+                                {/* 4. Earning Rules Card */}
+                                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                                    <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
+                                        <DollarIcon className="w-4 h-4 text-yellow-500" />
+                                        <h4 className="font-bold text-xs text-gray-600 dark:text-gray-300">Earning Rules</h4>
                                     </div>
-
-                                    <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full py-3 font-bold text-sm rounded-xl shadow-md transition-all sticky bottom-20 z-20 ${isSettingsChanged ? 'bg-primary text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>{t.save} All Changes</button>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div><label className="block text-[10px] text-gray-500 font-bold mb-1">Daily Ad Limit</label><input type="number" value={settings.earnSettings?.dailyLimit} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, dailyLimit: Number(e.target.value) }})} className={inputClass} /></div>
+                                        <div><label className="block text-[10px] text-gray-500 font-bold mb-1">Reward Per Ad (৳)</label><input type="number" value={settings.earnSettings?.rewardPerAd} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, rewardPerAd: Number(e.target.value) }})} className={inputClass} /></div>
+                                        <div><label className="block text-[10px] text-gray-500 font-bold mb-1">Wait Time (s)</label><input type="number" value={settings.earnSettings?.adCooldownSeconds} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adCooldownSeconds: Number(e.target.value) }})} className={inputClass} /></div>
+                                        <div><label className="block text-[10px] text-gray-500 font-bold mb-1">Lockdown Duration (h)</label><input type="number" value={settings.earnSettings?.resetHours} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, resetHours: Number(e.target.value) }})} className={inputClass} /></div>
+                                    </div>
                                 </div>
-                            )}
+
+                                {/* 5. Developer Card (Secure - HIDDEN BY DEFAULT) */}
+                                {showDevCard && (
+                                    <div className="md:col-span-2 bg-red-50 dark:bg-red-900/10 p-4 rounded-xl border border-red-200 dark:border-red-900/30 relative overflow-hidden animate-smart-pop-in">
+                                        <div className="relative z-10">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <CodeIcon className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                                <h4 className="font-bold text-xs text-red-700 dark:text-red-300">Developer Info (Restricted)</h4>
+                                                {isDevUnlocked ? (
+                                                    <span className="bg-green-100 text-green-700 text-[9px] px-2 py-0.5 rounded font-bold border border-green-200 animate-pulse">UNLOCKED</span>
+                                                ) : (
+                                                    <span className="bg-red-100 text-red-700 text-[9px] px-2 py-0.5 rounded font-bold border border-red-200 flex items-center gap-1"><LockIcon className="w-3 h-3"/> LOCKED</span>
+                                                )}
+                                            </div>
+                                            
+                                            {isDevUnlocked ? (
+                                                <div className="animate-smart-slide-down">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mb-3">
+                                                        <div><label className="block mb-1 text-gray-500">Developer Title</label><input type="text" value={devSettings.title} onChange={(e) => setDevSettings({...devSettings, title: e.target.value})} className={inputClass} /></div>
+                                                        <div><label className="block mb-1 text-gray-500">Developer URL</label><input type="text" value={devSettings.url} onChange={(e) => setDevSettings({...devSettings, url: e.target.value})} className={inputClass} /></div>
+                                                        <div><label className="block mb-1 text-gray-500">Credit Message</label><input type="text" value={devSettings.message} onChange={(e) => setDevSettings({...devSettings, message: e.target.value})} className={inputClass} /></div>
+                                                        <div><label className="block mb-1 text-gray-500">Description</label><input type="text" value={devSettings.description} onChange={(e) => setDevSettings({...devSettings, description: e.target.value})} className={inputClass} /></div>
+                                                    </div>
+                                                    <button onClick={handleSaveDeveloperInfo} className="w-full py-2 bg-green-600 text-white font-bold rounded-lg shadow-md hover:bg-green-700 active:scale-95 transition-all text-xs flex items-center justify-center gap-2"><CheckIcon className="w-3 h-3" /> Save Developer Info</button>
+                                                </div>
+                                            ) : (
+                                                <div className="text-center py-4 bg-white/50 dark:bg-black/20 rounded-lg border border-red-100 dark:border-red-900/20 backdrop-blur-sm">
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 font-medium">Developer Information Locked</p>
+                                                    <button onClick={handleUnlockDevInfo} className="mx-auto px-4 py-2 bg-red-500 text-white font-bold rounded-lg shadow-md hover:bg-red-600 active:scale-95 transition-all text-xs flex items-center gap-2"><UnlockIcon className="w-3 h-3" /> Unlock & Edit</button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full py-3 font-bold text-sm rounded-xl shadow-md transition-all sticky bottom-20 z-20 ${isSettingsChanged ? 'bg-primary text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Save All Changes</button>
                         </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Bottom Nav for Admin */}
-            <div className="fixed bottom-0 w-full bg-white dark:bg-dark-card border-t dark:border-gray-800 flex justify-around p-2 z-40 shadow-lg">
-                {[
-                    { id: 'dashboard', icon: DashboardIcon, label: t.dashboard },
-                    { id: 'orders', icon: OrdersIcon, label: t.orders },
-                    { id: 'deposits', icon: MoneyIcon, label: t.deposits },
-                    { id: 'offers', icon: TagIcon, label: t.offers }, 
-                    { id: 'tools', icon: MenuIcon, label: t.tools },
-                ].map((tab) => (
-                    <button 
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        className={`flex flex-col items-center p-2 rounded-xl transition-all ${activeTab === tab.id ? 'text-primary bg-primary/5' : 'text-gray-400'}`}
-                    >
-                        <tab.icon className={`w-5 h-5 mb-1 ${activeTab === tab.id ? 'scale-110' : ''}`} />
-                        <span className="text-[9px] font-bold">{tab.label}</span>
-                    </button>
-                ))}
+                    )}
+                </main>
             </div>
 
             {/* Modals */}
@@ -1782,8 +1662,8 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                     message={confirmDialog.message} 
                     onConfirm={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }} 
                     onCancel={() => setConfirmDialog(null)} 
-                    confirmText={t.confirmYes} 
-                    cancelText={t.confirmNo} 
+                    confirmText="Yes, Proceed" 
+                    cancelText="No, Cancel" 
                 />
             )}
             
@@ -1791,7 +1671,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
             {isOfferModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-sm">
-                         <h3 className="text-lg font-bold mb-4">{editingOffer?.id ? t.edit : t.add} Offer ({offerType})</h3>
+                         <h3 className="text-lg font-bold mb-4">{editingOffer?.id ? 'Edit' : 'Add'} Offer ({offerType})</h3>
                          <form onSubmit={handleSaveOffer} className="space-y-3">
                             <input type="text" placeholder="Name" value={editingOffer?.name || ''} onChange={e => setEditingOffer({...editingOffer, name: e.target.value})} className={inputClass} />
                             {(offerType === 'diamond' || offerType === 'special') && (
@@ -1811,8 +1691,8 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                             )}
                             <input type="number" placeholder="Price" value={editingOffer?.price || ''} onChange={e => setEditingOffer({...editingOffer, price: e.target.value})} className={inputClass} />
                             <div className="flex gap-2 mt-4">
-                                <button type="button" onClick={() => setIsOfferModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">{t.cancel}</button>
-                                <button type="submit" className="flex-1 py-2 bg-primary text-white rounded-xl text-xs font-bold">{t.save}</button>
+                                <button type="button" onClick={() => setIsOfferModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">Cancel</button>
+                                <button type="submit" disabled={!isOfferValid} className={`flex-1 py-2 rounded-xl text-xs font-bold text-white ${isOfferValid ? 'bg-primary' : 'bg-gray-400 cursor-not-allowed'}`}>Save</button>
                             </div>
                          </form>
                     </div>
@@ -1823,15 +1703,15 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
             {isMethodModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-sm">
-                        <h3 className="text-lg font-bold mb-4">{editingMethodIndex !== null ? t.edit : t.add} Method</h3>
+                        <h3 className="text-lg font-bold mb-4">{editingMethodIndex !== null ? 'Edit' : 'Add'} Method</h3>
                         <form onSubmit={handleSaveMethod} className="space-y-3">
                             <input type="text" placeholder="Method Name" value={editingMethod?.name || ''} onChange={e => setEditingMethod({...editingMethod!, name: e.target.value})} className={inputClass} />
                             <input type="text" placeholder="Account Number" value={editingMethod?.accountNumber || ''} onChange={e => setEditingMethod({...editingMethod!, accountNumber: e.target.value})} className={inputClass} />
                             <input type="text" placeholder="Logo URL" value={editingMethod?.logo || ''} onChange={e => setEditingMethod({...editingMethod!, logo: e.target.value})} className={inputClass} />
                             <textarea placeholder="Instructions" value={editingMethod?.instructions || ''} onChange={e => setEditingMethod({...editingMethod!, instructions: e.target.value})} className={inputClass} />
                             <div className="flex gap-2 mt-4">
-                                <button type="button" onClick={() => setIsMethodModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">{t.cancel}</button>
-                                <button type="submit" className="flex-1 py-2 bg-primary text-white rounded-xl text-xs font-bold">{t.save}</button>
+                                <button type="button" onClick={() => setIsMethodModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">Cancel</button>
+                                <button type="submit" disabled={!isMethodValid} className={`flex-1 py-2 rounded-xl text-xs font-bold text-white ${isMethodValid ? 'bg-primary' : 'bg-gray-400 cursor-not-allowed'}`}>Save</button>
                             </div>
                         </form>
                     </div>
@@ -1842,7 +1722,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
              {isContactModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-sm">
-                        <h3 className="text-lg font-bold mb-4">{editingContactIndex !== null ? t.edit : t.add} Contact</h3>
+                        <h3 className="text-lg font-bold mb-4">{editingContactIndex !== null ? 'Edit' : 'Add'} Contact</h3>
                         <form onSubmit={handleSaveContact} className="space-y-3">
                             <select value={editingContact?.type || 'phone'} onChange={e => setEditingContact({...editingContact, type: e.target.value})} className={inputClass}>
                                 <option value="phone">Phone</option>
@@ -1854,8 +1734,8 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                             <input type="text" placeholder="Title/Label" value={editingContact?.title || ''} onChange={e => setEditingContact({...editingContact, title: e.target.value})} className={inputClass} />
                             <input type="text" placeholder="Link/Number" value={editingContact?.link || ''} onChange={e => setEditingContact({...editingContact, link: e.target.value})} className={inputClass} />
                             <div className="flex gap-2 mt-4">
-                                <button type="button" onClick={() => setIsContactModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">{t.cancel}</button>
-                                <button type="submit" className="flex-1 py-2 bg-primary text-white rounded-xl text-xs font-bold">{t.save}</button>
+                                <button type="button" onClick={() => setIsContactModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">Cancel</button>
+                                <button type="submit" disabled={!isContactValid} className={`flex-1 py-2 rounded-xl text-xs font-bold text-white ${isContactValid ? 'bg-primary' : 'bg-gray-400 cursor-not-allowed'}`}>Save</button>
                             </div>
                         </form>
                     </div>
@@ -1866,13 +1746,13 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
              {isBannerModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-sm">
-                        <h3 className="text-lg font-bold mb-4">{t.editBanner}</h3>
+                        <h3 className="text-lg font-bold mb-4">Edit Banner</h3>
                         <form onSubmit={handleSaveBanner} className="space-y-3">
                             <input type="text" placeholder="Image URL" value={tempBannerUrl} onChange={e => setTempBannerUrl(e.target.value)} className={inputClass} />
                             <input type="text" placeholder="Action URL" value={tempActionUrl} onChange={e => setTempActionUrl(e.target.value)} className={inputClass} />
                             <div className="flex gap-2 mt-4">
-                                <button type="button" onClick={() => setIsBannerModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">{t.cancel}</button>
-                                <button type="submit" className="flex-1 py-2 bg-primary text-white rounded-xl text-xs font-bold">{t.save}</button>
+                                <button type="button" onClick={() => setIsBannerModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">Cancel</button>
+                                <button type="submit" disabled={!isBannerValid} className={`flex-1 py-2 rounded-xl text-xs font-bold text-white ${isBannerValid ? 'bg-primary' : 'bg-gray-400 cursor-not-allowed'}`}>Save</button>
                             </div>
                         </form>
                     </div>
@@ -1898,8 +1778,8 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 <option value="bonus">Bonus</option>
                             </select>
                             <div className="flex gap-2 mt-4">
-                                <button type="button" onClick={() => setIsNotifModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">{t.cancel}</button>
-                                <button type="submit" className="flex-1 py-2 bg-primary text-white rounded-xl text-xs font-bold">{t.send}</button>
+                                <button type="button" onClick={() => setIsNotifModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">Cancel</button>
+                                <button type="submit" disabled={!isNotifValid} className={`flex-1 py-2 rounded-xl text-xs font-bold text-white ${isNotifValid ? 'bg-primary' : 'bg-gray-400 cursor-not-allowed'}`}>Send</button>
                             </div>
                         </form>
                     </div>
@@ -1911,13 +1791,13 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-xs text-center">
                         <LockIcon className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                        <h3 className="text-lg font-bold mb-2">{t.securityCheck}</h3>
-                        <p className="text-sm text-gray-500 mb-4">{t.enterKey}</p>
+                        <h3 className="text-lg font-bold mb-2">Security Check</h3>
+                        <p className="text-sm text-gray-500 mb-4">Enter Secret Key</p>
                         <form onSubmit={handleVerifySecurityKey}>
                             <input type="password" value={securityKeyInput} onChange={e => setSecurityKeyInput(e.target.value)} className={`${inputClass} text-center tracking-widest mb-4`} autoFocus />
                             <div className="flex gap-2">
-                                <button type="button" onClick={() => setIsSecurityModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">{t.cancel}</button>
-                                <button type="submit" className="flex-1 py-2 bg-red-500 text-white rounded-xl text-xs font-bold">{t.unlock}</button>
+                                <button type="button" onClick={() => setIsSecurityModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">Cancel</button>
+                                <button type="submit" className="flex-1 py-2 bg-red-500 text-white rounded-xl text-xs font-bold">Unlock</button>
                             </div>
                         </form>
                     </div>
@@ -1928,13 +1808,13 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
             {balanceModalUser && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-xs">
-                        <h3 className="text-lg font-bold mb-4">{balanceAction === 'add' ? t.addBalance : t.deductBalance}</h3>
+                        <h3 className="text-lg font-bold mb-4">{balanceAction === 'add' ? 'Add Balance' : 'Deduct Balance'}</h3>
                         <p className="text-sm text-gray-500 mb-2">User: <span className="font-bold">{balanceModalUser.name}</span></p>
                         <p className="text-sm text-gray-500 mb-4">Current: ৳{Math.floor(balanceModalUser.balance)}</p>
                         <input type="number" value={balanceAmount} onChange={e => setBalanceAmount(e.target.value)} className={inputClass} placeholder="Amount" autoFocus />
                         <div className="flex gap-2 mt-4">
-                            <button onClick={() => setBalanceModalUser(null)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">{t.cancel}</button>
-                            <button onClick={handleBalanceUpdate} className={`flex-1 py-2 text-white rounded-xl text-xs font-bold ${balanceAction === 'add' ? 'bg-green-500' : 'bg-red-500'}`}>{balanceAction === 'add' ? t.add : 'Deduct'}</button>
+                            <button onClick={() => setBalanceModalUser(null)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">Cancel</button>
+                            <button onClick={handleBalanceUpdate} className={`flex-1 py-2 text-white rounded-xl text-xs font-bold ${balanceAction === 'add' ? 'bg-green-500' : 'bg-red-500'}`}>{balanceAction === 'add' ? 'Add' : 'Deduct'}</button>
                         </div>
                     </div>
                 </div>

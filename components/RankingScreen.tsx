@@ -95,6 +95,12 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive }
             }
             setLoading(false);
         }, (err) => {
+            // FIX: Suppress permission denied errors if user is logging out (auth.currentUser might be null or transitioning)
+            // This prevents "Client doesn't have permission" errors from showing up in the UI during logout.
+            if (err.message.includes('permission_denied') || err.message.includes("Client doesn't have permission")) {
+                 console.log("Ranking fetch suppressed (likely logout)");
+                 return;
+            }
             console.error("Ranking fetch error:", err);
             setError(err.message);
             setLoading(false);

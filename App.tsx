@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, FC, useRef } from 'react';
 import AuthScreen from './components/AuthScreen';
 import HomeScreen from './components/HomeScreen';
@@ -183,6 +184,15 @@ const App: FC = () => {
   const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('language') as Language | null) || 'en');
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
   
+  // LOGOUT LOCK REF (Critical for stopping auto-relogin loops)
+  // When true, we ignore any auth state changes that might imply a logged-in user
+  const isLoggingOutRef = useRef(false);
+
+  // Function to release lock (Passed to AuthScreen)
+  const resetLogoutLock = () => {
+      isLoggingOutRef.current = false;
+  };
+
   // Dynamic Data States - Initialize from LocalStorage if available to prevent flashing old data
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
       const saved = localStorage.getItem('cachedAppSettings');
@@ -278,7 +288,7 @@ const App: FC = () => {
               if (data.supportContacts) setSupportContacts(Object.values(data.supportContacts));
           }
       }, (error) => {
-          console.error("Config fetch error:", error);
+          // Suppress errors
       });
       return () => unsubscribeConfig();
   }, []);
@@ -286,28 +296,59 @@ const App: FC = () => {
   // Auth & Data Listener
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+        // BLOCKER: If we are intentionally logging out, ignore any 'user found' events
+        // This prevents the race condition where a lingering token triggers a data fetch/re-login loop
+        if (isLoggingOutRef.current) {
+            // Force sign out again if a ghost user is detected during logout phase
+            if (firebaseUser) {
+                console.log("Ghost session detected during logout. Killing session.");
+                signOut(auth).catch(err => console.error("Ghost session kill failed", err));
+            }
+            return;
+        }
+
         if (firebaseUser) {
             const userRef = ref(db, 'users/' + firebaseUser.uid);
             const unsubscribeData = onValue(userRef, (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
                     const userData = { ...data, uid: firebaseUser.uid, playerUid: data.playerUid || '', role: data.role || 'user', isBanned: data.isBanned || false };
+                    
+                    // CRITICAL FIX: STRICT ROLE-BASED ROUTING
+                    // If user is admin, force them to admin screen immediately to prevent user UI leakage.
+                    if (userData.role === 'admin') {
+                        setActiveScreen('admin');
+                    }
+
                     setUser(userData);
-                    if (userData.role === 'admin') setActiveScreen('admin');
                 } else {
                     // Fallback if DB record doesn't exist yet (created by AuthScreen)
                     setUser({ name: firebaseUser.displayName || 'User', email: firebaseUser.email || '', balance: 0, uid: firebaseUser.uid, playerUid: '', avatarUrl: firebaseUser.photoURL || undefined, totalAdsWatched: 0, totalEarned: 0, role: 'user', isBanned: false });
                 }
                 setLoading(false);
             }, (error) => {
-                console.error("User data fetch error:", error);
-                // Allow UI to load even if fetch fails slightly (likely permission issue fixed by retry)
+                // IGNORE: If we are intentionally logging out, suppress permission errors
+                if (isLoggingOutRef.current) return;
+
+                // CRITICAL FIX: Handle Permission Denied (e.g. Account Disabled, Logout Race Condition)
+                // If we cannot read data, we MUST NOT show a "0 Balance" user. We must log them out.
+                console.error("Auth Data Error (Permission Denied/Network):", error);
+                
+                // Force logout to clear invalid session state
+                setUser(null);
                 setLoading(false);
+                signOut(auth).catch(() => {}); 
             });
             return () => unsubscribeData();
         } else {
+            // Session Expired or Logged Out - Ensure clean slate
             setUser(null);
+            setNotifications([]); 
             setLoading(false);
+            
+            // NOTE: We do NOT reset isLoggingOutRef here. It stays true until
+            // the user explicitly interacts with the login screen (calling resetLogoutLock).
+            // This is the key fix for the "Loop".
         }
     });
     return () => unsubscribeAuth();
@@ -332,6 +373,8 @@ const App: FC = () => {
               setNotifications([]);
               setHasUnreadNotifications(false);
           }
+      }, (error) => {
+          // Ignore notification errors if permissions deny
       });
       return () => unsubscribeNotifs();
   }, [user?.uid]);
@@ -396,15 +439,31 @@ const App: FC = () => {
   }, []);
 
   const handleLogout = async () => {
+    // CRITICAL: Secure Logout - Wipe all user data immediately
+    // Set the lock ref to prevent race conditions during sign-out
+    isLoggingOutRef.current = true;
+
     try { 
+        // 1. Wipe UI State FIRST to unmount components that might have listeners (e.g. RankingScreen)
         setUser(null); 
+        setNotifications([]);
+        setHasUnreadNotifications(false);
+        setIsBalancePulsing(false);
+        setEarnedAmount(0);
+        setShowRewardAnim(false);
         setActiveScreen('home'); 
-        sessionStorage.removeItem('hasSeenLoginPopup'); // Reset popup on logout
+
+        // 2. Wipe Storage (User Specific)
+        localStorage.removeItem('lastReadTimestamp'); 
+        sessionStorage.clear(); 
+
+        // 3. Perform Firebase SignOut (Await invalidation)
         await signOut(auth); 
+
     } catch (error) { 
         console.error("Logout failed", error); 
-        setUser(null); 
-        setActiveScreen('home'); 
+        // Even if API fails, ensure UI is logged out and lock is maintained
+        setUser(null);
     }
   };
   
@@ -436,6 +495,7 @@ const App: FC = () => {
                 texts={texts} 
                 appName={appSettings.appName} 
                 logoUrl={appSettings.logoUrl || APP_LOGO_URL} 
+                onLoginAttempt={resetLogoutLock} // Unlock only when user explicitly tries to login
             />
         </div>
       </div>
@@ -481,6 +541,7 @@ const App: FC = () => {
         if (appSettings.visibility && !appSettings.visibility.ranking) return null;
         return <RankingScreen user={user} texts={texts} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
       case 'admin':
+          // Strict check: if user role isn't admin, force home
           if (user.role !== 'admin') return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} specialOffers={specialOffers} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} uiSettings={appSettings.uiSettings} />;
           return <AdminScreen user={user} texts={texts} onNavigate={handleSuccessNavigate} onLogout={handleLogout} language={language} setLanguage={setLanguage} appSettings={appSettings} theme={theme} setTheme={setTheme} />;
       case 'aiChat':

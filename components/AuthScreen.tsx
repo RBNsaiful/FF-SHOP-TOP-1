@@ -8,6 +8,7 @@ interface AuthScreenProps {
   texts: any;
   appName: string;
   logoUrl: string;
+  onLoginAttempt: () => void; // New prop to unlock app logout state
 }
 
 // Icons
@@ -21,7 +22,7 @@ const CheckIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http:/
 
 const Spinner: FC = () => (<div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>);
 
-const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
+const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLoginAttempt }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -64,6 +65,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
   };
 
   const handleGoogleLogin = async () => {
+    // UNLOCK LOGOUT STATE: User is explicitly trying to login
+    onLoginAttempt();
+
     const provider = new GoogleAuthProvider();
     setLoading(true);
     try {
@@ -106,6 +110,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl }) => {
   const handleAuth = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // UNLOCK LOGOUT STATE: User is explicitly trying to login
+    onLoginAttempt();
 
     if (!isFormValid) {
         if (!isLogin && !validateName(name)) {
