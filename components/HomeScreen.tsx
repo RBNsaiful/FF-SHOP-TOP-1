@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, FC } from 'react';
 import type { User, DiamondOffer, LevelUpPackage, Membership, GenericOffer, PremiumApp, Screen, AppVisibility, Banner, SpecialOffer, UiSettings } from '../types';
 import PurchaseModal from './PurchaseModal';
@@ -264,6 +265,8 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
             if (userData) {
                 if (userData.balance >= selectedOffer.price) {
                     userData.balance -= selectedOffer.price;
+                    // Increment totalSpent for Leaderboard
+                    userData.totalSpent = (Number(userData.totalSpent) || 0) + selectedOffer.price;
                     return userData;
                 } else {
                     // Abort transaction if insufficient funds

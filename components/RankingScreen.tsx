@@ -1,5 +1,5 @@
 
-import React, { FC, useEffect, useState } from 'react';
+import React, { FC, useEffect, useState, useMemo } from 'react';
 import { User } from '../types';
 import { db } from '../firebase';
 import { ref, onValue } from 'firebase/database';
@@ -32,79 +32,74 @@ const StarBadgeIcon: FC<{className?: string, fill?: string}> = ({className, fill
 
 const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, onClose }) => {
     const [activeTab, setActiveTab] = useState<'transaction' | 'earning'>('transaction');
-    const [rankings, setRankings] = useState<User[]>([]);
+    const [allUsers, setAllUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [myRank, setMyRank] = useState<number | null>(null);
 
-    // Robust Safe Number Conversion
-    const safeNumber = (val: any) => {
-        if (val === undefined || val === null) return 0;
-        let num = parseFloat(val); 
-        if (isNaN(num) || !isFinite(num)) return 0;
-        return num;
-    };
-
-    const fetchData = () => {
+    // --- 1. Real-time Data Fetching (Mount Only) ---
+    useEffect(() => {
         setLoading(true);
-        setError('');
-        
         const usersRef = ref(db, 'users');
         
         const unsubscribe = onValue(usersRef, (snapshot) => {
             if (snapshot.exists()) {
                 const data = snapshot.val();
-                const usersList: User[] = Object.values(data);
-                
-                // Sorting Logic
-                const sortedUsers = usersList.sort((a, b) => {
-                    if (activeTab === 'transaction') {
-                        // For Traders: Total Volume (Deposit + Spend)
-                        const volA = safeNumber(a.totalDeposit) + safeNumber(a.totalSpent);
-                        const volB = safeNumber(b.totalDeposit) + safeNumber(b.totalSpent);
-                        return volB - volA; 
-                    } else {
-                        // For Earners: Total Earned
-                        const earnA = safeNumber(a.totalEarned);
-                        const earnB = safeNumber(b.totalEarned);
-                        return earnB - earnA; 
-                    }
-                });
-                
-                setRankings(sortedUsers.slice(0, 100)); // Top 100
-                
-                const rank = sortedUsers.findIndex(u => u.uid === user.uid);
-                setMyRank(rank !== -1 ? rank + 1 : null);
+                // CRITICAL FIX: Ensure UID is present by mapping keys
+                const usersList: User[] = Object.entries(data).map(([key, val]: [string, any]) => ({
+                    ...val,
+                    uid: key
+                }));
+                setAllUsers(usersList);
             } else {
-                setRankings([]);
+                setAllUsers([]);
             }
-            setLoading(false);
-        }, (err) => {
-            // Safe Error Handling: Check if message exists before using includes
-            const errMsg = err.message || '';
-            if (errMsg.includes('permission_denied')) return;
-            setError(errMsg || 'Unknown error occurred');
             setLoading(false);
         });
 
-        return unsubscribe;
-    };
+        return () => unsubscribe();
+    }, []);
 
-    useEffect(() => {
-        const unsub = fetchData();
-        return () => unsub();
-    }, [user.uid, activeTab]);
+    // --- 2. Sorting & Ranking Logic (Memoized for Performance) ---
+    const { top3, rest, myRank, myScore } = useMemo(() => {
+        const safeNumber = (val: any) => {
+            if (val === undefined || val === null) return 0;
+            const num = parseFloat(val); 
+            return (isNaN(num) || !isFinite(num)) ? 0 : num;
+        };
 
-    const top3 = rankings.slice(0, 3);
-    const rest = rankings.slice(3);
+        const getScoreVal = (u: User) => {
+            if (activeTab === 'transaction') {
+                return safeNumber(u.totalDeposit) + safeNumber(u.totalSpent);
+            } else {
+                return safeNumber(u.totalEarned);
+            }
+        };
 
-    // --- Helper to get score ---
-    const getScore = (u: User) => {
-        if (!u) return 0;
-        return activeTab === 'transaction' 
-            ? safeNumber(u.totalDeposit) + safeNumber(u.totalSpent)
-            : safeNumber(u.totalEarned);
-    };
+        // Sort Users Descending by Score, Secondary by Name for Stability
+        const sortedUsers = [...allUsers].sort((a, b) => {
+            const scoreA = getScoreVal(a);
+            const scoreB = getScoreVal(b);
+            if (scoreB !== scoreA) {
+                return scoreB - scoreA;
+            }
+            // Secondary sort: alphabetical by name to prevent jumping
+            return (a.name || "").localeCompare(b.name || "");
+        });
+        
+        // Find My Position
+        const myIndex = sortedUsers.findIndex(u => u.uid === user.uid);
+        const myRankVal = myIndex !== -1 ? myIndex + 1 : null;
+        const myScoreVal = myIndex !== -1 ? getScoreVal(sortedUsers[myIndex]) : 0;
+
+        // Slice Data
+        const top100 = sortedUsers.slice(0, 100);
+
+        return {
+            top3: top100.slice(0, 3),
+            rest: top100.slice(3),
+            myRank: myRankVal,
+            myScore: myScoreVal
+        };
+    }, [allUsers, activeTab, user.uid]);
 
     return (
         <div className="fixed inset-0 z-50 bg-[#000000] flex flex-col font-sans overflow-hidden animate-smart-fade-in text-white">
@@ -149,73 +144,94 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, 
             <div className="flex-1 overflow-y-auto overflow-x-hidden relative z-40 pb-28 no-scrollbar scroll-smooth">
                 
                 {/* 1. PODIUM (Top 3) */}
-                {!loading && rankings.length > 0 && (
+                {!loading && top3.length > 0 && (
                     <div className="flex justify-center items-end px-4 mt-24 mb-10 gap-2 sm:gap-4">
                         
                         {/* Rank 2 (Silver) */}
-                        <div className="flex flex-col items-center w-1/3 order-1">
-                            <div className="relative mb-2 animate-bounce" style={{ animationDuration: '4s' }}>
-                                <StarBadgeIcon className="w-6 h-6" fill="#C0C0C0" />
-                            </div>
-                            <div className="relative mb-3 group">
-                                <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-gray-300 via-gray-400 to-gray-500 shadow-[0_0_20px_rgba(192,192,192,0.3)]">
-                                    <img 
-                                        src={top3[1]?.avatarUrl || DEFAULT_AVATAR_URL} 
-                                        className="w-full h-full rounded-full object-cover border-2 border-[#000]"
-                                        alt="Rank 2"
-                                    />
+                        {top3[1] && (
+                            <div className="flex flex-col items-center w-1/3 order-1">
+                                <div className="relative mb-2 animate-bounce" style={{ animationDuration: '4s' }}>
+                                    <StarBadgeIcon className="w-6 h-6" fill="#C0C0C0" />
                                 </div>
-                                <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-6 h-6 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center border-2 border-[#1E293B] text-white text-[10px] font-black shadow-lg z-10">
-                                    2
+                                <div className="relative mb-3 group">
+                                    <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-gray-300 via-gray-400 to-gray-500 shadow-[0_0_20px_rgba(192,192,192,0.3)]">
+                                        <img 
+                                            src={top3[1].avatarUrl || DEFAULT_AVATAR_URL} 
+                                            className="w-full h-full rounded-full object-cover border-2 border-[#000]"
+                                            alt="Rank 2"
+                                        />
+                                    </div>
+                                    <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-6 h-6 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center border-2 border-[#1E293B] text-white text-[10px] font-black shadow-lg z-10">
+                                        2
+                                    </div>
                                 </div>
+                                <p className="text-xs font-bold text-white truncate w-full text-center max-w-[80px]">{top3[1].name || 'N/A'}</p>
+                                <p className="text-[10px] text-gray-400 font-bold mt-0.5">
+                                    {Math.floor(activeTab === 'transaction' 
+                                        ? (Number(top3[1].totalDeposit || 0) + Number(top3[1].totalSpent || 0)) 
+                                        : Number(top3[1].totalEarned || 0)
+                                    ).toLocaleString()}
+                                </p>
                             </div>
-                            <p className="text-xs font-bold text-white truncate w-full text-center max-w-[80px]">{top3[1]?.name || 'N/A'}</p>
-                            <p className="text-[10px] text-gray-400 font-bold mt-0.5">{Math.floor(getScore(top3[1])).toLocaleString()}</p>
-                        </div>
+                        )}
 
                         {/* Rank 1 (Gold - Winner) */}
-                        <div className="flex flex-col items-center w-1/3 order-2 -mt-12 z-10 scale-110">
-                            <div className="mb-2 animate-bounce" style={{ animationDuration: '3s' }}>
-                                <CrownIcon className="w-10 h-10 drop-shadow-[0_0_10px_rgba(255,215,0,0.6)]" fill="#FFD700" />
-                            </div>
-                            <div className="relative mb-4">
-                                <div className="w-24 h-24 rounded-full p-1.5 bg-gradient-to-tr from-yellow-300 via-yellow-500 to-yellow-700 shadow-[0_0_40px_rgba(253,224,71,0.5)]">
-                                    <img 
-                                        src={top3[0]?.avatarUrl || DEFAULT_AVATAR_URL} 
-                                        className="w-full h-full rounded-full object-cover border-4 border-[#000]"
-                                        alt="Rank 1"
-                                    />
+                        {top3[0] && (
+                            <div className="flex flex-col items-center w-1/3 order-2 -mt-12 z-10 scale-110">
+                                <div className="mb-2 animate-bounce" style={{ animationDuration: '3s' }}>
+                                    <CrownIcon className="w-10 h-10 drop-shadow-[0_0_10px_rgba(255,215,0,0.6)]" fill="#FFD700" />
                                 </div>
-                                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center border-2 border-[#1E293B] text-white text-xs font-black shadow-xl z-10">
-                                    1
+                                <div className="relative mb-4">
+                                    <div className="w-24 h-24 rounded-full p-1.5 bg-gradient-to-tr from-yellow-300 via-yellow-500 to-yellow-700 shadow-[0_0_40px_rgba(253,224,71,0.5)]">
+                                        <img 
+                                            src={top3[0].avatarUrl || DEFAULT_AVATAR_URL} 
+                                            className="w-full h-full rounded-full object-cover border-4 border-[#000]"
+                                            alt="Rank 1"
+                                        />
+                                    </div>
+                                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center border-2 border-[#1E293B] text-white text-xs font-black shadow-xl z-10">
+                                        1
+                                    </div>
+                                </div>
+                                <p className="text-sm font-black text-white truncate w-full text-center max-w-[110px]">{top3[0].name || 'N/A'}</p>
+                                <div className="bg-yellow-500/10 px-3 py-0.5 rounded-full mt-1 border border-yellow-500/30">
+                                    <p className="text-[10px] text-yellow-400 font-bold tracking-wide">
+                                        {Math.floor(activeTab === 'transaction' 
+                                            ? (Number(top3[0].totalDeposit || 0) + Number(top3[0].totalSpent || 0)) 
+                                            : Number(top3[0].totalEarned || 0)
+                                        ).toLocaleString()}
+                                    </p>
                                 </div>
                             </div>
-                            <p className="text-sm font-black text-white truncate w-full text-center max-w-[110px]">{top3[0]?.name || 'N/A'}</p>
-                            <div className="bg-yellow-500/10 px-3 py-0.5 rounded-full mt-1 border border-yellow-500/30">
-                                <p className="text-[10px] text-yellow-400 font-bold tracking-wide">{Math.floor(getScore(top3[0])).toLocaleString()}</p>
-                            </div>
-                        </div>
+                        )}
 
                         {/* Rank 3 (Bronze) */}
-                        <div className="flex flex-col items-center w-1/3 order-3">
-                            <div className="relative mb-2 animate-bounce" style={{ animationDuration: '5s' }}>
-                                <StarBadgeIcon className="w-5 h-5" fill="#CD7F32" />
-                            </div>
-                            <div className="relative mb-3 group">
-                                <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-orange-700 via-amber-800 to-amber-900 shadow-[0_0_20px_rgba(205,127,50,0.3)]">
-                                    <img 
-                                        src={top3[2]?.avatarUrl || DEFAULT_AVATAR_URL} 
-                                        className="w-full h-full rounded-full object-cover border-2 border-[#000]"
-                                        alt="Rank 3"
-                                    />
+                        {top3[2] && (
+                            <div className="flex flex-col items-center w-1/3 order-3">
+                                <div className="relative mb-2 animate-bounce" style={{ animationDuration: '5s' }}>
+                                    <StarBadgeIcon className="w-5 h-5" fill="#CD7F32" />
                                 </div>
-                                <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-6 h-6 bg-gradient-to-br from-orange-700 to-amber-900 rounded-full flex items-center justify-center border-2 border-[#1E293B] text-white text-[10px] font-black shadow-lg z-10">
-                                    3
+                                <div className="relative mb-3 group">
+                                    <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-orange-700 via-amber-800 to-amber-900 shadow-[0_0_20px_rgba(205,127,50,0.3)]">
+                                        <img 
+                                            src={top3[2].avatarUrl || DEFAULT_AVATAR_URL} 
+                                            className="w-full h-full rounded-full object-cover border-2 border-[#000]"
+                                            alt="Rank 3"
+                                        />
+                                    </div>
+                                    <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-6 h-6 bg-gradient-to-br from-orange-700 to-amber-900 rounded-full flex items-center justify-center border-2 border-[#1E293B] text-white text-[10px] font-black shadow-lg z-10">
+                                        3
+                                    </div>
                                 </div>
+                                <p className="text-xs font-bold text-white truncate w-full text-center max-w-[80px]">{top3[2].name || 'N/A'}</p>
+                                <p className="text-[10px] text-gray-400 font-bold mt-0.5">
+                                    {Math.floor(activeTab === 'transaction' 
+                                        ? (Number(top3[2].totalDeposit || 0) + Number(top3[2].totalSpent || 0)) 
+                                        : Number(top3[2].totalEarned || 0)
+                                    ).toLocaleString()}
+                                </p>
                             </div>
-                            <p className="text-xs font-bold text-white truncate w-full text-center max-w-[80px]">{top3[2]?.name || 'N/A'}</p>
-                            <p className="text-[10px] text-gray-400 font-bold mt-0.5">{Math.floor(getScore(top3[2])).toLocaleString()}</p>
-                        </div>
+                        )}
 
                     </div>
                 )}
@@ -228,11 +244,13 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, 
                         rest.map((rUser, index) => {
                             const rank = index + 4;
                             const isMe = rUser.uid === user.uid;
-                            const score = getScore(rUser);
+                            const score = activeTab === 'transaction' 
+                                ? (Number(rUser.totalDeposit || 0) + Number(rUser.totalSpent || 0)) 
+                                : Number(rUser.totalEarned || 0);
 
                             return (
                                 <div 
-                                    key={rUser.uid} 
+                                    key={rUser.uid || index} 
                                     className={`relative flex items-center p-3.5 rounded-3xl transition-all active:scale-[0.98] border
                                         ${isMe 
                                             ? 'bg-[#1E293B] border-primary/50 shadow-[0_4px_15px_-3px_rgba(124,58,237,0.3)]' 
@@ -291,7 +309,7 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, 
                             <p className="text-sm font-bold text-white">My Rank</p>
                         </div>
                         <div className="text-right px-2">
-                            <p className="text-sm font-black text-white">{Math.floor(getScore(user)).toLocaleString()}</p>
+                            <p className="text-sm font-black text-white">{Math.floor(myScore).toLocaleString()}</p>
                         </div>
                     </div>
                 </div>

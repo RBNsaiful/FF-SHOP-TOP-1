@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { User, AppSettings, DiamondOffer, PaymentMethod, SupportContact, LevelUpPackage, Membership, PremiumApp, SpecialOffer, Screen } from '../types';
 import { DEFAULT_AI_KEY } from '../constants';
 import { db } from '../firebase';
-import { ref, runTransaction, onValue, push, get, set } from 'firebase/database';
+import { ref, get } from 'firebase/database';
 
 // --- SOUND ASSETS (Short, crisp UI sounds) ---
 const SEND_SOUND = "data:audio/mp3;base64,SUQzBAAAAAAAI1RTSVMAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWgAAAA0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAABzgM0AAAAAAOAAAAAAAAAAAA0gAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAALQAAAAADgOAAA///+5JkAAAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD//+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAADcADQAAAAADgAAAAAAAAAtAAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAAAAAANIAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA"; 
@@ -82,7 +83,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   
   useEffect(() => {
-      const greeting = `আসসালামু আলাইকুম ${user.name}, ${appName}-এ আপনাকে স্বাগতম! আমি আপনার অ্যাপ অ্যাসিস্ট্যান্ট। র‍্যাঙ্কিং, ডিপোজিট বা যেকোনো বিষয়ে আমি আপনাকে সাহায্য করতে পারি।`;
+      const greeting = `আসসালামু আলাইকুম ${user.name}! ${appName}-এর সাপোর্টে আপনাকে স্বাগতম। অ্যাপের যেকোনো ফিচার বা সমস্যা নিয়ে আমাকে প্রশ্ন করতে পারেন।`;
       setMessages([{ id: 'init', role: 'model', text: greeting }]);
   }, [user.name, appName]);
   
@@ -90,7 +91,6 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
   const [isTyping, setIsTyping] = useState(false);
   const [recentHistory, setRecentHistory] = useState<string>(''); 
   const [isAdminMode, setIsAdminMode] = useState(false);
-  const [dynamicKnowledge, setDynamicKnowledge] = useState<string[]>([]);
   
   // RANKING STATE
   const [rankingData, setRankingData] = useState<{ tradingRank: number | string, earningRank: number | string }>({ tradingRank: 'N/A', earningRank: 'N/A' });
@@ -123,24 +123,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
       }
   }, []);
 
-  // --- 1. FETCH DYNAMIC KNOWLEDGE ---
-  useEffect(() => {
-      const knowledgeRef = ref(db, 'ai_knowledge');
-      const unsubscribe = onValue(knowledgeRef, (snapshot) => {
-          const data = snapshot.val();
-          if (data) {
-              const knowledgeArray = Object.values(data).map((item: any) => 
-                  typeof item === 'string' ? item : item.content
-              ).filter(Boolean);
-              setDynamicKnowledge(knowledgeArray);
-          } else {
-              setDynamicKnowledge([]);
-          }
-      });
-      return () => unsubscribe();
-  }, []);
-
-  // --- 2. CALCULATE RANKING & HISTORY ---
+  // --- 1. CALCULATE RANKING & HISTORY ---
   useEffect(() => {
       if (!user.uid) return;
 
@@ -158,7 +141,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
                   const topOrders = oList
                       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                       .slice(0, 3)
-                      .map(o => `[Order] Item: ${o.offer?.name || o.offer?.diamonds}, Price: ${o.price}, Status: ${o.status}, Date: ${new Date(o.date).toLocaleDateString()}`);
+                      .map(o => `[Order] Item: ${o.offer?.name || o.offer?.diamonds}, Price: ${o.price}, Status: ${o.status}`);
                   historyStr += "Recent Orders:\n" + topOrders.join('\n') + "\n\n";
               }
               
@@ -174,31 +157,38 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
           } catch (e) { }
       };
       
-      // Calculate Rank (Logic mirrors RankingScreen.tsx)
+      // Calculate Rank (Exact Match to RankingScreen.tsx Logic)
       const usersRef = ref(db, 'users');
       const updateRanking = async () => {
           const snap = await get(usersRef);
           if (snap.exists()) {
-              const allUsers: User[] = Object.values(snap.val());
+              const data = snap.val();
+              const allUsers: User[] = Object.entries(data).map(([key, val]: [string, any]) => ({
+                  ...val,
+                  uid: key
+              }));
               
               const safeNumber = (val: any) => {
-                  let num = Number(val);
+                  if (val === undefined || val === null) return 0;
+                  const num = parseFloat(val); 
                   return (isNaN(num) || !isFinite(num)) ? 0 : num;
               };
 
-              // Sort for Transaction Rank
+              // Sort for Transaction Rank (Deposit + Spent)
               const sortedByTrade = [...allUsers].sort((a, b) => {
                   const volA = safeNumber(a.totalDeposit) + safeNumber(a.totalSpent);
                   const volB = safeNumber(b.totalDeposit) + safeNumber(b.totalSpent);
-                  return volB - volA;
+                  if (volB !== volA) return volB - volA; // Higher score first
+                  return (a.name || "").localeCompare(b.name || ""); // A-Z tie breaker
               });
               const myTradeIndex = sortedByTrade.findIndex(u => u.uid === user.uid);
 
-              // Sort for Earning Rank
+              // Sort for Earning Rank (Ads)
               const sortedByEarn = [...allUsers].sort((a, b) => {
                   const earnA = safeNumber(a.totalEarned);
                   const earnB = safeNumber(b.totalEarned);
-                  return earnB - earnA;
+                  if (earnB !== earnA) return earnB - earnA;
+                  return (a.name || "").localeCompare(b.name || "");
               });
               const myEarnIndex = sortedByEarn.findIndex(u => u.uid === user.uid);
 
@@ -228,50 +218,90 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
 
   // --- THE BRAIN (System Instruction) ---
   const systemInstruction = useMemo(() => {
+    
+    // 1. Prepare Data for the AI (Internal Data Sheet)
+    const appFeatureMap = `
+    [INTERNAL APP CONFIGURATION & FEATURES]
+    
+    1. **Wallet System** (Location: Home > Wallet Icon)
+       - Feature: Add Money via bKash, Nagad, Rocket.
+       - Process: User enters amount -> Selects method -> Copies Admin Number -> Sends Money (Send Money option) -> Enters Transaction ID (TrxID) -> Submits.
+       - Status: Deposit requests are 'Pending' until Admin approves. Money is added to 'Balance'.
+       - Minimum Deposit: ${20} Taka.
+    
+    2. **Purchase System** (Location: Home Screen Tabs)
+       - Types: Diamond Topup, Level Up Pass, Membership, Premium Apps.
+       - Process: Select Item -> Click 'Buy Now' -> Enter Player UID (or Email for Apps) -> Confirm.
+       - Logic: Cost is deducted from Balance immediately. Status 'Pending'. Admin completes order manually.
+       - Refund: If Admin rejects (Failed), money is auto-refunded to Balance.
+    
+    3. **Ads Earning System** (Location: Earn/Watch Ads)
+       - Feature: Watch Video Ads to earn free money.
+       - Rules: Daily Limit: ${appSettings.earnSettings?.dailyLimit} ads. Reward: ${appSettings.earnSettings?.rewardPerAd} Taka per ad. Cooldown: ${appSettings.earnSettings?.adCooldownSeconds}s.
+       - Restriction: VPN might be required (US/UK). 24-hour reset logic applies.
+    
+    4. **Ranking System** (Location: Profile > Leaderboard)
+       - Traders Rank: Based on Total Volume (Deposit + Spent). Your Rank: ${rankingData.tradingRank}.
+       - Earners Rank: Based on Total Earned from Ads. Your Rank: ${rankingData.earningRank}.
+       - Awards: Top 3 get badges (Gold, Silver, Bronze).
+       - *Note: Ranking is real-time. If it doesn't update, please wait a moment for the server.*
+    
+    5. **Profile & Security**
+       - Location: Profile Screen.
+       - Features: Change Password, Edit Profile (Name/Avatar/UID), Logout.
+       - Contact Support: Links to WhatsApp/Telegram/Email found in 'Contact Us'.
+       - Note: Forgot Password is NOT available in-app; users must contact Admin if logged out.
+    `;
+
+    const devSettings = appSettings.developerSettings || { title: "Dev", url: "", message: "Dev Info" };
+
     return `
-      You are the official AI Assistant for "${appName}". 
-      You are Intelligent, Professional, and speak in Polite Bengali.
+      You are the intelligent, helpful, and logical AI Assistant for the app "${appName}".
       
+      *** PRIMARY DIRECTIVES ***
+      1. **Scope of Knowledge:** You answer questions ONLY about this app, its features, rules, and troubleshooting. Do NOT answer general knowledge (math, science, politics, etc.).
+      2. **Context Awareness:** Do NOT react to keywords blindly. If a user says "I forgot my password", understand they need the reset process. If they say "The password field is nice", do NOT give reset instructions. Understand the *intent*.
+      3. **Tone:** Speak naturally, politely, and respectfully in Bengali (default). Be concise but helpful. Avoid robotic language.
+      4. **Logic:** Always use the provided [INTERNAL APP CONFIGURATION] to give accurate step-by-step guides.
+
+      *** FEATURE KNOWLEDGE BASE ***
+      ${appFeatureMap}
+
+      *** DEVELOPER INFO (Use only if explicitly asked) ***
+      - Name: ${devSettings.title}
+      - Bio: ${devSettings.message}
+      - Contact: ${devSettings.url}
+      - Praise: "উনি আমাদের সিস্টেম ডিজাইন করেছেন এবং দ্রুত সাপোর্ট দেন।"
+
+      *** RESPONSE GUIDELINES ***
+      
+      - **If User asks "How to Deposit?":**
+        "টাকা যোগ করতে এই ধাপগুলো অনুসরণ করুন:
+        ১. Wallet অপশনে যান।
+        ২. টাকার পরিমাণ লিখুন এবং পেমেন্ট মেথড (bKash/Nagad) সিলেক্ট করুন।
+        ৩. আমাদের নম্বরে টাকা 'Send Money' করুন।
+        ৪. TrxID টি অ্যাপে দিয়ে Submit করুন। ১০ মিনিটের মধ্যে ব্যালেন্স যোগ হবে।"
+
+      - **If User asks "Order Pending why?":**
+        "আপনার অর্ডারটি বর্তমানে 'Pending' আছে। অ্যাডমিন এটি যাচাই করে শীঘ্রই কমপ্লিট করে দেবেন। সাধারণত ১০-৩০ মিনিট সময় লাগে। দয়া করে ধৈর্য ধরুন।"
+
+      - **If User asks "Forgot Password":**
+        "দুঃখিত, অ্যাপের ভেতর সরাসরি পাসওয়ার্ড রিসেট অপশন নেই। তবে আপনি লগইন করা থাকলে Profile > Change Password থেকে পাল্টাতে পারেন। লগইন করতে না পারলে আমাদের সাপোর্টে (WhatsApp) যোগাযোগ করুন।"
+
+      - **If User asks Out of Scope (e.g. "Capital of Bangladesh?"):**
+        "দুঃখিত, আমি কেবল ${appName} অ্যাপ সম্পর্কিত বিষয়ে সহায়তা করতে পারি। বাইরের কোনো তথ্যের জন্য আমি পারদর্শী নই।"
+
+      - **If User makes a mistake/typo:**
+        Politely correct them based on context (e.g., if they say "Bkash problem", assume Deposit issue).
+
       *** CURRENT USER CONTEXT ***
       - Name: ${user.name}
       - Balance: ${Math.floor(user.balance)} Taka
-      - Role: ${user.role}
-      - Current Screen: "${activeScreen}"
-      - User ID: ${user.uid}
-      
-      *** RANKING INFO (CRITICAL) ***
-      - **Trading Rank:** #${rankingData.tradingRank}
-      - **Earning Rank:** #${rankingData.earningRank}
-
-      *** APP FEATURES & WORKFLOW ***
-      1. **Add Money (Deposit):** Go to 'Wallet' -> Enter Amount -> Select Method (bKash/Nagad) -> Send Money -> Copy TrxID -> Submit.
-      2. **Buy Diamond:** Go to 'Home' -> Select Pack -> Buy -> Enter Player UID.
-      3. **Earn Money:** Go to 'Earn' -> Watch Ads. Daily limit: ${appSettings.earnSettings?.dailyLimit}.
-      4. **Support:** Profile -> Contact Us.
-
-      *** DEVELOPER INFORMATION (RBN Saiful) ***
-      - **Developer Name:** RBN Saiful
-      - **Info:** Developed by RBN Saiful, © 2025 FF SHOP RBN
-      - **Contact:** https://rbm-saiful-contact.vercel.app/
-      - **Instruction:** If the user asks about the developer, creator, or who made this app:
-        1. Praise RBN Saiful as a talented and dedicated developer.
-        2. Mention that he created this seamless experience.
-        3. Provide the contact link above.
-      - **IMPORTANT:** DO NOT mention the developer unless explicitly asked.
-
-      *** RULES OF CONVERSATION (STRICT) ***
-      1. **Language:** Always reply in Bengali (Bangla).
-      2. **Tone:** Natural, Professional, and Friendly.
-      3. **AVOID REPETITION:**
-         - **DO NOT** use "Sir" or the user's name in every sentence. Use them very rarely, only when necessary for emphasis or a formal greeting.
-         - **DO NOT** mention the App Name ("${appName}") in every sentence. Only mention it if the user asks about the app specifically.
-      4. **Relevance:** Answer exactly what is asked. Keep it concise.
-      5. **Privacy:** NEVER ask for passwords.
-
-      *** KNOWLEDGE BASE (Admin Taught) ***
-      ${dynamicKnowledge.map(k => `- ${k}`).join('\n')}
+      - Pending Orders: Check Recent History below.
+      - Recent Activity: 
+      ${recentHistory.substring(0, 500)}
     `;
-  }, [appSettings, user, rankingData, recentHistory, diamondOffers, memberships, activeScreen, dynamicKnowledge, appName]);
+  }, [appSettings, user, rankingData, recentHistory, activeScreen, appName]);
 
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
@@ -292,10 +322,6 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
             setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: 'exit' }, { id: 'admin-exit', role: 'model', text: "🔴 Admin Mode Off." }]);
             setInput(''); return;
         }
-        try {
-            await push(ref(db, 'ai_knowledge'), { content: input, timestamp: Date.now() });
-            setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: input }, { id: (Date.now()+1).toString(), role: 'model', text: "✅ Learned new logic." }]);
-        } catch (e) { }
         setInput(''); return; 
     }
 
@@ -330,7 +356,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
         }
       }
     } catch (error: any) {
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: "দুঃখিত, নেটওয়ার্ক সমস্যার কারণে উত্তর দিতে পারছি না।" }]);
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: "দুঃখিত, নেটওয়ার্ক সমস্যার কারণে উত্তর দিতে পারছি না। একটু পরে আবার চেষ্টা করুন।" }]);
     } finally {
       setIsTyping(false);
     }

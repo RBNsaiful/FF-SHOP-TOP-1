@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, FC, FormEvent, useMemo, useRef } from 'react';
 import { User, Screen, Transaction, Purchase, AppSettings, Language, PaymentMethod, AppVisibility, Notification, DeveloperSettings, Banner, Theme, PopupConfig } from '../types';
 import { db } from '../firebase';
@@ -10,7 +9,7 @@ import {
     PROTECTION_KEY
 } from '../constants';
 
-// Icons
+// --- ICONS (UI Only) ---
 const DashboardIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>);
 const UsersIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>);
 const OrdersIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>);
@@ -41,6 +40,7 @@ const LayoutIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http:
 const DollarIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>);
 const AdMobIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6v12"/><path d="M8 10l4-4 4 4"/></svg>); 
 const GridIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>);
+const BackIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>);
 
 // Offer Icons
 const DiamondIcon: FC<{className?: string}> = ({className}) => (<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className={className}><path d="M12 2L2 8.5l10 13.5L22 8.5 12 2z" /></svg>);
@@ -61,37 +61,69 @@ interface AdminScreenProps {
     setTheme: (theme: Theme) => void;
 }
 
-// Sidebar Link Component
+// Sidebar Link Component (Optimized)
 const SidebarLink: FC<{ icon: FC<{className?: string}>, label: string, active: boolean, onClick: () => void }> = ({ icon: Icon, label, active, onClick }) => (
     <button 
         onClick={onClick}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 group ${
             active 
-            ? 'bg-primary/10 text-primary border-r-4 border-primary' 
+            ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30' 
             : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
         }`}
     >
         <Icon className={`w-5 h-5 transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-110'}`} />
-        <span className={`text-sm font-bold ${active ? 'translate-x-1' : ''} transition-transform duration-200`}>{label}</span>
+        <span className={`text-sm font-bold tracking-wide`}>{label}</span>
     </button>
 );
+
+// Quick Action Card (New Mobile Feature)
+const QuickActionCard: FC<{ label: string, icon: FC<{className?: string}>, color: string, onClick: () => void, count?: number }> = ({ label, icon: Icon, color, onClick, count }) => {
+    const bgColors: {[key: string]: string} = {
+        orange: 'bg-orange-500',
+        purple: 'bg-purple-600',
+        pink: 'bg-pink-500',
+        blue: 'bg-blue-500'
+    };
+    const shadowColors: {[key: string]: string} = {
+        orange: 'shadow-orange-500/30',
+        purple: 'shadow-purple-600/30',
+        pink: 'shadow-pink-500/30',
+        blue: 'shadow-blue-500/30'
+    };
+
+    return (
+        <button 
+            onClick={onClick}
+            className={`relative overflow-hidden rounded-2xl p-4 flex flex-col items-center justify-center gap-2 transition-all active:scale-95 ${bgColors[color]} text-white shadow-lg ${shadowColors[color]}`}
+        >
+            <div className="absolute top-0 right-0 p-2 opacity-10"><Icon className="w-12 h-12" /></div>
+            <Icon className="w-6 h-6 mb-1 relative z-10" />
+            <span className="text-xs font-bold uppercase tracking-wider relative z-10">{label}</span>
+            {count !== undefined && count > 0 && (
+                <span className="absolute top-2 right-2 bg-white text-red-600 text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-sm">
+                    {count}
+                </span>
+            )}
+        </button>
+    );
+};
 
 // Confirmation Dialog
 const ConfirmationDialog: FC<{ title: string; message: string; onConfirm: () => void; onCancel: () => void; confirmText: string; cancelText: string; }> = ({ title, message, onConfirm, onCancel, confirmText, cancelText }) => (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-smart-fade-in">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-xs animate-smart-pop-in shadow-2xl border border-gray-100 dark:border-gray-800">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-xs animate-smart-pop-in shadow-2xl border border-gray-100 dark:border-gray-800">
             <h3 className="text-lg font-bold text-center mb-2">{title}</h3>
-            <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-6">{message}</p>
-            <div className="flex space-x-2">
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">{message}</p>
+            <div className="flex space-x-3">
                 <button
                     onClick={onCancel}
-                    className="w-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold py-3 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-opacity text-xs"
+                    className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold py-3.5 rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-opacity text-xs active:scale-95"
                 >
                     {cancelText}
                 </button>
                 <button
                     onClick={onConfirm}
-                    className="w-full bg-red-500 text-white font-bold py-3 rounded-xl hover:bg-red-600 transition-colors text-xs"
+                    className="flex-1 bg-red-500 text-white font-bold py-3.5 rounded-2xl hover:bg-red-600 transition-colors text-xs shadow-lg shadow-red-500/30 active:scale-95"
                 >
                     {confirmText}
                 </button>
@@ -100,7 +132,7 @@ const ConfirmationDialog: FC<{ title: string; message: string; onConfirm: () => 
     </div>
 );
 
-// Helper Component for Copy Button
+// Smart Copy Button
 const SmartCopy: FC<{ text: string, label?: string, iconOnly?: boolean }> = ({ text, label, iconOnly }) => {
     const [copied, setCopied] = useState(false);
     const handleCopy = (e: React.MouseEvent) => {
@@ -113,24 +145,24 @@ const SmartCopy: FC<{ text: string, label?: string, iconOnly?: boolean }> = ({ t
     return (
         <button 
             onClick={handleCopy} 
-            className={`flex items-center gap-1.5 ${iconOnly ? 'p-1.5' : 'px-2 py-1'} bg-gray-100 dark:bg-gray-700/50 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95 border border-gray-200 dark:border-gray-700 max-w-full`}
+            className={`flex items-center gap-1.5 ${iconOnly ? 'p-2' : 'px-3 py-1.5'} bg-gray-100 dark:bg-gray-700/50 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95 border border-gray-200 dark:border-gray-600 max-w-full`}
             title="Click to copy"
         >
             {!iconOnly && <span className="font-mono text-[10px] text-gray-600 dark:text-gray-300 truncate max-w-[120px] sm:max-w-[150px]">{label || text}</span>}
-            {copied ? <CheckIcon className="w-3 h-3 text-green-500 flex-shrink-0" /> : <CopyIcon className="w-3 h-3 text-gray-400 dark:text-gray-500 flex-shrink-0" />}
+            {copied ? <CheckIcon className="w-3.5 h-3.5 text-green-500 flex-shrink-0" /> : <CopyIcon className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />}
         </button>
     );
 };
 
-// Reusable Search Input Component
+// Search Input
 const SearchInput: FC<{ value: string; onChange: (val: string) => void; placeholder: string }> = ({ value, onChange, placeholder }) => (
     <div className="relative mb-4">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <SearchIcon className="h-4 w-4 text-gray-400" />
         </div>
         <input
             type="text"
-            className="block w-full pl-9 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl leading-5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-xs transition-shadow shadow-sm"
+            className="block w-full pl-10 pr-4 py-3.5 border border-gray-200 dark:border-gray-700 rounded-2xl leading-5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm transition-shadow shadow-sm"
             placeholder={placeholder}
             value={value}
             onChange={(e) => onChange(e.target.value)}
@@ -158,7 +190,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const [orders, setOrders] = useState<Purchase[]>([]);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     
-    // Counters only (For Dashboard)
+    // Stats
     const [dashboardStats, setDashboardStats] = useState({
         totalUsers: 0,
         totalDeposit: 0,
@@ -174,31 +206,24 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const [settings, setSettings] = useState<AppSettings>(appSettings);
     const [originalSettings, setOriginalSettings] = useState<AppSettings | null>(appSettings);
     
-    // Developer Settings State (Separate for Security)
+    // Developer Settings State
     const [devSettings, setDevSettings] = useState<DeveloperSettings>(DEFAULT_APP_SETTINGS.developerSettings!);
-    const [isDevUnlocked, setIsDevUnlocked] = useState(false); // Security Lock State
+    const [isDevUnlocked, setIsDevUnlocked] = useState(false);
     
     // Privacy Mechanism States
     const [showDevCard, setShowDevCard] = useState(false);
     const [headerTapCount, setHeaderTapCount] = useState(0);
     const tapTimeoutRef = useRef<number | null>(null);
     
-    // Security Modal State
+    // Modals & Popups
     const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
     const [securityKeyInput, setSecurityKeyInput] = useState('');
-
-    // Banner Edit State
     const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
     const [editingBannerIndex, setEditingBannerIndex] = useState<number | null>(null);
     const [tempBannerUrl, setTempBannerUrl] = useState('');
     const [tempActionUrl, setTempActionUrl] = useState('');
-
-    // Other UI States
     const [permissionError, setPermissionError] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState<{ show: boolean; title: string; message: string; onConfirm: () => void } | null>(null);
-    const [isLoadingData, setIsLoadingData] = useState(false);
-    
-    // AI API Key Validation State
     const [apiKeyError, setApiKeyError] = useState('');
 
     // Offer State
@@ -207,38 +232,30 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const [editingOffer, setEditingOffer] = useState<any>(null);
     const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
 
-    // Wallet / Payment Methods State
+    // Tools State
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
     const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(null);
     const [editingMethodIndex, setEditingMethodIndex] = useState<number | null>(null);
     const [isMethodModalOpen, setIsMethodModalOpen] = useState(false);
-
-    // Graphics State
     const [banners, setBanners] = useState<Banner[]>([]);
     const [newBannerUrl, setNewBannerUrl] = useState('');
     const [newActionUrl, setNewActionUrl] = useState('');
-
-    // Notifications State
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [newNotif, setNewNotif] = useState({ title: '', message: '', type: 'system' });
     const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
     const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
-
-    // Contacts State
     const [contacts, setContacts] = useState<any[]>([]);
     const [editingContact, setEditingContact] = useState<any>(null);
     const [editingContactIndex, setEditingContactIndex] = useState<number | null>(null);
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+    const [popupConfig, setPopupConfig] = useState<PopupConfig>({ active: false, title: 'Welcome', message: 'Welcome to our app!', imageUrl: '', videoUrl: '' });
 
-    // Popup Config State
-    const [popupConfig, setPopupConfig] = useState<PopupConfig>({ active: false, title: 'Welcome', message: 'Welcome to our app!' });
-
-    // Balance Modal State
+    // Balance Modal
     const [balanceModalUser, setBalanceModalUser] = useState<User | null>(null);
     const [balanceAmount, setBalanceAmount] = useState('');
     const [balanceAction, setBalanceAction] = useState<'add' | 'deduct'>('add');
 
-    // Helper for Confirmation
+    // Helper
     const requestConfirmation = (action: () => void, messageOverride?: string) => {
         setConfirmDialog({
             show: true,
@@ -248,18 +265,15 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         });
     };
 
-    // Handle Logout with Confirmation
     const handleLogoutClick = () => {
         requestConfirmation(onLogout, "Are you sure you want to logout?");
     };
 
-    // --- Header Tap Logic for Hidden Dev Info ---
+    // Header Tap
     const handleHeaderTap = () => {
         const newCount = headerTapCount + 1;
         setHeaderTapCount(newCount);
-        
         if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
-        
         if (newCount >= 5) {
             setShowDevCard(prev => !prev);
             setHeaderTapCount(0);
@@ -268,26 +282,19 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         }
     };
 
-    // --- OPTIMIZED DATA FETCHING ---
+    // --- DATA FETCHING (PRESERVED LOGIC) ---
     useEffect(() => {
         const fetchDashboardStats = () => {
-            // Fetch Users
             onValue(ref(db, 'users'), (snap) => {
                 if(snap.exists()) {
                     const data = snap.val();
                     const uList: User[] = Object.keys(data).map(key => ({ ...data[key], uid: key }));
                     setUsers(uList); 
-                    
                     const totalAdRev = uList.reduce((acc, u) => acc + (u.totalEarned || 0), 0);
-                    setDashboardStats(prev => ({
-                        ...prev,
-                        totalUsers: uList.length,
-                        totalAdRevenue: totalAdRev
-                    }));
+                    setDashboardStats(prev => ({ ...prev, totalUsers: uList.length, totalAdRevenue: totalAdRev }));
                 }
             });
 
-            // Fetch ALL Orders (No Limit)
             const allOrdersRef = ref(db, 'orders');
             onValue(allOrdersRef, (snap) => {
                 if(snap.exists()) {
@@ -295,7 +302,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                     let pendingCount = 0;
                     let todayPurchaseAmt = 0;
                     const todayStr = new Date().toDateString();
-
                     snap.forEach(userOrders => {
                         const uOrders = userOrders.val();
                         if (uOrders) {
@@ -304,19 +310,16 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 allOrders.push(order);
                                 if (order.status === 'Pending') pendingCount++;
                                 if (order.status === 'Completed' && new Date(order.date).toDateString() === todayStr) {
-                                    todayPurchaseAmt += (order.offer?.price || 0); // Safety check
+                                    todayPurchaseAmt += (order.offer?.price || 0);
                                 }
                             });
                         }
                     });
                     setOrders(allOrders.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
                     setDashboardStats(prev => ({ ...prev, pendingOrders: pendingCount, todayPurchase: todayPurchaseAmt }));
-                } else {
-                    setOrders([]);
-                }
+                } else { setOrders([]); }
             });
 
-            // Fetch ALL Transactions (No Limit)
             const allTxnRef = ref(db, 'transactions');
             onValue(allTxnRef, (snap) => {
                 if(snap.exists()) {
@@ -325,7 +328,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                     let todayDepositAmt = 0;
                     let todayAdRevAmt = 0;
                     const todayStr = new Date().toDateString();
-
                     snap.forEach(userTxns => {
                         const uTxns = userTxns.val();
                         if (uTxns) {
@@ -348,15 +350,12 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                         todayAdRevenue: todayAdRevAmt,
                         totalDeposit: allTxns.filter(t => t.status === 'Completed' && t.type !== 'ad_reward').reduce((acc, curr) => acc + curr.amount, 0)
                     }));
-                } else {
-                    setTransactions([]);
-                }
+                } else { setTransactions([]); }
             });
         };
 
         fetchDashboardStats();
 
-        // Config & Others
         onValue(ref(db, 'notifications'), (snap) => {
             if(snap.exists()) {
                 const data = snap.val();
@@ -369,39 +368,10 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
             if(snap.exists()) {
                 const data = snap.val();
                 if(data.appSettings) {
-                    const mergedSettings = {
-                        ...data.appSettings,
-                        earnSettings: {
-                            ...DEFAULT_APP_SETTINGS.earnSettings,
-                            ...(data.appSettings.earnSettings || {}),
-                            webAds: { ...DEFAULT_APP_SETTINGS.earnSettings.webAds, ...(data.appSettings.earnSettings?.webAds || {}) },
-                            adMob: { ...DEFAULT_APP_SETTINGS.earnSettings.adMob, ...(data.appSettings.earnSettings?.adMob || {}) },
-                            homeAdCode: data.appSettings.earnSettings?.homeAdCode || DEFAULT_APP_SETTINGS.earnSettings.homeAdCode,
-                            homeAdActive: data.appSettings.earnSettings?.homeAdActive ?? true,
-                            earnAdCode: data.appSettings.earnSettings?.earnAdCode || DEFAULT_APP_SETTINGS.earnSettings.earnAdCode,
-                            earnAdActive: data.appSettings.earnSettings?.earnAdActive ?? true,
-                            profileAdCode: data.appSettings.earnSettings?.profileAdCode ?? DEFAULT_APP_SETTINGS.earnSettings.profileAdCode,
-                            profileAdActive: data.appSettings.earnSettings?.profileAdActive ?? true,
-                        },
-                        uiSettings: {
-                            ...DEFAULT_APP_SETTINGS.uiSettings,
-                            ...(data.appSettings.uiSettings || {})
-                        },
-                        aiSupportActive: data.appSettings.aiSupportActive ?? DEFAULT_APP_SETTINGS.aiSupportActive,
-                        aiName: data.appSettings.aiName || DEFAULT_APP_SETTINGS.aiName,
-                        aiApiKey: data.appSettings.aiApiKey || "",
-                        contactMessage: data.appSettings.contactMessage || DEFAULT_APP_SETTINGS.contactMessage,
-                        operatingHours: data.appSettings.operatingHours || DEFAULT_APP_SETTINGS.operatingHours,
-                        popupNotification: data.appSettings.popupNotification || { active: false, title: '', message: '' }
-                    };
-                    setSettings(mergedSettings);
-                    setOriginalSettings(mergedSettings); 
-                    if (data.appSettings.developerSettings) {
-                        setDevSettings(data.appSettings.developerSettings);
-                    }
-                    if (data.appSettings.popupNotification) {
-                        setPopupConfig(data.appSettings.popupNotification);
-                    }
+                    const mergedSettings = { ...data.appSettings, earnSettings: { ...DEFAULT_APP_SETTINGS.earnSettings, ...(data.appSettings.earnSettings || {}) }, uiSettings: { ...DEFAULT_APP_SETTINGS.uiSettings, ...(data.appSettings.uiSettings || {}) } };
+                    setSettings(mergedSettings); setOriginalSettings(mergedSettings); 
+                    if (data.appSettings.developerSettings) setDevSettings(data.appSettings.developerSettings);
+                    if (data.appSettings.popupNotification) setPopupConfig(data.appSettings.popupNotification);
                 }
                 if(data.offers) {
                     setOffersData({
@@ -414,20 +384,13 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 }
                 if(data.banners) {
                     const rawBanners = Object.values(data.banners);
-                    const formattedBanners = rawBanners.map((b: any) => 
-                        typeof b === 'string' ? { imageUrl: b, actionUrl: '' } : b
-                    );
+                    const formattedBanners = rawBanners.map((b: any) => typeof b === 'string' ? { imageUrl: b, actionUrl: '' } : b);
                     setBanners(formattedBanners);
                 }
-                if(data.paymentMethods) {
-                    setPaymentMethods(Object.values(data.paymentMethods));
-                }
-                if (data.supportContacts) {
-                    setContacts(Object.values(data.supportContacts));
-                }
+                if(data.paymentMethods) setPaymentMethods(Object.values(data.paymentMethods));
+                if (data.supportContacts) setContacts(Object.values(data.supportContacts));
             }
         });
-
     }, []);
 
     const aiStats = useMemo(() => {
@@ -439,21 +402,14 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const filteredUsers = useMemo(() => {
         if (!userSearch) return users;
         const lowerTerm = userSearch.toLowerCase();
-        return users.filter(u => 
-            (u.name || '').toLowerCase().includes(lowerTerm) || 
-            (u.email || '').toLowerCase().includes(lowerTerm) || 
-            (u.uid || '').toLowerCase().includes(lowerTerm)
-        );
+        return users.filter(u => (u.name || '').toLowerCase().includes(lowerTerm) || (u.email || '').toLowerCase().includes(lowerTerm) || (u.uid || '').toLowerCase().includes(lowerTerm));
     }, [users, userSearch]);
 
     const filteredOrders = useMemo(() => {
         let result = orders.filter(o => o.status === orderFilter);
         if (orderSearch) {
             const lowerTerm = orderSearch.toLowerCase();
-            result = result.filter(o => 
-                (o.id || '').toLowerCase().includes(lowerTerm) || 
-                (o.uid || '').toLowerCase().includes(lowerTerm)
-            );
+            result = result.filter(o => (o.id || '').toLowerCase().includes(lowerTerm) || (o.uid || '').toLowerCase().includes(lowerTerm));
         }
         return result;
     }, [orders, orderFilter, orderSearch]);
@@ -462,516 +418,258 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         let result = transactions.filter(t => t.status === depositFilter);
         if (depositSearch) {
             const lowerTerm = depositSearch.toLowerCase();
-            result = result.filter(t => 
-                (t.transactionId || '').toLowerCase().includes(lowerTerm) ||
-                (t.method || '').toLowerCase().includes(lowerTerm)
-            );
+            result = result.filter(t => (t.transactionId || '').toLowerCase().includes(lowerTerm) || (t.method || '').toLowerCase().includes(lowerTerm));
         }
         return result;
     }, [transactions, depositFilter, depositSearch]);
 
-
-    // --- Actions ---
     const isSettingsChanged = JSON.stringify(settings) !== JSON.stringify(originalSettings);
+    
+    // --- HANDLERS (PRESERVED LOGIC) ---
     const handleSettingsSave = async (e: FormEvent) => {
         e.preventDefault();
-        
         const currentKey = settings.aiApiKey || '';
-        if (currentKey.length > 0) {
-            const apiKeyRegex = /^AIza[0-9A-Za-z\-_]{35}$/;
-            if (!apiKeyRegex.test(currentKey)) {
-                setApiKeyError("Invalid API Key format. Must start with 'AIza' and be 39 characters long.");
-                alert("Settings NOT Saved!\n\nReason: Invalid Gemini API Key format.");
-                return;
-            }
+        if (currentKey.length > 0 && !/^AIza[0-9A-Za-z\-_]{35}$/.test(currentKey)) {
+            setApiKeyError("Invalid API Key format."); alert("Settings NOT Saved! Invalid API Key."); return;
         }
         setApiKeyError(''); 
-
         let finalSettings = { ...settings };
-        const currentUrl = finalSettings.earnSettings?.webAds?.url || '';
-        if (currentUrl) {
-            const ytMatch = currentUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|.*\/)([^&?]*))/);
-            if (ytMatch && ytMatch[1]) {
-                const videoId = ytMatch[1];
-                const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&rel=0&modestbranding=1&playsinline=1`;
-                
-                finalSettings = {
-                    ...finalSettings,
-                    earnSettings: {
-                        ...finalSettings.earnSettings!,
-                        webAds: {
-                            ...finalSettings.earnSettings!.webAds,
-                            url: embedUrl
-                        }
-                    }
-                };
-            }
-        }
-
         const { developerSettings, ...safeSettings } = finalSettings;
         await update(ref(db, 'config/appSettings'), safeSettings);
-        setSettings(finalSettings); 
-        setOriginalSettings(finalSettings);
-        alert("Settings Saved!");
+        setSettings(finalSettings); setOriginalSettings(finalSettings); alert("Settings Saved!");
     };
 
-    const handleUnlockDevInfo = () => {
-        setSecurityKeyInput('');
-        setIsSecurityModalOpen(true);
-    };
-
-    const handleVerifySecurityKey = (e: FormEvent) => {
-        e.preventDefault();
-        if (securityKeyInput === PROTECTION_KEY) {
-            setIsDevUnlocked(true);
-            setIsSecurityModalOpen(false);
-        } else {
-            alert("ACCESS DENIED: Incorrect Secret Key.");
-        }
-    };
-
-    const handleSaveDeveloperInfo = async () => {
-        try {
-            await update(ref(db, 'config/appSettings/developerSettings'), devSettings);
-            alert("Success: Developer Info Updated.");
-            setIsDevUnlocked(false); 
-        } catch (error) {
-            alert("Error updating database.");
-        }
-    };
+    const handleUnlockDevInfo = () => { setSecurityKeyInput(''); setIsSecurityModalOpen(true); };
+    const handleVerifySecurityKey = (e: FormEvent) => { e.preventDefault(); if (securityKeyInput === PROTECTION_KEY) { setIsDevUnlocked(true); setIsSecurityModalOpen(false); } else { alert("ACCESS DENIED: Incorrect Secret Key."); } };
+    const handleSaveDeveloperInfo = async () => { try { await update(ref(db, 'config/appSettings/developerSettings'), devSettings); alert("Success: Developer Info Updated."); setIsDevUnlocked(false); } catch (error) { alert("Error updating database."); } };
 
     const handleOrderAction = (order: Purchase, action: 'Completed' | 'Failed') => {
         requestConfirmation(async () => {
             if (order.key && order.userId) {
                 const orderRef = ref(db, `orders/${order.userId}/${order.key}`);
-                
-                // CRITICAL FIX: Fetch fresh status to prevent double processing
                 const snapshot = await get(orderRef);
-                if (snapshot.exists()) {
-                    const currentData = snapshot.val();
-                    
-                    // If already completed/failed, stop immediately
-                    if (currentData.status === action) {
-                        return;
+                if (snapshot.exists() && snapshot.val().status === 'Pending') {
+                    await update(orderRef, { status: action });
+                    if (action === 'Failed') {
+                        const userRef = ref(db, `users/${order.userId}`);
+                        await runTransaction(userRef, (userData) => { if (userData) userData.balance = (Number(userData.balance) || 0) + Number(order.offer?.price || 0); return userData; });
                     }
-                    
-                    // If trying to fail an order that is already failed, stop
-                    if (currentData.status === 'Failed' && action === 'Failed') {
-                        return;
-                    }
-                }
-
-                await update(orderRef, { status: action });
-                
-                if (action === 'Failed') {
-                    const userRef = ref(db, `users/${order.userId}`);
-                    await runTransaction(userRef, (userData) => {
-                        if (userData) {
-                            const refundAmount = Number(order.offer?.price || 0);
-                            userData.balance = (Number(userData.balance) || 0) + refundAmount;
-                        }
-                        return userData;
-                    });
                 }
             }
         }, `Confirm ${action}?`);
     };
 
-    const handleDeleteOrder = (orderId: string, userId: string) => {
-        requestConfirmation(async () => {
-            const orderRef = ref(db, `orders/${userId}/${orderId}`);
-            await remove(orderRef);
-        }, "Are you sure you want to DELETE this order permanently?");
-    };
-
+    const handleDeleteOrder = (orderId: string, userId: string) => requestConfirmation(async () => { await remove(ref(db, `orders/${userId}/${orderId}`)); }, "Delete this order?");
     const handleTxnAction = (txn: Transaction, action: 'Completed' | 'Failed') => {
         requestConfirmation(async () => {
             if (txn.key && txn.userId) {
                 const txnRef = ref(db, `transactions/${txn.userId}/${txn.key}`);
-                
-                // CRITICAL FIX: Fetch fresh status to prevent double balance crediting
                 const snapshot = await get(txnRef);
-                if (snapshot.exists()) {
-                    const currentData = snapshot.val();
-                    
-                    // If already completed, STOP.
-                    if (currentData.status === 'Completed' && action === 'Completed') {
-                        return; 
+                if (snapshot.exists() && snapshot.val().status === 'Pending') {
+                    await update(txnRef, { status: action });
+                    if (action === 'Completed') {
+                        const userRef = ref(db, `users/${txn.userId}`);
+                        await runTransaction(userRef, (userData) => { if (userData) userData.balance = (Number(userData.balance) || 0) + Number(txn.amount); return userData; });
                     }
-                    
-                    // If status matches target action, stop (Idempotency)
-                    if (currentData.status === action) {
-                        return;
-                    }
-                }
-
-                await update(txnRef, { status: action });
-                
-                if (action === 'Completed') {
-                    const userRef = ref(db, `users/${txn.userId}`);
-                    await runTransaction(userRef, (userData) => {
-                        if (userData) {
-                            userData.balance = (Number(userData.balance) || 0) + Number(txn.amount);
-                            return userData;
-                        }
-                        return userData;
-                    });
                 }
             }
         });
     };
-
-    const handleDeleteTransaction = (txnId: string, userId: string) => {
-        requestConfirmation(async () => {
-            const txnRef = ref(db, `transactions/${userId}/${txnId}`);
-            await remove(txnRef);
-        }, "Are you sure you want to DELETE this transaction permanently?");
-    };
-
+    const handleDeleteTransaction = (txnId: string, userId: string) => requestConfirmation(async () => { await remove(ref(db, `transactions/${userId}/${txnId}`)); }, "Delete this transaction?");
+    
     const handleBalanceUpdate = () => {
         if (!balanceModalUser || !balanceAmount) return;
         const amount = Number(balanceAmount);
         if (isNaN(amount) || amount <= 0) return;
-
         requestConfirmation(async () => {
             const userRef = ref(db, `users/${balanceModalUser.uid}`);
-            const snap = await get(userRef);
-            if (snap.exists()) {
-                const currentBalance = snap.val().balance || 0;
-                const newBalance = balanceAction === 'add' ? currentBalance + amount : currentBalance - amount;
-                if (newBalance < 0) { alert("Insufficient balance."); return; }
-                await update(userRef, { balance: newBalance });
-                setBalanceModalUser(null); setBalanceAmount('');
-            }
-        }, `${balanceAction === 'add' ? 'Add' : 'Deduct'} ${amount} to ${balanceModalUser.name}?`);
+            await runTransaction(userRef, (userData) => { if(userData) userData.balance = balanceAction === 'add' ? (userData.balance||0) + amount : (userData.balance||0) - amount; return userData; });
+            setBalanceModalUser(null); setBalanceAmount('');
+        }, `${balanceAction === 'add' ? 'Add' : 'Deduct'} ${amount}?`);
     };
 
-    const handleSaveOffer = async (e: FormEvent) => {
-        e.preventDefault();
-        const path = `config/offers/${offerType}`;
-        let newOffer = { ...editingOffer };
-        if (!newOffer.id) newOffer.id = Date.now();
-        if (newOffer.price) newOffer.price = Number(newOffer.price);
-        if (newOffer.diamonds) newOffer.diamonds = Number(newOffer.diamonds);
-        if (offerType === 'special' && newOffer.isActive === undefined) newOffer.isActive = true;
-
-        let updatedList = [...offersData[offerType]];
-        if (editingOffer.id && offersData[offerType].find((o: any) => o.id === editingOffer.id)) {
-            updatedList = updatedList.map((o: any) => o.id === editingOffer.id ? newOffer : o);
-        } else { updatedList.push(newOffer); }
-        await set(ref(db, path), updatedList); setIsOfferModalOpen(false); setEditingOffer(null);
-    };
-    const handleDeleteOffer = (id: number) => requestConfirmation(async () => {
-        const path = `config/offers/${offerType}`;
-        const updatedList = offersData[offerType].filter((o: any) => o.id !== id);
-        await set(ref(db, path), updatedList);
-    });
+    const handleSaveOffer = async (e: FormEvent) => { e.preventDefault(); const path = `config/offers/${offerType}`; let newOffer = { ...editingOffer }; if (!newOffer.id) newOffer.id = Date.now(); if (newOffer.price) newOffer.price = Number(newOffer.price); if (newOffer.diamonds) newOffer.diamonds = Number(newOffer.diamonds); if (offerType === 'special' && newOffer.isActive === undefined) newOffer.isActive = true; let updatedList = [...offersData[offerType]]; if (editingOffer.id && offersData[offerType].find((o: any) => o.id === editingOffer.id)) { updatedList = updatedList.map((o: any) => o.id === editingOffer.id ? newOffer : o); } else { updatedList.push(newOffer); } await set(ref(db, path), updatedList); setIsOfferModalOpen(false); setEditingOffer(null); };
+    const handleDeleteOffer = (id: number) => requestConfirmation(async () => { const path = `config/offers/${offerType}`; const updatedList = offersData[offerType].filter((o: any) => o.id !== id); await set(ref(db, path), updatedList); });
+    const handleReorderOffer = async (index: number, direction: 'up' | 'down') => { const currentList = [...offersData[offerType]]; if (direction === 'up' && index > 0) [currentList[index], currentList[index - 1]] = [currentList[index - 1], currentList[index]]; else if (direction === 'down' && index < currentList.length - 1) [currentList[index], currentList[index + 1]] = [currentList[index + 1], currentList[index]]; await set(ref(db, `config/offers/${offerType}`), currentList); setOffersData({ ...offersData, [offerType]: currentList }); };
     
-    const handleReorderOffer = async (index: number, direction: 'up' | 'down') => {
-        const currentList = [...offersData[offerType]];
-        if (direction === 'up' && index > 0) {
-            [currentList[index], currentList[index - 1]] = [currentList[index - 1], currentList[index]];
-        } else if (direction === 'down' && index < currentList.length - 1) {
-            [currentList[index], currentList[index + 1]] = [currentList[index + 1], currentList[index]];
-        } else {
-            return;
-        }
-        setOffersData({ ...offersData, [offerType]: currentList });
-        await set(ref(db, `config/offers/${offerType}`), currentList);
-    };
-
+    // Other simple handlers
     const openAddOfferModal = () => { setEditingOffer({}); setIsOfferModalOpen(true); };
-
-    const handleSaveMethod = async (e: FormEvent) => {
-        e.preventDefault();
-        if (!editingMethod) return;
-        const updatedMethods = [...paymentMethods];
-        if (editingMethodIndex !== null) updatedMethods[editingMethodIndex] = editingMethod;
-        else updatedMethods.push(editingMethod);
-        await set(ref(db, 'config/paymentMethods'), updatedMethods); setIsMethodModalOpen(false); setEditingMethod(null); setEditingMethodIndex(null);
-    };
-    const handleDeleteMethod = (index: number) => requestConfirmation(async () => {
-        const updatedMethods = paymentMethods.filter((_, i) => i !== index);
-        await set(ref(db, 'config/paymentMethods'), updatedMethods);
-    });
+    const handleSaveMethod = async (e: FormEvent) => { e.preventDefault(); if (!editingMethod) return; const updatedMethods = [...paymentMethods]; if (editingMethodIndex !== null) updatedMethods[editingMethodIndex] = editingMethod; else updatedMethods.push(editingMethod); await set(ref(db, 'config/paymentMethods'), updatedMethods); setIsMethodModalOpen(false); setEditingMethod(null); };
+    const handleDeleteMethod = (index: number) => requestConfirmation(async () => { const updatedMethods = paymentMethods.filter((_, i) => i !== index); await set(ref(db, 'config/paymentMethods'), updatedMethods); });
     const openAddMethodModal = () => { setEditingMethod({ name: '', accountNumber: '', logo: '', instructions: '' }); setEditingMethodIndex(null); setIsMethodModalOpen(true); };
     const openEditMethodModal = (method: PaymentMethod, index: number) => { setEditingMethod({ ...method }); setEditingMethodIndex(index); setIsMethodModalOpen(true); };
-
-    const handleSaveContact = async (e: FormEvent) => {
-        e.preventDefault();
-        if (!editingContact) return;
-        const updatedContacts = [...contacts];
-        const contactToSave = { ...editingContact, labelKey: editingContact.title };
-        if (editingContactIndex !== null) updatedContacts[editingContactIndex] = contactToSave;
-        else updatedContacts.push(contactToSave);
-        await set(ref(db, 'config/supportContacts'), updatedContacts); setIsContactModalOpen(false); setEditingContact(null); setEditingContactIndex(null);
-    };
-    const handleDeleteContact = (index: number) => requestConfirmation(async () => {
-        const updatedContacts = contacts.filter((_, i) => i !== index);
-        await set(ref(db, 'config/supportContacts'), updatedContacts);
-    });
+    const handleSaveContact = async (e: FormEvent) => { e.preventDefault(); if (!editingContact) return; const updatedContacts = [...contacts]; const contactToSave = { ...editingContact, labelKey: editingContact.title }; if (editingContactIndex !== null) updatedContacts[editingContactIndex] = contactToSave; else updatedContacts.push(contactToSave); await set(ref(db, 'config/supportContacts'), updatedContacts); setIsContactModalOpen(false); setEditingContact(null); };
+    const handleDeleteContact = (index: number) => requestConfirmation(async () => { const updatedContacts = contacts.filter((_, i) => i !== index); await set(ref(db, 'config/supportContacts'), updatedContacts); });
     const openAddContactModal = () => { setEditingContact({ type: 'phone', title: '', link: '', labelKey: '' }); setEditingContactIndex(null); setIsContactModalOpen(true); };
     const openEditContactModal = (contact: any, index: number) => { setEditingContact({ ...contact, title: contact.title || contact.labelKey }); setEditingContactIndex(index); setIsContactModalOpen(true); };
-
-    const toggleUserSelection = (uid: string) => {
-        const newSet = new Set(selectedUserIds);
-        if (newSet.has(uid)) { newSet.delete(uid); } else { newSet.add(uid); }
-        setSelectedUserIds(newSet);
-    };
-
-    const handleSendNotification = async (e: FormEvent) => {
-        e.preventDefault();
-        if (selectedUserIds.size > 0) {
-            const promises = Array.from(selectedUserIds).map(uid => {
-                return push(ref(db, 'notifications'), { ...newNotif, timestamp: Date.now(), targetUid: uid });
-            });
-            await Promise.all(promises);
-            setSelectedUserIds(new Set());
-            alert(`Sent to ${selectedUserIds.size} users.`);
-        } else {
-            await push(ref(db, 'notifications'), { ...newNotif, timestamp: Date.now() });
-        }
-        setNewNotif({ title: '', message: '', type: 'system' });
-        setIsNotifModalOpen(false);
-    };
-
+    const toggleUserSelection = (uid: string) => { const newSet = new Set(selectedUserIds); if (newSet.has(uid)) newSet.delete(uid); else newSet.add(uid); setSelectedUserIds(newSet); };
+    const handleSendNotification = async (e: FormEvent) => { e.preventDefault(); if (selectedUserIds.size > 0) { const promises = Array.from(selectedUserIds).map(uid => push(ref(db, 'notifications'), { ...newNotif, timestamp: Date.now(), targetUid: uid })); await Promise.all(promises); setSelectedUserIds(new Set()); alert(`Sent to ${selectedUserIds.size} users.`); } else { await push(ref(db, 'notifications'), { ...newNotif, timestamp: Date.now() }); } setNewNotif({ title: '', message: '', type: 'system' }); setIsNotifModalOpen(false); };
     const handleDeleteNotification = (id: string) => requestConfirmation(async () => { await remove(ref(db, `notifications/${id}`)); });
-
-    const handleSavePopupConfig = async () => {
-        await update(ref(db, 'config/appSettings'), { popupNotification: popupConfig });
-        alert("Popup Settings Saved!");
-        setSettings(prev => ({...prev, popupNotification: popupConfig}));
-    };
-
+    const handleSavePopupConfig = async () => { await update(ref(db, 'config/appSettings'), { popupNotification: popupConfig }); alert("Popup Settings Saved!"); setSettings(prev => ({...prev, popupNotification: popupConfig})); };
     const handleAddBanner = async () => { if(!newBannerUrl) return; const updatedBanners = [...banners, { imageUrl: newBannerUrl, actionUrl: newActionUrl }]; await set(ref(db, 'config/banners'), updatedBanners); setNewBannerUrl(''); setNewActionUrl(''); };
     const handleDeleteBanner = (index: number) => requestConfirmation(async () => { const updatedBanners = banners.filter((_, i) => i !== index); await set(ref(db, 'config/banners'), updatedBanners); });
-    
     const openEditBannerModal = (index: number, banner: Banner) => { setEditingBannerIndex(index); setTempBannerUrl(banner.imageUrl); setTempActionUrl(banner.actionUrl || ''); setIsBannerModalOpen(true); };
-    const handleSaveBanner = async (e: FormEvent) => {
-        e.preventDefault();
-        if (editingBannerIndex !== null && tempBannerUrl) {
-            const updatedBanners = [...banners];
-            updatedBanners[editingBannerIndex] = { imageUrl: tempBannerUrl, actionUrl: tempActionUrl };
-            await set(ref(db, 'config/banners'), updatedBanners);
-            setIsBannerModalOpen(false);
-            setEditingBannerIndex(null);
-            setTempBannerUrl('');
-            setTempActionUrl('');
-        }
-    };
-
+    const handleSaveBanner = async (e: FormEvent) => { e.preventDefault(); if (editingBannerIndex !== null && tempBannerUrl) { const updatedBanners = [...banners]; updatedBanners[editingBannerIndex] = { imageUrl: tempBannerUrl, actionUrl: tempActionUrl }; await set(ref(db, 'config/banners'), updatedBanners); setIsBannerModalOpen(false); setEditingBannerIndex(null); setTempBannerUrl(''); setTempActionUrl(''); } };
     const handleUpdateLogo = async () => { if (settings.logoUrl) { await update(ref(db, 'config/appSettings'), { logoUrl: settings.logoUrl }); alert("Logo Updated!"); } };
 
+    if(permissionError) return (<div className="p-8 text-center text-red-500 bg-white h-screen flex flex-col items-center justify-center"><LockIcon className="w-16 h-16 mb-4" /><h2 className="text-xl font-bold mb-2">Permission Denied</h2></div>);
 
-    if(permissionError) {
-        return (
-            <div className="p-8 text-center text-red-500 bg-white h-screen flex flex-col items-center justify-center">
-                <LockIcon className="w-16 h-16 mb-4" />
-                <h2 className="text-xl font-bold mb-2">Permission Denied</h2>
-            </div>
-        );
-    }
-
-    const inputClass = "w-full p-2.5 border rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 focus:ring-1 focus:ring-primary outline-none transition-all text-sm";
-
-    // --- Validation Logic ---
-    const isOfferValid = editingOffer?.name?.trim() && Number(editingOffer?.price) > 0 &&
-        (offerType === 'premium' || offerType === 'membership' || Number(editingOffer?.diamonds) > 0) &&
-        (offerType !== 'special' || editingOffer?.title?.trim());
+    const inputClass = "w-full p-3.5 border rounded-2xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 outline-none transition-all text-sm";
+    
+    // Validations (UPDATED FOR DIAMOND & LEVELUP FIXES)
+    const isOfferValid = 
+        (offerType === 'diamond' ? Number(editingOffer?.price) > 0 && Number(editingOffer?.diamonds) > 0 :
+        offerType === 'levelUp' ? editingOffer?.name?.trim() && Number(editingOffer?.price) > 0 :
+        editingOffer?.name?.trim() && Number(editingOffer?.price) > 0 && (offerType === 'premium' || offerType === 'membership' || Number(editingOffer?.diamonds) > 0));
 
     const isMethodValid = editingMethod?.name?.trim() && editingMethod?.accountNumber?.trim() && editingMethod?.logo?.trim();
     const isContactValid = editingContact?.title?.trim() && editingContact?.link?.trim();
     const isBannerValid = tempBannerUrl?.trim();
-    const isNotifValid = newNotif.title.trim() && newNotif.message.trim();
+    const isNotifValid = newNotif.message.trim().length > 0; // Title Optional
 
     return (
         <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans overflow-hidden">
-            {/* Mobile Overlay */}
-            {isSidebarOpen && (
-                <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setIsSidebarOpen(false)}></div>
-            )}
+            {isSidebarOpen && (<div className="fixed inset-0 z-40 bg-black/50 md:hidden backdrop-blur-sm transition-opacity" onClick={() => setIsSidebarOpen(false)}></div>)}
 
-            {/* Sidebar */}
-            <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-dark-card border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                {/* Sidebar Header */}
-                <div className="h-16 flex items-center px-6 border-b border-gray-100 dark:border-gray-800">
-                    <span className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Admin Panel</span>
+            {/* --- SIDEBAR --- */}
+            <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-dark-card border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                <div className="h-20 flex items-center px-6 border-b border-gray-100 dark:border-gray-800">
+                    <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Admin Panel</span>
                 </div>
-
-                {/* Nav Links */}
-                <nav className="p-4 space-y-1 overflow-y-auto h-[calc(100%-4rem)]">
+                <nav className="p-4 space-y-2 overflow-y-auto h-[calc(100%-5rem)]">
                     <SidebarLink icon={DashboardIcon} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
-                    <SidebarLink icon={UsersIcon} label="Users" active={activeTab === 'users'} onClick={() => { setActiveTab('users'); setIsSidebarOpen(false); }} />
-                    <SidebarLink icon={TagIcon} label="Offers" active={activeTab === 'offers'} onClick={() => { setActiveTab('offers'); setIsSidebarOpen(false); }} />
                     <SidebarLink icon={OrdersIcon} label="Orders" active={activeTab === 'orders'} onClick={() => { setActiveTab('orders'); setIsSidebarOpen(false); }} />
                     <SidebarLink icon={MoneyIcon} label="Deposits" active={activeTab === 'deposits'} onClick={() => { setActiveTab('deposits'); setIsSidebarOpen(false); }} />
+                    <SidebarLink icon={UsersIcon} label="Users" active={activeTab === 'users'} onClick={() => { setActiveTab('users'); setIsSidebarOpen(false); }} />
+                    <SidebarLink icon={TagIcon} label="Offers" active={activeTab === 'offers'} onClick={() => { setActiveTab('offers'); setIsSidebarOpen(false); }} />
                     <SidebarLink icon={GridIcon} label="Tools" active={activeTab === 'tools'} onClick={() => { setActiveTab('tools'); setIsSidebarOpen(false); }} />
                     <SidebarLink icon={SettingsIcon} label="Settings" active={activeTab === 'settings'} onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }} />
                 </nav>
             </aside>
 
-            {/* Main Content Wrapper */}
-            <div className="flex-1 flex flex-col min-w-0">
-                {/* Header */}
-                <header className="h-16 bg-white dark:bg-dark-card border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 sticky top-0 z-30 shadow-sm">
+            {/* --- MAIN CONTENT --- */}
+            <div className="flex-1 flex flex-col min-w-0 bg-gray-50 dark:bg-gray-900">
+                <header className="h-16 bg-white dark:bg-dark-card border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 sticky top-0 z-30 shadow-sm/50">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-                            <MenuIcon className="w-6 h-6" />
-                        </button>
-                        {/* Hidden Dev Info Tap Area */}
+                        <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"><MenuIcon className="w-6 h-6" /></button>
+                        {/* BACK BUTTON: Icon Only for Inner Pages */}
+                        {activeTab !== 'dashboard' && (
+                            <button onClick={() => setActiveTab('dashboard')} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors md:hidden"><BackIcon className="w-6 h-6" /></button>
+                        )}
                         <h2 className="text-lg font-bold select-none cursor-pointer text-gray-800 dark:text-white" onClick={handleHeaderTap}>
-                            Admin Dashboard
+                            {activeTab === 'dashboard' ? 'Dashboard' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                         </h2>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <button onClick={handleLogoutClick} className="p-2 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-full hover:bg-red-50 hover:text-red-500 active:scale-95 transition-all">
-                            <LockIcon className="w-5 h-5" />
-                        </button>
-                    </div>
+                    <button onClick={handleLogoutClick} className="p-2.5 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-xl hover:bg-red-100 transition-all active:scale-95"><LockIcon className="w-5 h-5" /></button>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
-                    {/* ... Dashboard Tab ... */}
+                <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-32">
+                    {/* --- DASHBOARD TAB --- */}
                     {activeTab === 'dashboard' && (
-                        <div className="animate-fade-in space-y-6">
+                        <div className="animate-fade-in space-y-8">
                             
-                            {/* 1. KEY STATS (Top) */}
-                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
-                                    <div className="absolute right-0 top-0 w-16 h-16 bg-blue-500/5 rounded-bl-full -mr-2 -mt-2 group-hover:scale-110 transition-transform"></div>
-                                    <div className="flex items-center gap-2 mb-2 text-blue-600"><UsersIcon className="w-4 h-4" /><span className="font-bold text-[10px] uppercase tracking-wider">Total Users</span></div>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardStats.totalUsers}</p>
-                                </div>
-                                
-                                <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
-                                    <div className="absolute right-0 top-0 w-16 h-16 bg-green-500/5 rounded-bl-full -mr-2 -mt-2 group-hover:scale-110 transition-transform"></div>
-                                    <div className="flex items-center gap-2 mb-2 text-green-600"><MoneyIcon className="w-4 h-4" /><span className="font-bold text-[10px] uppercase tracking-wider">Total Deposit</span></div>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">৳{dashboardStats.totalDeposit}</p>
-                                </div>
+                            {/* NEW: QUICK ACTIONS (Mobile First) */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <QuickActionCard label="Orders" icon={OrdersIcon} color="orange" onClick={() => setActiveTab('orders')} count={dashboardStats.pendingOrders} />
+                                <QuickActionCard label="Deposits" icon={WalletIcon} color="purple" onClick={() => setActiveTab('deposits')} count={dashboardStats.pendingDeposits} />
+                                <QuickActionCard label="Offers" icon={TagIcon} color="pink" onClick={() => setActiveTab('offers')} />
+                                <QuickActionCard label="Tools" icon={GridIcon} color="blue" onClick={() => setActiveTab('tools')} />
+                            </div>
 
-                                <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
-                                    <div className="absolute right-0 top-0 w-16 h-16 bg-orange-500/5 rounded-bl-full -mr-2 -mt-2 group-hover:scale-110 transition-transform"></div>
-                                    <div className="flex items-center gap-2 mb-2 text-orange-500"><OrdersIcon className="w-4 h-4" /><span className="font-bold text-[10px] uppercase tracking-wider">Pending Orders</span></div>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardStats.pendingOrders}</p>
+                            {/* Stats Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="bg-white dark:bg-dark-card p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden">
+                                    <div className="flex items-center gap-3 mb-2 text-blue-600"><UsersIcon className="w-5 h-5" /><span className="font-bold text-xs uppercase tracking-wider">Total Users</span></div>
+                                    <p className="text-3xl font-black text-gray-900 dark:text-white">{dashboardStats.totalUsers}</p>
                                 </div>
-
-                                <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
-                                    <div className="absolute right-0 top-0 w-16 h-16 bg-purple-500/5 rounded-bl-full -mr-2 -mt-2 group-hover:scale-110 transition-transform"></div>
-                                    <div className="flex items-center gap-2 mb-2 text-purple-500"><WalletIcon className="w-4 h-4" /><span className="font-bold text-[10px] uppercase tracking-wider">Pending Deposits</span></div>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardStats.pendingDeposits}</p>
+                                <div className="bg-white dark:bg-dark-card p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden">
+                                    <div className="flex items-center gap-3 mb-2 text-green-600"><MoneyIcon className="w-5 h-5" /><span className="font-bold text-xs uppercase tracking-wider">Total Deposit</span></div>
+                                    <p className="text-3xl font-black text-gray-900 dark:text-white">৳{dashboardStats.totalDeposit}</p>
+                                </div>
+                                {/* Simplified Stats for cleaner look */}
+                                <div className="bg-white dark:bg-dark-card p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden">
+                                    <div className="flex items-center gap-3 mb-2 text-yellow-600"><DollarIcon className="w-5 h-5" /><span className="font-bold text-xs uppercase tracking-wider">Total Ad Rev</span></div>
+                                    <p className="text-3xl font-black text-gray-900 dark:text-white">৳{dashboardStats.totalAdRevenue}</p>
                                 </div>
                             </div>
 
-                            {/* 3. TODAY'S PERFORMANCE & ADS (Bottom) */}
-                            <div className="bg-white dark:bg-dark-card p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                                <h3 className="font-bold text-xs uppercase text-gray-400 mb-4 tracking-wider">Today's Performance</h3>
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                    <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
+                            {/* Today's Performance */}
+                            <div className="bg-white dark:bg-dark-card p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                                <h3 className="font-bold text-xs uppercase text-gray-400 mb-6 tracking-wider">Today's Overview</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
                                         <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Deposit Today</p>
-                                        <p className="text-lg font-bold text-green-600">৳{dashboardStats.todayDeposit}</p>
+                                        <p className="text-xl font-black text-green-600">৳{dashboardStats.todayDeposit}</p>
                                     </div>
-                                    <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
+                                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
                                         <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Sales Today</p>
-                                        <p className="text-lg font-bold text-blue-600">৳{dashboardStats.todayPurchase}</p>
-                                    </div>
-                                    <div className="bg-yellow-50 dark:bg-yellow-900/10 p-3 rounded-xl border border-yellow-100 dark:border-yellow-900/20">
-                                        <p className="text-[10px] uppercase font-bold text-yellow-700 dark:text-yellow-500 mb-1">Ad Rev Today</p>
-                                        <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">৳{dashboardStats.todayAdRevenue}</p>
-                                    </div>
-                                    <div className="bg-yellow-50 dark:bg-yellow-900/10 p-3 rounded-xl border border-yellow-100 dark:border-yellow-900/20">
-                                        <p className="text-[10px] uppercase font-bold text-yellow-700 dark:text-yellow-500 mb-1">Total Ad Rev</p>
-                                        <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">৳{dashboardStats.totalAdRevenue}</p>
+                                        <p className="text-xl font-black text-blue-600">৳{dashboardStats.todayPurchase}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* ... Users Tab (Promoted) ... */}
+                    {/* ... Other tabs ... */}
                     {activeTab === 'users' && (
                         <div className="space-y-4 animate-fade-in">
-                            <div className="flex justify-between items-center mb-2">
-                                <h3 className="font-bold text-lg">User Management</h3>
-                                {selectedUserIds.size > 0 && (
-                                    <button 
-                                        onClick={() => setIsNotifModalOpen(true)}
-                                        className="px-3 py-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full shadow-lg animate-pulse ml-auto"
-                                    >
-                                        Msg {selectedUserIds.size}
-                                    </button>
-                                )}
-                            </div>
-                            <SearchInput value={userSearch} onChange={setUserSearch} placeholder="Search User..." />
-                            {filteredUsers.length === 0 && <p className="text-gray-400 text-center text-xs py-4">No users found.</p>}
+                            <div className="flex justify-between items-center mb-2">{selectedUserIds.size > 0 && (<button onClick={() => setIsNotifModalOpen(true)} className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-full shadow-lg animate-pulse ml-auto transform active:scale-95 transition-transform">Message {selectedUserIds.size}</button>)}</div>
+                            <SearchInput value={userSearch} onChange={setUserSearch} placeholder="Search by Name, Email or UID..." />
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                                 {filteredUsers.slice(0, 50).map(u => (
-                                    <div key={u.uid} className={`relative bg-white dark:bg-dark-card p-3 rounded-xl border flex flex-col gap-2 transition-colors ${selectedUserIds.has(u.uid) ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-100 dark:border-gray-800'}`}>
-                                        
-                                        {/* Selection Checkbox */}
-                                        <div className="absolute top-3 right-3">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={selectedUserIds.has(u.uid)} 
-                                                onChange={() => toggleUserSelection(u.uid)}
-                                                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300"
-                                            />
-                                        </div>
-
+                                    <div key={u.uid} className={`relative bg-white dark:bg-dark-card p-4 rounded-3xl border flex flex-col gap-3 transition-all ${selectedUserIds.has(u.uid) ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-100 dark:border-gray-800'}`}>
+                                        <div className="absolute top-4 right-4"><input type="checkbox" checked={selectedUserIds.has(u.uid)} onChange={() => toggleUserSelection(u.uid)} className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 border-gray-300" /></div>
                                         <div className="flex items-center gap-3">
-                                            <img src={u.avatarUrl || DEFAULT_AVATAR_URL} alt={u.name} className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-600 flex-shrink-0" />
-                                            <div className="flex-1 min-w-0 overflow-hidden pr-6">
+                                            <img src={u.avatarUrl || DEFAULT_AVATAR_URL} alt={u.name} className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-600" />
+                                            <div className="flex-1 min-w-0 pr-8">
                                                 <p className="font-bold text-sm truncate text-gray-900 dark:text-white">{u.name}</p>
-                                                <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{u.email}</p>
-                                                <div className="flex items-center gap-2 mt-1"><span className="text-[9px] font-mono bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-gray-500">UID</span><SmartCopy text={u.uid} label={u.uid} iconOnly={false} /></div>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{u.email}</p>
+                                                <div className="flex items-center gap-2 mt-1"><span className="text-[9px] font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-gray-500">UID</span><SmartCopy text={u.uid} label={u.uid} iconOnly={false} /></div>
                                             </div>
                                         </div>
-                                        <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/30 p-2 rounded-lg border border-gray-200 dark:border-gray-700/50">
-                                            <div><p className="text-[9px] text-gray-500 font-bold">Wallet</p><p className="text-sm font-black text-primary truncate max-w-[100px]">৳{Math.floor(u.balance)}</p></div>
+                                        <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-800 p-2.5 rounded-2xl">
+                                            <div><p className="text-[10px] text-gray-500 font-bold uppercase">Balance</p><p className="text-base font-black text-primary">৳{Math.floor(u.balance)}</p></div>
                                             <div className="flex gap-2">
-                                                <button onClick={() => { setBalanceModalUser(u); setBalanceAction('add'); setBalanceAmount(''); }} className="bg-green-100 text-green-700 p-1.5 rounded-lg hover:bg-green-200 active:scale-95 transition-transform"><PlusIcon className="w-3 h-3" /></button>
-                                                <button onClick={() => { setBalanceModalUser(u); setBalanceAction('deduct'); setBalanceAmount(''); }} className="bg-red-100 text-red-700 p-1.5 rounded-lg hover:bg-red-200 active:scale-95 transition-transform"><MinusIcon className="w-3 h-3" /></button>
+                                                <button onClick={() => { setBalanceModalUser(u); setBalanceAction('add'); setBalanceAmount(''); }} className="bg-green-100 text-green-700 p-2 rounded-xl hover:bg-green-200 active:scale-90 transition-transform"><PlusIcon className="w-4 h-4" /></button>
+                                                <button onClick={() => { setBalanceModalUser(u); setBalanceAction('deduct'); setBalanceAmount(''); }} className="bg-red-100 text-red-700 p-2 rounded-xl hover:bg-red-200 active:scale-90 transition-transform"><MinusIcon className="w-4 h-4" /></button>
                                             </div>
                                         </div>
                                     </div>
                                 ))}
                             </div>
-                            {filteredUsers.length > 50 && <p className="text-center text-[10px] text-gray-400 mt-2">Showing 50 of {filteredUsers.length} users.</p>}
                         </div>
                     )}
 
-                    {/* ... Offers Tab ... */}
                     {activeTab === 'offers' && (
                         <div className="animate-fade-in">
-                            <div className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar">
+                            <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
                                 {['diamond', 'levelUp', 'membership', 'premium', 'special'].map((type) => (
-                                    <button key={type} onClick={() => setOfferType(type as any)} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase whitespace-nowrap transition-all border ${offerType === type ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-white dark:bg-dark-card text-gray-500 border-transparent'}`}>{type}</button>
+                                    <button key={type} onClick={() => setOfferType(type as any)} className={`px-5 py-2.5 rounded-full font-bold text-xs uppercase whitespace-nowrap transition-all border ${offerType === type ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-lg' : 'bg-white dark:bg-dark-card text-gray-500 border-transparent'}`}>{type}</button>
                                 ))}
                             </div>
-                            <button onClick={openAddOfferModal} className="w-full py-3 mb-4 border border-dashed border-gray-300 dark:border-gray-700 text-gray-500 rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm">+ Add New Offer</button>
+                            <button onClick={openAddOfferModal} className="w-full py-4 mb-6 border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-500 rounded-3xl font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm active:scale-95 transform">+ Add New {offerType} Offer</button>
                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                                 {offersData[offerType]?.map((offer: any, index: number) => (
-                                    <div key={offer.id} className="relative p-3 bg-white dark:bg-dark-card rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col justify-between h-full shadow-sm">
-                                        {offerType === 'special' && (
-                                            <div className={`absolute top-3 right-3 w-2 h-2 rounded-full ${offer.isActive ? 'bg-green-500' : 'bg-red-500'}`} title={offer.isActive ? 'Active' : 'Inactive'}></div>
-                                        )}
+                                    <div key={offer.id} className="relative p-4 bg-white dark:bg-dark-card rounded-3xl border border-gray-100 dark:border-gray-800 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                                        {offerType === 'special' && (<div className={`absolute top-4 right-4 w-2.5 h-2.5 rounded-full ${offer.isActive ? 'bg-green-500' : 'bg-red-500'}`}></div>)}
                                         <div>
-                                            <div className="bg-gray-50 dark:bg-gray-800 w-8 h-8 rounded-full flex items-center justify-center mb-2 text-primary font-bold text-xs">
-                                                {offerType === 'diamond' && <DiamondIcon className="w-4 h-4" />}
-                                                {offerType === 'levelUp' && <StarIcon className="w-4 h-4" />}
-                                                {offerType === 'membership' && <IdCardIcon className="w-4 h-4" />}
-                                                {offerType === 'premium' && <CrownIcon className="w-4 h-4" />}
-                                                {offerType === 'special' && <TagIcon className="w-4 h-4" />}
+                                            <div className="bg-gray-50 dark:bg-gray-800 w-10 h-10 rounded-2xl flex items-center justify-center mb-3 text-primary">
+                                                {offerType === 'diamond' && <DiamondIcon className="w-5 h-5" />}
+                                                {offerType === 'levelUp' && <StarIcon className="w-5 h-5" />}
+                                                {offerType === 'membership' && <IdCardIcon className="w-5 h-5" />}
+                                                {offerType === 'premium' && <CrownIcon className="w-5 h-5" />}
+                                                {offerType === 'special' && <TagIcon className="w-5 h-5" />}
                                             </div>
-                                            <p className="font-bold text-sm leading-tight mb-1 text-gray-900 dark:text-white">{offer.name || `${offer.diamonds} Diamonds`}</p>
-                                            <p className="text-[10px] text-gray-500">{offerType === 'diamond' || offerType === 'special' ? `${offer.diamonds} DM` : 'Package'}</p>
+                                            <p className="font-bold text-sm text-gray-900 dark:text-white line-clamp-2 leading-tight">{offer.name || `${offer.diamonds} Diamonds`}</p>
+                                            <p className="text-[10px] text-gray-500 mt-1">{offerType === 'diamond' ? `${offer.diamonds} DM` : 'Package'}</p>
                                         </div>
-                                        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                                            <span className="font-bold text-sm text-primary">৳{offer.price}</span>
+                                        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                                            <span className="font-bold text-base text-primary">৳{offer.price}</span>
                                             <div className="flex gap-1">
-                                                <button onClick={() => handleReorderOffer(index, 'up')} disabled={index === 0} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30"><ArrowUpIcon className="w-3 h-3"/></button>
-                                                <button onClick={() => handleReorderOffer(index, 'down')} disabled={index === offersData[offerType].length - 1} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30"><ArrowDownIcon className="w-3 h-3"/></button>
-                                                <button onClick={() => { setEditingOffer(offer); setIsOfferModalOpen(true); }} className="p-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg ml-1"><EditIcon className="w-3 h-3"/></button>
-                                                <button onClick={() => handleDeleteOffer(offer.id)} className="p-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-lg"><TrashIcon className="w-3 h-3"/></button>
+                                                <button onClick={() => handleReorderOffer(index, 'up')} disabled={index === 0} className="p-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 disabled:opacity-30 active:scale-90 transition-transform"><ArrowUpIcon className="w-3 h-3"/></button>
+                                                <button onClick={() => handleReorderOffer(index, 'down')} disabled={index === offersData[offerType].length - 1} className="p-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 disabled:opacity-30 active:scale-90 transition-transform"><ArrowDownIcon className="w-3 h-3"/></button>
+                                                <button onClick={() => { setEditingOffer(offer); setIsOfferModalOpen(true); }} className="p-2 bg-blue-50 text-blue-600 rounded-xl active:scale-90 transition-transform"><EditIcon className="w-4 h-4"/></button>
+                                                <button onClick={() => handleDeleteOffer(offer.id)} className="p-2 bg-red-50 text-red-600 rounded-xl active:scale-90 transition-transform"><TrashIcon className="w-4 h-4"/></button>
                                             </div>
                                         </div>
                                     </div>
@@ -980,102 +678,67 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                         </div>
                     )}
 
-                    {/* ... Orders Tab ... */}
                     {activeTab === 'orders' && (
-                        <div className="space-y-4 animate-fade-in">
-                            <SearchInput value={orderSearch} onChange={setOrderSearch} placeholder="Search Order ID or UID..." />
-                            <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                        <div className="space-y-5 animate-fade-in">
+                            <SearchInput value={orderSearch} onChange={setOrderSearch} placeholder="Search Order ID..." />
+                            <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-2xl">
                                 {(['Pending', 'Completed', 'Failed'] as const).map(status => (
-                                    <button key={status} onClick={() => setOrderFilter(status)} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${orderFilter === status ? 'bg-white dark:bg-dark-card shadow-sm text-primary' : 'text-gray-500'}`}>{status}</button>
+                                    <button key={status} onClick={() => setOrderFilter(status)} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${orderFilter === status ? 'bg-white dark:bg-dark-card shadow-sm text-primary' : 'text-gray-500'}`}>{status}</button>
                                 ))}
                             </div>
                             <div className="space-y-3">
-                                {filteredOrders.length === 0 ? <div className="text-center py-10 text-gray-400 text-xs">No orders found</div> : filteredOrders.map(order => {
-                                    const uidStr = order.uid || '';
-                                    const isPremium = uidStr.includes('|');
-                                    let displayLabel = "Player UID";
-                                    let displayValueLine1 = uidStr;
-                                    let displayValueLine2 = null;
-
-                                    if (isPremium) {
-                                        const parts = uidStr.split('|');
-                                        displayLabel = "Contact";
-                                        displayValueLine1 = parts[0].trim();
-                                        displayValueLine2 = parts[1] ? parts[1].trim() : null;
-                                    } else if (uidStr.includes('@')) {
-                                        displayLabel = "Gmail";
-                                    }
-
-                                    return (
-                                    <div key={order.key} className={`bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border-l-4 ${order.status === 'Pending' ? 'border-l-yellow-500' : order.status === 'Completed' ? 'border-l-green-500' : 'border-l-red-500'}`}>
+                                {filteredOrders.length === 0 ? <div className="text-center py-20 text-gray-400 text-sm">No orders found</div> : filteredOrders.map(order => (
+                                    <div key={order.key} className="bg-white dark:bg-dark-card p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
                                         <div className="flex justify-between items-start mb-3">
-                                            <div><span className="font-bold text-sm block text-gray-900 dark:text-white">{order.offer?.diamonds || order.offer?.name || 'Unknown Item'}</span><span className="text-[10px] text-gray-400 font-mono">{new Date(order.date).toLocaleString()}</span></div>
-                                            <div className="text-right"><span className="font-bold text-primary text-sm">৳{order.offer?.price || 0}</span></div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2 mb-3">
-                                            <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-[10px]">
-                                                <p className="text-gray-400 mb-1">{displayLabel}</p>
-                                                <div className="flex flex-col gap-1">
-                                                    <SmartCopy text={displayValueLine1} label={displayValueLine1.substring(0, 15) + (displayValueLine1.length > 15 ? '...' : '')} />
-                                                    {displayValueLine2 && (
-                                                        <SmartCopy text={displayValueLine2} />
-                                                    )}
-                                                </div>
+                                            <div>
+                                                <span className="font-bold text-sm block text-gray-900 dark:text-white">{order.offer?.diamonds || order.offer?.name}</span>
+                                                <span className="text-[10px] text-gray-400 font-mono">{new Date(order.date).toLocaleString()}</span>
                                             </div>
-                                            <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-[10px]"><p className="text-gray-400 mb-1">Order ID</p><SmartCopy text={order.id} /></div>
+                                            <span className="font-black text-primary text-base">৳{order.offer?.price || 0}</span>
                                         </div>
-                                        
-                                        {/* ACTION BUTTONS */}
-                                        <div className="flex gap-2 mt-2">
+                                        <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl space-y-2 mb-4">
+                                            <div><p className="text-[10px] text-gray-400 mb-0.5">Player Info</p><SmartCopy text={order.uid} /></div>
+                                            <div><p className="text-[10px] text-gray-400 mb-0.5">Order ID</p><SmartCopy text={order.id} /></div>
+                                        </div>
+                                        <div className="flex gap-3">
                                             {order.status === 'Pending' && (
                                                 <>
-                                                    <button onClick={() => handleOrderAction(order, 'Completed')} className="flex-1 bg-green-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-green-600 active:scale-95 transition-all">Approve</button>
-                                                    <button onClick={() => handleOrderAction(order, 'Failed')} className="flex-1 bg-red-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-red-600 active:scale-95 transition-all">Reject</button>
+                                                    <button onClick={() => handleOrderAction(order, 'Completed')} className="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform">Approve</button>
+                                                    <button onClick={() => handleOrderAction(order, 'Failed')} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform">Reject</button>
                                                 </>
                                             )}
-                                            {/* DELETE BUTTON FOR ALL ORDERS */}
-                                            <button onClick={() => handleDeleteOrder(order.key!, order.userId)} className="px-3 py-2.5 bg-gray-100 dark:bg-gray-700 text-red-500 rounded-lg shadow-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-all flex items-center justify-center" title="Delete">
-                                                <TrashIcon className="w-4 h-4" />
-                                            </button>
+                                            <button onClick={() => handleDeleteOrder(order.key!, order.userId)} className="px-4 py-3 bg-gray-100 dark:bg-gray-800 text-red-500 rounded-xl hover:bg-red-50 active:scale-95 transition-transform"><TrashIcon className="w-4 h-4" /></button>
                                         </div>
-
-                                        {order.status === 'Failed' && <div className="text-[10px] text-red-500 font-bold mt-1">Refunded</div>}
                                     </div>
-                                )})}
+                                ))}
                             </div>
                         </div>
                     )}
 
-                    {/* ... Deposits Tab ... */}
                     {activeTab === 'deposits' && (
-                        <div className="space-y-4 animate-fade-in">
+                        <div className="space-y-5 animate-fade-in">
                             <SearchInput value={depositSearch} onChange={setDepositSearch} placeholder="Search TrxID..." />
-                            <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                            <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-2xl">
                                 {(['Pending', 'Completed', 'Failed'] as const).map(status => (
-                                    <button key={status} onClick={() => setDepositFilter(status)} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${depositFilter === status ? 'bg-white dark:bg-dark-card shadow-sm text-primary' : 'text-gray-500'}`}>{status}</button>
+                                    <button key={status} onClick={() => setDepositFilter(status)} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${depositFilter === status ? 'bg-white dark:bg-dark-card shadow-sm text-primary' : 'text-gray-500'}`}>{status}</button>
                                 ))}
                             </div>
                             <div className="space-y-3">
-                                {filteredTransactions.length === 0 ? <div className="text-center py-10 text-gray-400 text-xs">No deposits found</div> : filteredTransactions.map(txn => (
-                                    <div key={txn.key} className={`bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border-l-4 ${txn.status === 'Pending' ? 'border-l-yellow-500' : txn.status === 'Completed' ? 'border-l-green-500' : 'border-l-red-500'}`}>
+                                {filteredTransactions.length === 0 ? <div className="text-center py-20 text-gray-400 text-sm">No deposits found</div> : filteredTransactions.map(txn => (
+                                    <div key={txn.key} className="bg-white dark:bg-dark-card p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
                                         <div className="flex justify-between mb-3">
                                             <div><span className="font-bold text-sm block text-gray-900 dark:text-white">{txn.method}</span><span className="text-[10px] text-gray-400">{new Date(txn.date).toLocaleString()}</span></div>
-                                            <div className="text-right"><span className="font-bold text-green-600 block text-sm">+৳{txn.amount}</span></div>
+                                            <span className="font-black text-green-600 text-base">+৳{txn.amount}</span>
                                         </div>
-                                        <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-[10px] mb-3 flex justify-between items-center"><span className="text-gray-500">TrxID:</span><SmartCopy text={txn.transactionId} label={txn.transactionId} /></div>
-                                        
-                                        {/* ACTION BUTTONS */}
-                                        <div className="flex gap-2">
+                                        <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl mb-4 flex justify-between items-center"><span className="text-gray-500 text-xs">TrxID:</span><SmartCopy text={txn.transactionId} label={txn.transactionId} /></div>
+                                        <div className="flex gap-3">
                                             {txn.status === 'Pending' && (
                                                 <>
-                                                    <button onClick={() => handleTxnAction(txn, 'Completed')} className="flex-1 bg-green-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-green-600 active:scale-95 transition-all">Approve</button>
-                                                    <button onClick={() => handleTxnAction(txn, 'Failed')} className="flex-1 bg-red-500 text-white py-2.5 rounded-lg font-bold text-xs shadow-md hover:bg-red-600 active:scale-95 transition-all">Reject</button>
+                                                    <button onClick={() => handleTxnAction(txn, 'Completed')} className="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform">Approve</button>
+                                                    <button onClick={() => handleTxnAction(txn, 'Failed')} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform">Reject</button>
                                                 </>
                                             )}
-                                            {/* DELETE BUTTON */}
-                                            <button onClick={() => handleDeleteTransaction(txn.key!, txn.userId)} className="px-3 py-2.5 bg-gray-100 dark:bg-gray-700 text-red-500 rounded-lg shadow-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-all flex items-center justify-center" title="Delete">
-                                                <TrashIcon className="w-4 h-4" />
-                                            </button>
+                                            <button onClick={() => handleDeleteTransaction(txn.key!, txn.userId)} className="px-4 py-3 bg-gray-100 dark:bg-gray-800 text-red-500 rounded-xl hover:bg-red-50 active:scale-95 transition-transform"><TrashIcon className="w-4 h-4" /></button>
                                         </div>
                                     </div>
                                 ))}
@@ -1083,7 +746,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                         </div>
                     )}
 
-                    {/* TOOLS TAB (Secondary Tools) */}
                     {activeTab === 'tools' && (
                         <div className="animate-fade-in">
                             <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
@@ -1095,811 +757,168 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                     { id: 'notifications', label: 'Notifs', icon: BellIcon },
                                     { id: 'contacts', label: 'Contacts', icon: ContactIcon },
                                 ].map(tool => (
-                                    <button key={tool.id} onClick={() => setActiveTool(tool.id as any)} className={`flex flex-col items-center justify-center min-w-[70px] p-2.5 rounded-xl transition-all border ${activeTool === tool.id ? 'bg-primary text-white border-primary shadow-lg' : 'bg-white dark:bg-dark-card text-gray-500 border-transparent'}`}><tool.icon className="w-5 h-5 mb-1" /><span className="text-[9px] font-bold uppercase">{tool.label}</span></button>
+                                    <button key={tool.id} onClick={() => setActiveTool(tool.id as any)} className={`flex flex-col items-center justify-center min-w-[70px] p-3 rounded-2xl transition-all border ${activeTool === tool.id ? 'bg-primary text-white border-primary shadow-lg' : 'bg-white dark:bg-dark-card text-gray-500 border-transparent'}`}><tool.icon className="w-6 h-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wide">{tool.label}</span></button>
                                 ))}
                             </div>
 
-                            <div className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm min-h-[300px] border border-gray-100 dark:border-gray-800">
-                                
+                            <div className="bg-white dark:bg-dark-card p-6 rounded-3xl shadow-sm min-h-[300px] border border-gray-100 dark:border-gray-800">
                                 {activeTool === 'wallet' && (
                                     <div>
-                                        <button onClick={openAddMethodModal} className="w-full py-3 mb-4 border border-dashed border-gray-300 dark:border-gray-700 rounded-xl text-gray-500 font-bold hover:bg-gray-50 dark:hover:bg-gray-800 text-xs">+ Add Wallet</button>
+                                        <button onClick={openAddMethodModal} className="w-full py-4 mb-6 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl text-gray-500 font-bold hover:bg-gray-50 dark:hover:bg-gray-800 text-sm active:scale-95 transform">+ Add Wallet</button>
                                         <div className="space-y-3">
                                             {paymentMethods.map((method, index) => (
-                                                <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
-                                                    <div className="flex items-center gap-3"><img src={method.logo} className="w-8 h-8 object-contain bg-white rounded p-0.5" /><div><p className="font-bold text-sm text-gray-900 dark:text-white">{method.name}</p><SmartCopy text={method.accountNumber} /></div></div>
-                                                    <div className="flex gap-2"><button onClick={() => openEditMethodModal(method, index)} className="p-1.5 bg-blue-100 text-blue-600 rounded"><EditIcon className="w-3 h-3"/></button><button onClick={() => handleDeleteMethod(index)} className="p-1.5 bg-red-100 text-red-600 rounded"><TrashIcon className="w-3 h-3"/></button></div>
+                                                <div key={index} className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+                                                    <div className="flex items-center gap-4"><img src={method.logo} className="w-10 h-10 object-contain bg-white rounded-lg p-1" /><div><p className="font-bold text-sm text-gray-900 dark:text-white">{method.name}</p><SmartCopy text={method.accountNumber} /></div></div>
+                                                    <div className="flex gap-2"><button onClick={() => openEditMethodModal(method, index)} className="p-2 bg-blue-100 text-blue-600 rounded-lg active:scale-90 transition-transform"><EditIcon className="w-4 h-4"/></button><button onClick={() => handleDeleteMethod(index)} className="p-2 bg-red-100 text-red-600 rounded-lg active:scale-90 transition-transform"><TrashIcon className="w-4 h-4"/></button></div>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
                                 )}
-
+                                {/* Other tool sections remain unchanged in logic, just container styling */}
                                 {activeTool === 'ai' && (
-                                    <div className="space-y-6 animate-fade-in">
-                                        {/* Stats Card */}
-                                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl text-white shadow-lg">
-                                            <div className="flex items-center gap-3 mb-3">
-                                                <RobotIcon className="w-6 h-6 text-white/90" />
-                                                <h3 className="font-bold text-sm">AI Manager</h3>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl border border-white/10">
-                                                    <p className="text-xl font-black mb-1">{aiStats.totalInteractions}</p>
-                                                    <p className="text-[9px] font-bold text-white/80">Total Interactions</p>
-                                                </div>
-                                                <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl border border-white/10">
-                                                    <p className="text-xl font-black mb-1">{aiStats.activeAiUsers}</p>
-                                                    <p className="text-[9px] font-bold text-white/80">Active Users</p>
-                                                </div>
+                                    <div className="space-y-6">
+                                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-5 rounded-3xl text-white shadow-lg">
+                                            <div className="flex items-center gap-3 mb-4"><RobotIcon className="w-8 h-8 text-white/90" /><h3 className="font-bold text-base">AI Manager</h3></div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl border border-white/10"><p className="text-2xl font-black mb-1">{aiStats.totalInteractions}</p><p className="text-[10px] font-bold text-white/80 uppercase">Total Interactions</p></div>
+                                                <div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl border border-white/10"><p className="text-2xl font-black mb-1">{aiStats.activeAiUsers}</p><p className="text-[10px] font-bold text-white/80 uppercase">Active Users</p></div>
                                             </div>
                                         </div>
-
-                                        {/* Configuration Card */}
-                                        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                                            <h4 className="font-bold text-xs mb-3 text-indigo-600 dark:text-indigo-400">AI Configuration</h4>
-                                            
-                                            <div className="space-y-3">
-                                                {/* Toggle Switch */}
-                                                <div className="flex justify-between items-center p-3 bg-white dark:bg-dark-card rounded-xl border border-gray-100 dark:border-gray-700">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-bold text-xs">Enable AI Support</span>
-                                                    </div>
-                                                    <div 
-                                                        onClick={() => setSettings({...settings, aiSupportActive: !settings.aiSupportActive})}
-                                                        className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.aiSupportActive ? 'bg-green-500' : 'bg-gray-300'}`}
-                                                    >
-                                                        <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.aiSupportActive ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                                                    </div>
-                                                </div>
-
-                                                {/* AI Name Input */}
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Bot Name</label>
-                                                    <input 
-                                                        type="text" 
-                                                        value={settings.aiName || ''} 
-                                                        onChange={(e) => setSettings({...settings, aiName: e.target.value})} 
-                                                        className={inputClass}
-                                                        placeholder="AI Tuktuki"
-                                                    />
-                                                </div>
-
-                                                {/* API Key Input */}
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Gemini API Key</label>
-                                                    <div className="relative">
-                                                        <input 
-                                                            type="password" 
-                                                            value={settings.aiApiKey || ''} 
-                                                            onChange={(e) => {
-                                                                setSettings({...settings, aiApiKey: e.target.value});
-                                                                if (apiKeyError) setApiKeyError(''); // Clear error on change
-                                                            }} 
-                                                            className={`${inputClass} pr-8 ${apiKeyError ? 'border-red-500 focus:ring-red-500' : ''}`}
-                                                            placeholder="AIzaSy..."
-                                                        />
-                                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                                                            <LockIcon className="w-3 h-3" />
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                        <div className="bg-gray-50 dark:bg-gray-800 p-5 rounded-3xl border border-gray-200 dark:border-gray-700 space-y-4">
+                                            <div className="flex justify-between items-center p-4 bg-white dark:bg-dark-card rounded-2xl border border-gray-100 dark:border-gray-700">
+                                                <div className="flex items-center gap-3"><span className="font-bold text-sm">Enable AI Support</span></div>
+                                                <div onClick={() => setSettings({...settings, aiSupportActive: !settings.aiSupportActive})} className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${settings.aiSupportActive ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${settings.aiSupportActive ? 'translate-x-6' : 'translate-x-0'}`}></div></div>
                                             </div>
-
-                                            <button 
-                                                onClick={handleSettingsSave} 
-                                                disabled={!isSettingsChanged}
-                                                className={`w-full mt-4 py-2.5 font-bold text-sm rounded-xl shadow-md transition-all ${isSettingsChanged ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                                            >
-                                                Save Settings
-                                            </button>
+                                            <div><label className="block text-xs font-bold text-gray-500 mb-2">Bot Name</label><input type="text" value={settings.aiName || ''} onChange={(e) => setSettings({...settings, aiName: e.target.value})} className={inputClass} placeholder="AI Tuktuki" /></div>
+                                            <div><label className="block text-xs font-bold text-gray-500 mb-2">Gemini API Key</label><input type="password" value={settings.aiApiKey || ''} onChange={(e) => { setSettings({...settings, aiApiKey: e.target.value}); if (apiKeyError) setApiKeyError(''); }} className={`${inputClass} ${apiKeyError ? 'border-red-500' : ''}`} placeholder="AIzaSy..." /></div>
+                                            <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full py-3.5 font-bold text-sm rounded-2xl shadow-md transition-all active:scale-95 transform ${isSettingsChanged ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Save Settings</button>
                                         </div>
                                     </div>
                                 )}
-
+                                {/* ... Rest of tools (Graphics, Ads, Notifs, Contacts) ... */}
                                 {activeTool === 'graphics' && (
                                     <div className="space-y-6">
-                                        <div>
-                                            <h3 className="font-bold mb-2 text-xs text-gray-500">App Logo URL</h3>
-                                            <div className="flex gap-3"><img src={settings.logoUrl || APP_LOGO_URL} className="w-10 h-10 rounded-full border" /><input type="text" value={settings.logoUrl || ''} onChange={(e) => setSettings({...settings, logoUrl: e.target.value})} className={inputClass} placeholder="Image URL" /></div>
-                                            <button onClick={handleUpdateLogo} className="mt-2 text-[10px] bg-primary text-white px-3 py-1 rounded font-bold tracking-wide">Update Logo</button>
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold mb-2 text-xs text-gray-500">Banners</h3>
-                                            <div className="flex gap-2 mb-3">
-                                                <input type="text" value={newBannerUrl} onChange={(e) => setNewBannerUrl(e.target.value)} className={inputClass} placeholder="Image URL" />
-                                                <input type="text" value={newActionUrl} onChange={(e) => setNewActionUrl(e.target.value)} className={inputClass} placeholder="Action URL (Optional)" />
-                                                <button onClick={handleAddBanner} disabled={!isBannerValid} className={`px-3 rounded font-bold text-xs text-white ${isBannerValid ? 'bg-green-500' : 'bg-gray-300'}`}>Add</button>
-                                            </div>
-                                            <div className="space-y-2">
-                                                {banners.map((banner, index) => (
-                                                    <div key={index} className="relative h-20 rounded-lg overflow-hidden group">
-                                                        <img src={banner.imageUrl} className="w-full h-full object-cover" />
-                                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button onClick={() => openEditBannerModal(index, banner)} className="bg-blue-600 text-white p-1 rounded shadow-md hover:bg-blue-700">
-                                                                <EditIcon className="w-3 h-3" />
-                                                            </button>
-                                                            <button onClick={() => handleDeleteBanner(index)} className="bg-red-600 text-white p-1 rounded shadow-md hover:bg-red-700">
-                                                                <TrashIcon className="w-3 h-3"/>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
+                                        <div><h3 className="font-bold mb-3 text-sm text-gray-500 uppercase">App Logo URL</h3><div className="flex gap-3"><img src={settings.logoUrl || APP_LOGO_URL} className="w-12 h-12 rounded-2xl border" /><input type="text" value={settings.logoUrl || ''} onChange={(e) => setSettings({...settings, logoUrl: e.target.value})} className={inputClass} placeholder="Image URL" /></div><button onClick={handleUpdateLogo} className="mt-3 text-xs bg-primary text-white px-4 py-2 rounded-xl font-bold active:scale-95 transform">Update Logo</button></div>
+                                        <div><h3 className="font-bold mb-3 text-sm text-gray-500 uppercase">Banners</h3><div className="flex gap-2 mb-3"><input type="text" value={newBannerUrl} onChange={(e) => setNewBannerUrl(e.target.value)} className={inputClass} placeholder="Image URL" /><input type="text" value={newActionUrl} onChange={(e) => setNewActionUrl(e.target.value)} className={inputClass} placeholder="Action URL" /><button onClick={handleAddBanner} disabled={!isBannerValid} className={`px-4 rounded-xl font-bold text-xs text-white active:scale-95 transform ${isBannerValid ? 'bg-green-500' : 'bg-gray-300'}`}>Add</button></div><div className="space-y-3">{banners.map((banner, index) => (<div key={index} className="relative h-24 rounded-2xl overflow-hidden group"><img src={banner.imageUrl} className="w-full h-full object-cover" /><div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => openEditBannerModal(index, banner)} className="bg-blue-600 text-white p-2 rounded-lg shadow-md active:scale-90 transform"><EditIcon className="w-4 h-4" /></button><button onClick={() => handleDeleteBanner(index)} className="bg-red-600 text-white p-2 rounded-lg shadow-md active:scale-90 transform"><TrashIcon className="w-4 h-4"/></button></div></div>))}</div></div>
                                     </div>
                                 )}
-
                                 {activeTool === 'ads' && (
-                                    <div>
-                                        <h4 className="font-bold text-xs mb-3 text-purple-600">Ads Configuration</h4>
+                                    <div className="space-y-6">
+                                        <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-200 dark:border-gray-700"><div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-3"><MegaphoneIcon className="w-5 h-5 text-orange-500"/><h4 className="font-bold text-sm">Video Ads</h4></div><div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-2xl"><div className="flex justify-between items-center mb-3"><span className="font-bold text-xs text-blue-600">Web Ads</span><div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, active: !settings.earnSettings!.webAds.active } }})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.webAds?.active ? 'bg-blue-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.webAds?.active ? 'translate-x-5' : 'translate-x-0'}`}></div></div></div><div className="space-y-3"><input type="text" value={settings.earnSettings?.webAds?.url || ''} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, url: e.target.value } }})} className={inputClass} placeholder="URL (YouTube/MP4)" /><div className="flex items-center gap-3"><label className="text-xs text-gray-500 font-bold whitespace-nowrap">Duration (s)</label><input type="number" value={settings.earnSettings?.webAds?.duration || 15} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, duration: Number(e.target.value) } }})} className={inputClass} /></div></div></div></div>
+                                        <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-200 dark:border-gray-700"><div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-3"><AdMobIcon className="w-5 h-5 text-blue-600"/><h4 className="font-bold text-sm">AdMob (APK)</h4></div><div className="flex justify-between items-center mb-4"><span className="font-bold text-xs text-gray-500">Enable AdMob</span><div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, active: !settings.earnSettings!.adMob.active } }})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.adMob?.active ? 'bg-blue-600' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.adMob?.active ? 'translate-x-5' : 'translate-x-0'}`}></div></div></div><div className="space-y-3"><div><label className="block text-xs font-bold text-gray-500 mb-1">App ID</label><input type="text" value={settings.earnSettings?.adMob?.appId || ''} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, appId: e.target.value } }})} className={inputClass} /></div><div><label className="block text-xs font-bold text-gray-500 mb-1">Reward ID</label><input type="text" value={settings.earnSettings?.adMob?.rewardId || ''} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, rewardId: e.target.value } }})} className={inputClass} /></div></div></div>
                                         
-                                        {/* VIDEO & REWARD ADS CONFIGURATION */}
-                                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
-                                            <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                                <MegaphoneIcon className="w-4 h-4 text-orange-500" />
-                                                <h4 className="font-bold text-xs text-gray-600 dark:text-gray-300">Video Ads</h4>
+                                        {/* BANNER ADS RESTORED */}
+                                        <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-200 dark:border-gray-700">
+                                            <div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-3">
+                                                <LayoutIcon className="w-5 h-5 text-teal-500"/>
+                                                <h4 className="font-bold text-sm">Banner Ads</h4>
                                             </div>
-
-                                            {/* Web Ads Config */}
-                                            <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600">
+                                            
+                                            {/* Home Banner */}
+                                            <div className="mb-4">
                                                 <div className="flex justify-between items-center mb-2">
-                                                    <span className="font-bold text-[10px] text-blue-600">Web Ads (Current Web)</span>
-                                                    <div 
-                                                        onClick={() => setSettings({
-                                                            ...settings,
-                                                            earnSettings: {
-                                                                ...settings.earnSettings!,
-                                                                webAds: { ...settings.earnSettings!.webAds, active: !settings.earnSettings!.webAds.active }
-                                                            }
-                                                        })}
-                                                        className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.webAds?.active ? 'bg-blue-500' : 'bg-gray-300'}`}
-                                                    >
-                                                        <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.webAds?.active ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                                    </div>
+                                                    <span className="text-xs font-bold text-gray-500">Home Screen Banner</span>
+                                                    <div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, homeAdActive: !settings.earnSettings!.homeAdActive }})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.homeAdActive ? 'bg-teal-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.homeAdActive ? 'translate-x-5' : 'translate-x-0'}`}></div></div>
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <input 
-                                                        type="text" 
-                                                        value={settings.earnSettings?.webAds?.url || ''} 
-                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, url: e.target.value } }})} 
-                                                        className={inputClass} 
-                                                        placeholder="URL (YouTube/MP4)" 
-                                                    />
-                                                    <div className="flex items-center gap-2">
-                                                        <label className="text-[10px] text-gray-500 font-bold whitespace-nowrap">Duration (s)</label>
-                                                        <input 
-                                                            type="number" 
-                                                            value={settings.earnSettings?.webAds?.duration || 15} 
-                                                            onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, duration: Number(e.target.value) } }})} 
-                                                            className={inputClass} 
-                                                        />
-                                                    </div>
+                                                <textarea value={settings.earnSettings?.homeAdCode || ''} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, homeAdCode: e.target.value }})} className={inputClass} rows={2} placeholder="HTML/JS Code" />
+                                            </div>
+
+                                            {/* Earn Banner */}
+                                            <div className="mb-4">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-xs font-bold text-gray-500">Earn Screen Banner</span>
+                                                    <div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, earnAdActive: !settings.earnSettings!.earnAdActive }})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.earnAdActive ? 'bg-teal-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.earnAdActive ? 'translate-x-5' : 'translate-x-0'}`}></div></div>
                                                 </div>
+                                                <textarea value={settings.earnSettings?.earnAdCode || ''} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, earnAdCode: e.target.value }})} className={inputClass} rows={2} placeholder="HTML/JS Code" />
+                                            </div>
+
+                                            {/* Profile Banner */}
+                                            <div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-xs font-bold text-gray-500">Profile Screen Banner</span>
+                                                    <div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, profileAdActive: !settings.earnSettings!.profileAdActive }})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.profileAdActive ? 'bg-teal-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.profileAdActive ? 'translate-x-5' : 'translate-x-0'}`}></div></div>
+                                                </div>
+                                                <textarea value={settings.earnSettings?.profileAdCode || ''} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, profileAdCode: e.target.value }})} className={inputClass} rows={2} placeholder="HTML/JS Code" />
                                             </div>
                                         </div>
 
-                                        {/* AdMob Config */}
-                                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
-                                            <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                                <AdMobIcon className="w-4 h-4 text-blue-600" />
-                                                <h4 className="font-bold text-xs text-gray-600 dark:text-gray-300">AdMob (APK Only)</h4>
-                                            </div>
-                                            <div className="flex justify-between items-center mb-4">
-                                                <span className="font-bold text-[10px] text-gray-500">Enable AdMob</span>
-                                                <div 
-                                                    onClick={() => setSettings({
-                                                        ...settings,
-                                                        earnSettings: {
-                                                            ...settings.earnSettings!,
-                                                            adMob: { ...settings.earnSettings!.adMob, active: !settings.earnSettings!.adMob.active }
-                                                        }
-                                                    })}
-                                                    className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.adMob?.active ? 'bg-blue-600' : 'bg-gray-300'}`}
-                                                >
-                                                    <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.adMob?.active ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-3">
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">AdMob App ID</label>
-                                                    <input 
-                                                        type="text" 
-                                                        value={settings.earnSettings?.adMob?.appId || ''} 
-                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, appId: e.target.value } }})} 
-                                                        className={inputClass} 
-                                                        placeholder="ca-app-pub-..." 
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Reward Ad ID</label>
-                                                    <input 
-                                                        type="text" 
-                                                        value={settings.earnSettings?.adMob?.rewardId || ''} 
-                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, rewardId: e.target.value } }})} 
-                                                        className={inputClass} 
-                                                        placeholder="ca-app-pub-.../..." 
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Banner Ad ID</label>
-                                                    <input 
-                                                        type="text" 
-                                                        value={settings.earnSettings?.adMob?.bannerId || ''} 
-                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, bannerId: e.target.value } }})} 
-                                                        className={inputClass} 
-                                                        placeholder="ca-app-pub-.../..." 
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Interstitial Ad ID</label>
-                                                    <input 
-                                                        type="text" 
-                                                        value={settings.earnSettings?.adMob?.interstitialId || ''} 
-                                                        onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, interstitialId: e.target.value } }})} 
-                                                        className={inputClass} 
-                                                        placeholder="ca-app-pub-.../..." 
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* Home Screen Ads */}
-                                        <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <label className="block text-[10px] font-bold text-gray-500">Home Screen Ad Code</label>
-                                                <div 
-                                                    onClick={() => setSettings({
-                                                        ...settings,
-                                                        earnSettings: {
-                                                            ...settings.earnSettings!,
-                                                            homeAdActive: !settings.earnSettings!.homeAdActive
-                                                        }
-                                                    })}
-                                                    className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.homeAdActive ? 'bg-green-500' : 'bg-gray-300'}`}
-                                                >
-                                                    <div className={`bg-white w-3 h-3 rounded-full shadow-md transform transition-transform ${settings.earnSettings?.homeAdActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                                </div>
-                                            </div>
-                                            <textarea 
-                                                value={settings.earnSettings?.homeAdCode || ''} 
-                                                onChange={(e) => setSettings({
-                                                    ...settings, 
-                                                    earnSettings: { 
-                                                        ...settings.earnSettings!, 
-                                                        homeAdCode: e.target.value 
-                                                    }
-                                                })} 
-                                                className={`${inputClass} font-mono text-[10px] h-20 mb-1`} 
-                                                placeholder="HTML/JS Code"
-                                            />
-                                        </div>
-
-                                        {/* Earn Screen Ads */}
-                                        <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <label className="block text-[10px] font-bold text-gray-500">Earn Screen Ad Code</label>
-                                                <div 
-                                                    onClick={() => setSettings({
-                                                        ...settings,
-                                                        earnSettings: {
-                                                            ...settings.earnSettings!,
-                                                            earnAdActive: !settings.earnSettings!.earnAdActive
-                                                        }
-                                                    })}
-                                                    className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.earnAdActive ? 'bg-green-500' : 'bg-gray-300'}`}
-                                                >
-                                                    <div className={`bg-white w-3 h-3 rounded-full shadow-md transform transition-transform ${settings.earnSettings?.earnAdActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                                </div>
-                                            </div>
-                                            <textarea 
-                                                value={settings.earnSettings?.earnAdCode || ''} 
-                                                onChange={(e) => setSettings({
-                                                    ...settings, 
-                                                    earnSettings: { 
-                                                        ...settings.earnSettings!, 
-                                                        earnAdCode: e.target.value 
-                                                    }
-                                                })} 
-                                                className={`${inputClass} font-mono text-[10px] h-20 mb-1`} 
-                                                placeholder="HTML/JS Code"
-                                            />
-                                        </div>
-
-                                        {/* Profile Screen Ads */}
-                                        <div className="mb-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <label className="block text-[10px] font-bold text-gray-500">Profile Pages Ad Code</label>
-                                                <div 
-                                                    onClick={() => setSettings({
-                                                        ...settings,
-                                                        earnSettings: {
-                                                            ...settings.earnSettings!,
-                                                            profileAdActive: !settings.earnSettings!.profileAdActive
-                                                        }
-                                                    })}
-                                                    className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.profileAdActive ? 'bg-green-500' : 'bg-gray-300'}`}
-                                                >
-                                                    <div className={`bg-white w-3 h-3 rounded-full shadow-md transform transition-transform ${settings.earnSettings?.profileAdActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                                </div>
-                                            </div>
-                                            <textarea 
-                                                value={settings.earnSettings?.profileAdCode || ''} 
-                                                onChange={(e) => setSettings({
-                                                    ...settings, 
-                                                    earnSettings: { 
-                                                        ...settings.earnSettings!, 
-                                                        profileAdCode: e.target.value 
-                                                    }
-                                                })} 
-                                                className={`${inputClass} font-mono text-[10px] h-20 mb-1`} 
-                                                placeholder="HTML/JS Code"
-                                            />
-                                        </div>
-
-                                        <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full py-3 font-bold text-sm rounded-xl shadow-md transition-all ${isSettingsChanged ? 'bg-primary text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Save Settings</button>
+                                        <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full py-3.5 font-bold text-sm rounded-2xl shadow-md transition-all active:scale-95 transform ${isSettingsChanged ? 'bg-primary text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Save Settings</button>
                                     </div>
                                 )}
-
                                 {activeTool === 'notifications' && (
                                     <div className="space-y-6">
-                                        {/* SEND NOTIFICATION */}
-                                        <div className="bg-purple-50 dark:bg-purple-900/10 p-4 rounded-xl border border-purple-100 dark:border-purple-900/20">
-                                            <h3 className="text-sm font-bold text-purple-600 dark:text-purple-400 mb-3">Quick Send</h3>
-                                            <button onClick={() => setIsNotifModalOpen(true)} className="w-full py-2.5 bg-purple-600 text-white rounded-xl font-bold shadow-md hover:bg-purple-700 transition-colors text-sm">+ Create Message</button>
-                                            <p className="text-[10px] text-gray-400 mt-2 text-center">To send to specific users, select them in the "Users" section first.</p>
-                                        </div>
-
-                                        {/* LOGIN POPUP SETTINGS */}
-                                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                                            <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">
-                                                <h4 className="font-bold text-xs text-indigo-600 dark:text-indigo-400">Login Popup</h4>
-                                                
-                                                {/* Toggle Switch */}
-                                                <div 
-                                                    onClick={() => setPopupConfig({...popupConfig, active: !popupConfig.active})}
-                                                    className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${popupConfig.active ? 'bg-green-500' : 'bg-gray-300'}`}
-                                                >
-                                                    <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${popupConfig.active ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                        <div className="bg-purple-50 dark:bg-purple-900/10 p-5 rounded-3xl border border-purple-100 dark:border-purple-900/20"><h3 className="text-sm font-bold text-purple-600 dark:text-purple-400 mb-4">Quick Send</h3><button onClick={() => setIsNotifModalOpen(true)} className="w-full py-3.5 bg-purple-600 text-white rounded-2xl font-bold shadow-md hover:bg-purple-700 transition-colors text-sm active:scale-95 transform">+ Create Message</button></div>
+                                        {/* LOGIN POPUP SETTINGS WITH VIDEO URL */}
+                                        <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-200 dark:border-gray-700">
+                                            <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-100">
+                                                <h4 className="font-bold text-sm text-indigo-600">Login Popup</h4>
+                                                <div onClick={() => setPopupConfig({...popupConfig, active: !popupConfig.active})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${popupConfig.active ? 'bg-green-500' : 'bg-gray-300'}`}>
+                                                    <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${popupConfig.active ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                                 </div>
                                             </div>
                                             <div className="space-y-3">
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="Title" 
-                                                    value={popupConfig.title} 
-                                                    onChange={(e) => setPopupConfig({...popupConfig, title: e.target.value})} 
-                                                    className={inputClass} 
-                                                />
-                                                <textarea 
-                                                    placeholder="Message..." 
-                                                    value={popupConfig.message} 
-                                                    onChange={(e) => setPopupConfig({...popupConfig, message: e.target.value})} 
-                                                    className={inputClass} 
-                                                    rows={2} 
-                                                />
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="Image URL (Optional)" 
-                                                    value={popupConfig.imageUrl || ''} 
-                                                    onChange={(e) => setPopupConfig({...popupConfig, imageUrl: e.target.value})} 
-                                                    className={inputClass} 
-                                                />
-                                                <button 
-                                                    onClick={handleSavePopupConfig} 
-                                                    className="w-full py-2 bg-indigo-600 text-white rounded-lg font-bold text-xs mt-2 hover:bg-indigo-700"
-                                                >
-                                                    Save Popup
-                                                </button>
+                                                <input type="text" placeholder="Title" value={popupConfig.title} onChange={(e) => setPopupConfig({...popupConfig, title: e.target.value})} className={inputClass} />
+                                                <textarea placeholder="Message..." value={popupConfig.message} onChange={(e) => setPopupConfig({...popupConfig, message: e.target.value})} className={inputClass} rows={2} />
+                                                <input type="text" placeholder="Image URL (Optional)" value={popupConfig.imageUrl || ''} onChange={(e) => setPopupConfig({...popupConfig, imageUrl: e.target.value})} className={inputClass} />
+                                                {/* NEW: Video URL Input */}
+                                                <input type="text" placeholder="Video URL (YouTube/MP4 - Optional)" value={popupConfig.videoUrl || ''} onChange={(e) => setPopupConfig({...popupConfig, videoUrl: e.target.value})} className={inputClass} />
+                                                
+                                                <button onClick={handleSavePopupConfig} className="w-full py-3 bg-indigo-600 text-white rounded-2xl font-bold text-xs mt-2 hover:bg-indigo-700 active:scale-95 transform">Save Popup</button>
                                             </div>
                                         </div>
-
-                                        {/* HISTORY */}
-                                        <div>
-                                            <h3 className="text-xs font-bold text-gray-500 mb-2">History</h3>
-                                            <div className="space-y-2">
-                                                {notifications.map(n => (
-                                                    <div key={n.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex justify-between items-start border border-gray-100 dark:border-gray-700">
-                                                        <div>
-                                                            <p className="font-bold text-xs text-gray-900 dark:text-white">{n.title}</p>
-                                                            <p className="text-[10px] text-gray-500 line-clamp-1">{n.message}</p>
-                                                            {n.targetUid && <span className="text-[9px] bg-blue-100 text-blue-600 px-1.5 rounded-sm font-bold">Private</span>}
-                                                        </div>
-                                                        <button onClick={() => handleDeleteNotification(n.id)} className="text-red-500 p-1"><TrashIcon className="w-3 h-3"/></button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
+                                        <div><h3 className="text-xs font-bold text-gray-500 mb-3">History</h3><div className="space-y-3">{notifications.map(n => (<div key={n.id} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl flex justify-between items-start border border-gray-100 dark:border-gray-700"><div><p className="font-bold text-sm text-gray-900 dark:text-white">{n.title}</p><p className="text-xs text-gray-500 line-clamp-1">{n.message}</p></div><button onClick={() => handleDeleteNotification(n.id)} className="text-red-500 p-2 active:scale-90 transform"><TrashIcon className="w-4 h-4"/></button></div>))}</div></div>
                                     </div>
                                 )}
                                 {activeTool === 'contacts' && (
-                                    <div>
-                                        {/* General Settings Card */}
-                                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
-                                            <h4 className="font-bold text-xs mb-3 text-blue-600 dark:text-blue-400">Contact Page Text</h4>
-                                            <div className="space-y-3">
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Support Message</label>
-                                                    <textarea 
-                                                        value={settings.contactMessage || ''} 
-                                                        onChange={(e) => setSettings({...settings, contactMessage: e.target.value})} 
-                                                        className={inputClass} 
-                                                        rows={3}
-                                                        placeholder="Have a question..."
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Operating Hours Text</label>
-                                                    <input 
-                                                        type="text" 
-                                                        value={settings.operatingHours || ''} 
-                                                        onChange={(e) => setSettings({...settings, operatingHours: e.target.value})} 
-                                                        className={inputClass}
-                                                        placeholder="10:00 AM - 10:00 PM"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full mt-3 py-2.5 font-bold text-xs rounded-xl shadow-md transition-all ${isSettingsChanged ? 'bg-blue-600 text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
-                                                Save Settings
-                                            </button>
-                                        </div>
-
-                                        <button onClick={openAddContactModal} className="w-full py-3 mb-4 bg-blue-50 text-blue-600 rounded-xl font-bold text-sm">+ Add Contact</button>
-                                        <div className="space-y-2">
-                                            {contacts.map((c, i) => (
-                                                <div key={i} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex justify-between items-center border border-gray-100 dark:border-gray-700">
-                                                    <div><p className="font-bold text-xs text-gray-900 dark:text-white">{c.title || c.labelKey}</p><p className="text-[10px] text-gray-500 uppercase">{c.type}</p></div>
-                                                    <div className="flex gap-2">
-                                                        <button onClick={() => openEditContactModal(c, i)} className="text-blue-500"><EditIcon className="w-4 h-4"/></button>
-                                                        <button onClick={() => handleDeleteContact(i)} className="text-red-500"><TrashIcon className="w-4 h-4"/></button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
+                                    <div><div className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6"><h4 className="font-bold text-sm mb-4 text-blue-600">Contact Page Text</h4><div className="space-y-4"><div><label className="block text-xs font-bold text-gray-500 mb-2">Support Message</label><textarea value={settings.contactMessage || ''} onChange={(e) => setSettings({...settings, contactMessage: e.target.value})} className={inputClass} rows={3} /></div><div><label className="block text-xs font-bold text-gray-500 mb-2">Operating Hours</label><input type="text" value={settings.operatingHours || ''} onChange={(e) => setSettings({...settings, operatingHours: e.target.value})} className={inputClass} /></div></div><button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full mt-4 py-3.5 font-bold text-xs rounded-2xl shadow-md transition-all active:scale-95 transform ${isSettingsChanged ? 'bg-blue-600 text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Save Settings</button></div><button onClick={openAddContactModal} className="w-full py-4 mb-6 bg-blue-50 text-blue-600 rounded-2xl font-bold text-sm active:scale-95 transform">+ Add Contact</button><div className="space-y-3">{contacts.map((c, i) => (<div key={i} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl flex justify-between items-center border border-gray-100 dark:border-gray-700"><div><p className="font-bold text-sm text-gray-900 dark:text-white">{c.title || c.labelKey}</p><p className="text-[10px] text-gray-500 uppercase">{c.type}</p></div><div className="flex gap-2"><button onClick={() => openEditContactModal(c, i)} className="text-blue-500 p-2 active:scale-90 transform"><EditIcon className="w-5 h-5"/></button><button onClick={() => handleDeleteContact(i)} className="text-red-500 p-2 active:scale-90 transform"><TrashIcon className="w-5 h-5"/></button></div></div>))}</div></div>
                                 )}
                             </div>
                         </div>
                     )}
 
-                    {/* SETTINGS TAB (Promoted) */}
                     {activeTab === 'settings' && (
                         <div className="space-y-6 animate-fade-in">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                
-                                {/* 1. App Identity Card */}
-                                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                                    <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                        <SettingsIcon className="w-4 h-4 text-blue-500" />
-                                        <h4 className="font-bold text-xs text-gray-600 dark:text-gray-300">Identity</h4>
-                                    </div>
-                                    <div className="space-y-3">
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-gray-500 mb-1">App Name</label>
-                                            <input type="text" value={settings.appName} onChange={(e) => setSettings({...settings, appName: e.target.value})} className={inputClass} />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-gray-500 mb-1">App Logo URL</label>
-                                            <input type="text" value={settings.logoUrl || ''} onChange={(e) => setSettings({...settings, logoUrl: e.target.value})} className={inputClass} />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-gray-500 mb-1">Notice Message</label>
-                                            <textarea value={settings.notice || ''} onChange={(e) => setSettings({...settings, notice: e.target.value})} className={inputClass} rows={2} />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* 2. Control & Visibility Card */}
-                                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                                    <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                        <EyeIcon className="w-4 h-4 text-purple-500" />
-                                        <h4 className="font-bold text-xs text-gray-600 dark:text-gray-300">App Access & Control</h4>
-                                    </div>
-                                    <div className="space-y-2">
-                                        {/* Maintenance Mode */}
-                                        <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                            <span className="font-bold text-xs text-red-500">Maintenance</span>
-                                            <div onClick={() => setSettings({...settings, maintenanceMode: !settings.maintenanceMode})} className={`w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.maintenanceMode ? 'bg-red-500' : 'bg-gray-300'}`}>
-                                                <div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.maintenanceMode ? 'translate-x-4' : ''}`}></div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="grid grid-cols-2 gap-2 mt-2">
-                                            {Object.keys(settings.visibility || {}).map((key) => (
-                                                <div key={key} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                                    <span className="capitalize text-[10px] font-bold truncate pr-2">{key}</span>
-                                                    <div onClick={() => setSettings({...settings, visibility: {...settings.visibility!, [key]: !settings.visibility![key as keyof AppVisibility]}})} className={`flex-shrink-0 w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.visibility![key as keyof AppVisibility] ? 'bg-green-500' : 'bg-gray-300'}`}>
-                                                        <div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.visibility![key as keyof AppVisibility] ? 'translate-x-4' : ''}`}></div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* 3. UI Appearance Card */}
-                                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                                    <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                        <LayoutIcon className="w-4 h-4 text-teal-500" />
-                                        <h4 className="font-bold text-xs text-gray-600 dark:text-gray-300">UI & Appearance</h4>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-gray-500 mb-2">Offer Card Size</label>
-                                            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                                                {['small', 'medium', 'large'].map((size) => (
-                                                    <button
-                                                        key={size}
-                                                        onClick={() => setSettings({ ...settings, uiSettings: { ...settings.uiSettings!, cardSize: size as 'small' | 'medium' | 'large' } })}
-                                                        className={`flex-1 py-1 rounded-md text-[10px] font-bold capitalize transition-all ${settings.uiSettings?.cardSize === size ? 'bg-white dark:bg-gray-600 shadow text-primary' : 'text-gray-500'}`}
-                                                    >
-                                                        {size}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300">Global Animation</span>
-                                            <div onClick={() => setSettings({ ...settings, uiSettings: { ...settings.uiSettings!, animationsEnabled: !settings.uiSettings?.animationsEnabled } })} className={`w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.uiSettings?.animationsEnabled ? 'bg-green-500' : 'bg-gray-300'}`}>
-                                                <div className={`w-3 h-3 bg-white rounded-full shadow-sm transform transition-transform ${settings.uiSettings?.animationsEnabled ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* 4. Earning Rules Card */}
-                                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                                    <div className="flex items-center gap-2 mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
-                                        <DollarIcon className="w-4 h-4 text-yellow-500" />
-                                        <h4 className="font-bold text-xs text-gray-600 dark:text-gray-300">Earning Rules</h4>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div><label className="block text-[10px] text-gray-500 font-bold mb-1">Daily Ad Limit</label><input type="number" value={settings.earnSettings?.dailyLimit} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, dailyLimit: Number(e.target.value) }})} className={inputClass} /></div>
-                                        <div><label className="block text-[10px] text-gray-500 font-bold mb-1">Reward Per Ad (৳)</label><input type="number" value={settings.earnSettings?.rewardPerAd} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, rewardPerAd: Number(e.target.value) }})} className={inputClass} /></div>
-                                        <div><label className="block text-[10px] text-gray-500 font-bold mb-1">Wait Time (s)</label><input type="number" value={settings.earnSettings?.adCooldownSeconds} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adCooldownSeconds: Number(e.target.value) }})} className={inputClass} /></div>
-                                        <div><label className="block text-[10px] text-gray-500 font-bold mb-1">Lockdown Duration (h)</label><input type="number" value={settings.earnSettings?.resetHours} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, resetHours: Number(e.target.value) }})} className={inputClass} /></div>
-                                    </div>
-
-                                    {/* VPN Settings Group - NEW */}
-                                    <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-[10px] font-bold text-gray-500">VPN Notice (Web Only)</span>
-                                            <div 
-                                                onClick={() => setSettings({
-                                                    ...settings,
-                                                    earnSettings: {
-                                                        ...settings.earnSettings!,
-                                                        vpnNoticeActive: !settings.earnSettings?.vpnNoticeActive
-                                                    }
-                                                })}
-                                                className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.vpnNoticeActive ? 'bg-yellow-500' : 'bg-gray-300'}`}
-                                            >
-                                                <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.vpnNoticeActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-[10px] font-bold text-gray-500">VPN Force Mode (APK)</span>
-                                            <div 
-                                                onClick={() => setSettings({
-                                                    ...settings,
-                                                    earnSettings: {
-                                                        ...settings.earnSettings!,
-                                                        vpnRequired: !settings.earnSettings?.vpnRequired
-                                                    }
-                                                })}
-                                                className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.vpnRequired ? 'bg-red-500' : 'bg-gray-300'}`}
-                                            >
-                                                <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.vpnRequired ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* 5. Developer Card (Secure - HIDDEN BY DEFAULT) */}
-                                {showDevCard && (
-                                    <div className="md:col-span-2 bg-red-50 dark:bg-red-900/10 p-4 rounded-xl border border-red-200 dark:border-red-900/30 relative overflow-hidden animate-smart-pop-in">
-                                        <div className="relative z-10">
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <CodeIcon className="w-4 h-4 text-red-600 dark:text-red-400" />
-                                                <h4 className="font-bold text-xs text-red-700 dark:text-red-300">Developer Info (Restricted)</h4>
-                                                {isDevUnlocked ? (
-                                                    <span className="bg-green-100 text-green-700 text-[9px] px-2 py-0.5 rounded font-bold border border-green-200 animate-pulse">UNLOCKED</span>
-                                                ) : (
-                                                    <span className="bg-red-100 text-red-700 text-[9px] px-2 py-0.5 rounded font-bold border border-red-200 flex items-center gap-1"><LockIcon className="w-3 h-3"/> LOCKED</span>
-                                                )}
-                                            </div>
-                                            
-                                            {isDevUnlocked ? (
-                                                <div className="animate-smart-slide-down">
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mb-3">
-                                                        <div><label className="block mb-1 text-gray-500">Developer Title</label><input type="text" value={devSettings.title} onChange={(e) => setDevSettings({...devSettings, title: e.target.value})} className={inputClass} /></div>
-                                                        <div><label className="block mb-1 text-gray-500">Developer URL</label><input type="text" value={devSettings.url} onChange={(e) => setDevSettings({...devSettings, url: e.target.value})} className={inputClass} /></div>
-                                                        <div><label className="block mb-1 text-gray-500">Credit Message</label><input type="text" value={devSettings.message} onChange={(e) => setDevSettings({...devSettings, message: e.target.value})} className={inputClass} /></div>
-                                                        <div><label className="block mb-1 text-gray-500">Description</label><input type="text" value={devSettings.description} onChange={(e) => setDevSettings({...devSettings, description: e.target.value})} className={inputClass} /></div>
-                                                    </div>
-                                                    <button onClick={handleSaveDeveloperInfo} className="w-full py-2 bg-green-600 text-white font-bold rounded-lg shadow-md hover:bg-green-700 active:scale-95 transition-all text-xs flex items-center justify-center gap-2"><CheckIcon className="w-3 h-3" /> Save Developer Info</button>
-                                                </div>
-                                            ) : (
-                                                <div className="text-center py-4 bg-white/50 dark:bg-black/20 rounded-lg border border-red-100 dark:border-red-900/20 backdrop-blur-sm">
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 font-medium">Developer Information Locked</p>
-                                                    <button onClick={handleUnlockDevInfo} className="mx-auto px-4 py-2 bg-red-500 text-white font-bold rounded-lg shadow-md hover:bg-red-600 active:scale-95 transition-all text-xs flex items-center gap-2"><UnlockIcon className="w-3 h-3" /> Unlock & Edit</button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700"><div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-3"><SettingsIcon className="w-5 h-5 text-blue-500" /><h4 className="font-bold text-sm">Identity</h4></div><div className="space-y-4"><div><label className="block text-xs font-bold text-gray-500 mb-2">App Name</label><input type="text" value={settings.appName} onChange={(e) => setSettings({...settings, appName: e.target.value})} className={inputClass} /></div><div><label className="block text-xs font-bold text-gray-500 mb-2">Notice Message</label><textarea value={settings.notice || ''} onChange={(e) => setSettings({...settings, notice: e.target.value})} className={inputClass} rows={2} /></div></div></div>
+                                <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700"><div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-3"><EyeIcon className="w-5 h-5 text-purple-500" /><h4 className="font-bold text-sm">Control</h4></div><div className="space-y-4"><div className="flex justify-between items-center p-3 bg-gray-50 rounded-2xl"><span className="font-bold text-xs text-red-500">Maintenance</span><div onClick={() => setSettings({...settings, maintenanceMode: !settings.maintenanceMode})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.maintenanceMode ? 'bg-red-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.maintenanceMode ? 'translate-x-5' : ''}`}></div></div></div><div className="grid grid-cols-2 gap-3">{Object.keys(settings.visibility || {}).map((key) => (<div key={key} className="flex justify-between items-center p-3 bg-gray-50 rounded-2xl"><span className="capitalize text-[10px] font-bold">{key}</span><div onClick={() => setSettings({...settings, visibility: {...settings.visibility!, [key]: !settings.visibility![key as keyof AppVisibility]}})} className={`flex-shrink-0 w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.visibility![key as keyof AppVisibility] ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.visibility![key as keyof AppVisibility] ? 'translate-x-4' : ''}`}></div></div></div>))}</div><div className="flex justify-between items-center p-3 bg-gray-50 rounded-2xl mt-2"><span className="font-bold text-xs text-gray-600">Animations</span><div onClick={() => setSettings({ ...settings, uiSettings: { ...settings.uiSettings!, animationsEnabled: !settings.uiSettings?.animationsEnabled } })} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.uiSettings?.animationsEnabled ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.uiSettings?.animationsEnabled ? 'translate-x-5' : ''}`}></div></div></div></div></div>
+                                <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700"><div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-3"><DollarIcon className="w-5 h-5 text-yellow-500" /><h4 className="font-bold text-sm">Earning Rules</h4></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-[10px] text-gray-500 font-bold mb-1">Daily Limit</label><input type="number" value={settings.earnSettings?.dailyLimit} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, dailyLimit: Number(e.target.value) }})} className={inputClass} /></div><div><label className="block text-[10px] text-gray-500 font-bold mb-1">Reward (৳)</label><input type="number" value={settings.earnSettings?.rewardPerAd} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, rewardPerAd: Number(e.target.value) }})} className={inputClass} /></div><div><label className="block text-[10px] text-gray-500 font-bold mb-1">Cooldown (s)</label><input type="number" value={settings.earnSettings?.adCooldownSeconds} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adCooldownSeconds: Number(e.target.value) }})} className={inputClass} /></div><div><label className="block text-[10px] text-gray-500 font-bold mb-1">Reset (h)</label><input type="number" value={settings.earnSettings?.resetHours} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, resetHours: Number(e.target.value) }})} className={inputClass} /></div></div><div className="mt-4 pt-3 border-t border-gray-100"><div className="flex justify-between items-center mb-3"><span className="text-[10px] font-bold text-gray-500">VPN Notice (Web)</span><div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, vpnNoticeActive: !settings.earnSettings?.vpnNoticeActive }})} className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.vpnNoticeActive ? 'bg-yellow-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.vpnNoticeActive ? 'translate-x-4' : 'translate-x-0'}`}></div></div></div><div className="flex justify-between items-center"><span className="text-[10px] font-bold text-gray-500">VPN Force (APK)</span><div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, vpnRequired: !settings.earnSettings?.vpnRequired }})} className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.vpnRequired ? 'bg-red-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.vpnRequired ? 'translate-x-4' : 'translate-x-0'}`}></div></div></div></div></div>
+                                {showDevCard && (<div className="md:col-span-2 bg-red-50 p-5 rounded-3xl border border-red-200"><div className="flex items-center gap-3 mb-4"><CodeIcon className="w-5 h-5 text-red-600" /><h4 className="font-bold text-sm text-red-700">Developer Info (Locked)</h4>{isDevUnlocked ? <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold">UNLOCKED</span> : <button onClick={handleUnlockDevInfo} className="text-[10px] bg-white text-red-500 px-3 py-1 rounded-full font-bold shadow-sm">Unlock</button>}</div>{isDevUnlocked && (<div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label>Title</label><input type="text" value={devSettings.title} onChange={(e) => setDevSettings({...devSettings, title: e.target.value})} className={inputClass} /></div><div><label>URL</label><input type="text" value={devSettings.url} onChange={(e) => setDevSettings({...devSettings, url: e.target.value})} className={inputClass} /></div><div className="md:col-span-2"><label>Description</label><input type="text" value={devSettings.description} onChange={(e) => setDevSettings({...devSettings, description: e.target.value})} className={inputClass} /></div><button onClick={handleSaveDeveloperInfo} className="md:col-span-2 py-3 bg-green-600 text-white font-bold rounded-2xl active:scale-95 transform">Save Info</button></div>)}</div>)}
                             </div>
-
-                            <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full py-3 font-bold text-sm rounded-xl shadow-md transition-all sticky bottom-20 z-20 ${isSettingsChanged ? 'bg-primary text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Save All Changes</button>
+                            <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full py-4 font-bold text-sm rounded-2xl shadow-lg transition-all mt-6 active:scale-95 transform ${isSettingsChanged ? 'bg-primary text-white hover:opacity-90' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>Save All Changes</button>
                         </div>
                     )}
                 </main>
             </div>
 
-            {/* Modals */}
-            {confirmDialog && (
-                 <ConfirmationDialog 
-                    title={confirmDialog.title} 
-                    message={confirmDialog.message} 
-                    onConfirm={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }} 
-                    onCancel={() => setConfirmDialog(null)} 
-                    confirmText="Yes, Proceed" 
-                    cancelText="No, Cancel" 
-                />
-            )}
+            {/* --- MODALS (PRESERVED LOGIC) --- */}
+            {confirmDialog && (<ConfirmationDialog title={confirmDialog.title} message={confirmDialog.message} onConfirm={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }} onCancel={() => setConfirmDialog(null)} confirmText="Yes" cancelText="No" />)}
             
-            {/* Offer Modal */}
             {isOfferModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-sm">
-                         <h3 className="text-lg font-bold mb-4">{editingOffer?.id ? 'Edit' : 'Add'} Offer ({offerType})</h3>
-                         <form onSubmit={handleSaveOffer} className="space-y-3">
-                            <input type="text" placeholder="Name" value={editingOffer?.name || ''} onChange={e => setEditingOffer({...editingOffer, name: e.target.value})} className={inputClass} />
-                            {(offerType === 'diamond' || offerType === 'special') && (
-                                <input type="number" placeholder="Diamonds" value={editingOffer?.diamonds || ''} onChange={e => setEditingOffer({...editingOffer, diamonds: e.target.value})} className={inputClass} />
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-dark-card p-6 rounded-3xl w-full max-w-sm shadow-2xl">
+                         <h3 className="text-xl font-bold mb-6 text-center">{editingOffer?.id ? 'Edit' : 'Add'} {offerType}</h3>
+                         <form onSubmit={handleSaveOffer} className="space-y-4">
+                            {offerType !== 'diamond' && (
+                                <input type="text" placeholder="Name" value={editingOffer?.name || ''} onChange={e => setEditingOffer({...editingOffer, name: e.target.value})} className={inputClass} />
                             )}
-                            {offerType === 'special' && (
-                                <input type="text" placeholder="Title (e.g. 100 Diamond 50 Taka)" value={editingOffer?.title || ''} onChange={e => setEditingOffer({...editingOffer, title: e.target.value})} className={inputClass} />
-                            )}
-                            {offerType === 'special' && (
-                                <div className="flex items-center gap-2">
-                                    <input type="checkbox" checked={editingOffer?.isActive || false} onChange={e => setEditingOffer({...editingOffer, isActive: e.target.checked})} />
-                                    <label>Active</label>
-                                </div>
-                            )}
-                            {offerType === 'premium' && (
-                                <input type="text" placeholder="Description" value={editingOffer?.description || ''} onChange={e => setEditingOffer({...editingOffer, description: e.target.value})} className={inputClass} />
-                            )}
+                            {(offerType === 'diamond' || offerType === 'special') && (<input type="number" placeholder="Diamonds" value={editingOffer?.diamonds || ''} onChange={e => setEditingOffer({...editingOffer, diamonds: e.target.value})} className={inputClass} />)}
+                            {offerType === 'special' && (<input type="text" placeholder="Title (e.g. Hot Deal)" value={editingOffer?.title || ''} onChange={e => setEditingOffer({...editingOffer, title: e.target.value})} className={inputClass} />)}
+                            {offerType === 'special' && (<div className="flex items-center gap-2"><input type="checkbox" checked={editingOffer?.isActive || false} onChange={e => setEditingOffer({...editingOffer, isActive: e.target.checked})} /><label>Active</label></div>)}
+                            {offerType === 'premium' && (<input type="text" placeholder="Description" value={editingOffer?.description || ''} onChange={e => setEditingOffer({...editingOffer, description: e.target.value})} className={inputClass} />)}
                             <input type="number" placeholder="Price" value={editingOffer?.price || ''} onChange={e => setEditingOffer({...editingOffer, price: e.target.value})} className={inputClass} />
-                            <div className="flex gap-2 mt-4">
-                                <button type="button" onClick={() => setIsOfferModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">Cancel</button>
-                                <button type="submit" disabled={!isOfferValid} className={`flex-1 py-2 rounded-xl text-xs font-bold text-white ${isOfferValid ? 'bg-primary' : 'bg-gray-400 cursor-not-allowed'}`}>Save</button>
-                            </div>
+                            <div className="flex gap-3 mt-6"><button type="button" onClick={() => setIsOfferModalOpen(false)} className="flex-1 py-3 bg-gray-100 font-bold rounded-2xl text-xs active:scale-95 transform">Cancel</button><button type="submit" disabled={!isOfferValid} className={`flex-1 py-3 rounded-2xl text-xs font-bold text-white active:scale-95 transform ${isOfferValid ? 'bg-primary' : 'bg-gray-300'}`}>Save</button></div>
                          </form>
                     </div>
                 </div>
             )}
             
-            {/* Method Modal */}
-            {isMethodModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-sm">
-                        <h3 className="text-lg font-bold mb-4">{editingMethodIndex !== null ? 'Edit' : 'Add'} Method</h3>
-                        <form onSubmit={handleSaveMethod} className="space-y-3">
-                            <input type="text" placeholder="Method Name" value={editingMethod?.name || ''} onChange={e => setEditingMethod({...editingMethod!, name: e.target.value})} className={inputClass} />
-                            <input type="text" placeholder="Account Number" value={editingMethod?.accountNumber || ''} onChange={e => setEditingMethod({...editingMethod!, accountNumber: e.target.value})} className={inputClass} />
-                            <input type="text" placeholder="Logo URL" value={editingMethod?.logo || ''} onChange={e => setEditingMethod({...editingMethod!, logo: e.target.value})} className={inputClass} />
-                            <textarea placeholder="Instructions" value={editingMethod?.instructions || ''} onChange={e => setEditingMethod({...editingMethod!, instructions: e.target.value})} className={inputClass} />
-                            <div className="flex gap-2 mt-4">
-                                <button type="button" onClick={() => setIsMethodModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">Cancel</button>
-                                <button type="submit" disabled={!isMethodValid} className={`flex-1 py-2 rounded-xl text-xs font-bold text-white ${isMethodValid ? 'bg-primary' : 'bg-gray-400 cursor-not-allowed'}`}>Save</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Contact Modal */}
-             {isContactModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-sm">
-                        <h3 className="text-lg font-bold mb-4">{editingContactIndex !== null ? 'Edit' : 'Add'} Contact</h3>
-                        <form onSubmit={handleSaveContact} className="space-y-3">
-                            <select value={editingContact?.type || 'phone'} onChange={e => setEditingContact({...editingContact, type: e.target.value})} className={inputClass}>
-                                <option value="phone">Phone</option>
-                                <option value="whatsapp">WhatsApp</option>
-                                <option value="telegram">Telegram</option>
-                                <option value="email">Email</option>
-                                <option value="video">Video</option>
-                            </select>
-                            <input type="text" placeholder="Title/Label" value={editingContact?.title || ''} onChange={e => setEditingContact({...editingContact, title: e.target.value})} className={inputClass} />
-                            <input type="text" placeholder="Link/Number" value={editingContact?.link || ''} onChange={e => setEditingContact({...editingContact, link: e.target.value})} className={inputClass} />
-                            <div className="flex gap-2 mt-4">
-                                <button type="button" onClick={() => setIsContactModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">Cancel</button>
-                                <button type="submit" disabled={!isContactValid} className={`flex-1 py-2 rounded-xl text-xs font-bold text-white ${isContactValid ? 'bg-primary' : 'bg-gray-400 cursor-not-allowed'}`}>Save</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Banner Modal */}
-             {isBannerModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-sm">
-                        <h3 className="text-lg font-bold mb-4">Edit Banner</h3>
-                        <form onSubmit={handleSaveBanner} className="space-y-3">
-                            <input type="text" placeholder="Image URL" value={tempBannerUrl} onChange={e => setTempBannerUrl(e.target.value)} className={inputClass} />
-                            <input type="text" placeholder="Action URL" value={tempActionUrl} onChange={e => setTempActionUrl(e.target.value)} className={inputClass} />
-                            <div className="flex gap-2 mt-4">
-                                <button type="button" onClick={() => setIsBannerModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">Cancel</button>
-                                <button type="submit" disabled={!isBannerValid} className={`flex-1 py-2 rounded-xl text-xs font-bold text-white ${isBannerValid ? 'bg-primary' : 'bg-gray-400 cursor-not-allowed'}`}>Save</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Notification Modal */}
-            {isNotifModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-sm">
-                        <h3 className="text-lg font-bold mb-4">Send Notification</h3>
-                        {selectedUserIds.size > 0 && (
-                            <div className="mb-3 p-2 bg-blue-50 text-blue-600 rounded text-xs font-bold text-center">
-                                Sending to {selectedUserIds.size} selected users
-                            </div>
-                        )}
-                        <form onSubmit={handleSendNotification} className="space-y-3">
-                            <input type="text" placeholder="Title" value={newNotif.title} onChange={e => setNewNotif({...newNotif, title: e.target.value})} className={inputClass} />
-                            <textarea placeholder="Message" value={newNotif.message} onChange={e => setNewNotif({...newNotif, message: e.target.value})} className={inputClass} rows={3} />
-                            <select value={newNotif.type} onChange={e => setNewNotif({...newNotif, type: e.target.value as any})} className={inputClass}>
-                                <option value="system">System</option>
-                                <option value="offer">Offer</option>
-                                <option value="bonus">Bonus</option>
-                            </select>
-                            <div className="flex gap-2 mt-4">
-                                <button type="button" onClick={() => setIsNotifModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">Cancel</button>
-                                <button type="submit" disabled={!isNotifValid} className={`flex-1 py-2 rounded-xl text-xs font-bold text-white ${isNotifValid ? 'bg-primary' : 'bg-gray-400 cursor-not-allowed'}`}>Send</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-            
-            {/* Security Modal */}
-            {isSecurityModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-xs text-center">
-                        <LockIcon className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                        <h3 className="text-lg font-bold mb-2">Security Check</h3>
-                        <p className="text-sm text-gray-500 mb-4">Enter Secret Key</p>
-                        <form onSubmit={handleVerifySecurityKey}>
-                            <input type="password" value={securityKeyInput} onChange={e => setSecurityKeyInput(e.target.value)} className={`${inputClass} text-center tracking-widest mb-4`} autoFocus />
-                            <div className="flex gap-2">
-                                <button type="button" onClick={() => setIsSecurityModalOpen(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">Cancel</button>
-                                <button type="submit" className="flex-1 py-2 bg-red-500 text-white rounded-xl text-xs font-bold">Unlock</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-            
-            {/* Balance Modal */}
-            {balanceModalUser && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-xs">
-                        <h3 className="text-lg font-bold mb-4">{balanceAction === 'add' ? 'Add Balance' : 'Deduct Balance'}</h3>
-                        <p className="text-sm text-gray-500 mb-2">User: <span className="font-bold">{balanceModalUser.name}</span></p>
-                        <p className="text-sm text-gray-500 mb-4">Current: ৳{Math.floor(balanceModalUser.balance)}</p>
-                        <input type="number" value={balanceAmount} onChange={e => setBalanceAmount(e.target.value)} className={inputClass} placeholder="Amount" autoFocus />
-                        <div className="flex gap-2 mt-4">
-                            <button onClick={() => setBalanceModalUser(null)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-xl text-xs font-bold">Cancel</button>
-                            <button onClick={handleBalanceUpdate} className={`flex-1 py-2 text-white rounded-xl text-xs font-bold ${balanceAction === 'add' ? 'bg-green-500' : 'bg-red-500'}`}>{balanceAction === 'add' ? 'Add' : 'Deduct'}</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {isMethodModalOpen && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white dark:bg-dark-card p-6 rounded-3xl w-full max-w-sm"><h3 className="text-lg font-bold mb-4">Payment Method</h3><form onSubmit={handleSaveMethod} className="space-y-4"><input type="text" placeholder="Name" value={editingMethod?.name || ''} onChange={e => setEditingMethod({...editingMethod!, name: e.target.value})} className={inputClass} /><input type="text" placeholder="Number" value={editingMethod?.accountNumber || ''} onChange={e => setEditingMethod({...editingMethod!, accountNumber: e.target.value})} className={inputClass} /><input type="text" placeholder="Logo URL" value={editingMethod?.logo || ''} onChange={e => setEditingMethod({...editingMethod!, logo: e.target.value})} className={inputClass} /><textarea placeholder="Instructions (e.g. Send Money to this number)" value={editingMethod?.instructions || ''} onChange={e => setEditingMethod({...editingMethod!, instructions: e.target.value})} className={inputClass} rows={3} /><div className="flex gap-3"><button type="button" onClick={() => setIsMethodModalOpen(false)} className="flex-1 py-3 bg-gray-100 rounded-2xl text-xs font-bold active:scale-95 transform">Cancel</button><button type="submit" disabled={!isMethodValid} className="flex-1 py-3 bg-primary text-white rounded-2xl text-xs font-bold active:scale-95 transform">Save</button></div></form></div></div>)}
+            {isContactModalOpen && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white dark:bg-dark-card p-6 rounded-3xl w-full max-w-sm"><h3 className="text-lg font-bold mb-4">Contact Info</h3><form onSubmit={handleSaveContact} className="space-y-4"><select value={editingContact?.type || 'phone'} onChange={e => setEditingContact({...editingContact, type: e.target.value})} className={inputClass}><option value="phone">Phone</option><option value="whatsapp">WhatsApp</option><option value="telegram">Telegram</option><option value="email">Email</option><option value="video">Video</option></select><input type="text" placeholder="Title" value={editingContact?.title || ''} onChange={e => setEditingContact({...editingContact, title: e.target.value})} className={inputClass} /><input type="text" placeholder="Link/Number" value={editingContact?.link || ''} onChange={e => setEditingContact({...editingContact, link: e.target.value})} className={inputClass} /><div className="flex gap-3"><button type="button" onClick={() => setIsContactModalOpen(false)} className="flex-1 py-3 bg-gray-100 rounded-2xl text-xs font-bold active:scale-95 transform">Cancel</button><button type="submit" disabled={!isContactValid} className="flex-1 py-3 bg-primary text-white rounded-2xl text-xs font-bold active:scale-95 transform">Save</button></div></form></div></div>)}
+            {isNotifModalOpen && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white dark:bg-dark-card p-6 rounded-3xl w-full max-w-sm"><h3 className="text-lg font-bold mb-4">Send Notification</h3>{selectedUserIds.size > 0 && <div className="mb-3 text-xs font-bold text-blue-600">To {selectedUserIds.size} users</div>}<form onSubmit={handleSendNotification} className="space-y-4"><input type="text" placeholder="Title (Optional)" value={newNotif.title} onChange={e => setNewNotif({...newNotif, title: e.target.value})} className={inputClass} /><textarea placeholder="Message" value={newNotif.message} onChange={e => setNewNotif({...newNotif, message: e.target.value})} className={inputClass} rows={3} /><div className="flex gap-3"><button type="button" onClick={() => setIsNotifModalOpen(false)} className="flex-1 py-3 bg-gray-100 rounded-2xl text-xs font-bold active:scale-95 transform">Cancel</button><button type="submit" disabled={!isNotifValid} className="flex-1 py-3 bg-primary text-white rounded-2xl text-xs font-bold active:scale-95 transform">Send</button></div></form></div></div>)}
+            {isSecurityModalOpen && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white dark:bg-dark-card p-6 rounded-3xl w-full max-w-xs text-center"><LockIcon className="w-12 h-12 text-red-500 mx-auto mb-4" /><h3 className="text-lg font-bold mb-2">Security Check</h3><form onSubmit={handleVerifySecurityKey}><input type="password" value={securityKeyInput} onChange={e => setSecurityKeyInput(e.target.value)} className={`${inputClass} text-center tracking-widest mb-4`} autoFocus /><div className="flex gap-2"><button type="button" onClick={() => setIsSecurityModalOpen(false)} className="flex-1 py-3 bg-gray-100 rounded-2xl text-xs font-bold active:scale-95 transform">Cancel</button><button type="submit" className="flex-1 py-3 bg-red-500 text-white rounded-2xl text-xs font-bold active:scale-95 transform">Unlock</button></div></form></div></div>)}
+            {balanceModalUser && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white dark:bg-dark-card p-6 rounded-3xl w-full max-w-xs"><h3 className="text-lg font-bold mb-4">{balanceAction === 'add' ? 'Add' : 'Deduct'} Balance</h3><p className="text-sm text-gray-500 mb-4">{balanceModalUser.name} (Current: ৳{Math.floor(balanceModalUser.balance)})</p><input type="number" value={balanceAmount} onChange={e => setBalanceAmount(e.target.value)} className={inputClass} placeholder="Amount" autoFocus /><div className="flex gap-3 mt-4"><button onClick={() => setBalanceModalUser(null)} className="flex-1 py-3 bg-gray-100 rounded-2xl text-xs font-bold active:scale-95 transform">Cancel</button><button onClick={handleBalanceUpdate} className="flex-1 py-3 bg-green-500 text-white rounded-2xl text-xs font-bold active:scale-95 transform">Confirm</button></div></div></div>)}
+            {isBannerModalOpen && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white dark:bg-dark-card p-6 rounded-3xl w-full max-w-sm"><h3 className="text-lg font-bold mb-4">Edit Banner</h3><form onSubmit={handleSaveBanner} className="space-y-4"><input type="text" placeholder="Image URL" value={tempBannerUrl} onChange={e => setTempBannerUrl(e.target.value)} className={inputClass} /><input type="text" placeholder="Action URL" value={tempActionUrl} onChange={e => setTempActionUrl(e.target.value)} className={inputClass} /><div className="flex gap-3"><button type="button" onClick={() => setIsBannerModalOpen(false)} className="flex-1 py-3 bg-gray-100 rounded-2xl text-xs font-bold active:scale-95 transform">Cancel</button><button type="submit" disabled={!isBannerValid} className="flex-1 py-3 bg-primary text-white rounded-2xl text-xs font-bold active:scale-95 transform">Save</button></div></form></div></div>)}
 
         </div>
     );

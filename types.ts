@@ -1,5 +1,3 @@
-
-
 import type { FC } from 'react';
 
 export type Language = 'en' | 'bn';
@@ -187,6 +185,7 @@ export interface PopupConfig {
     title: string;
     message: string;
     imageUrl?: string;
+    videoUrl?: string; // NEW: Added support for video in popup
 }
 
 export interface AppSettings {

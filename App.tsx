@@ -379,15 +379,19 @@ const App: FC = () => {
 
   // LOGIN POPUP LOGIC
   useEffect(() => {
-      // Ensure popup only shows for non-admin users if active
-      if (user && user.role !== 'admin' && appSettings.popupNotification?.active) {
+      // Ensure popup only shows for non-admin users if active AND not on admin screen
+      if (user && appSettings.popupNotification?.active && activeScreen !== 'admin') {
+          // If user is admin but viewing user screens, we might still show it, 
+          // but user requested "Admin Panel-এ Login Popup যেন কখনো না দেখায়"
+          // The activeScreen !== 'admin' check handles that.
+          
           const hasSeen = sessionStorage.getItem('hasSeenLoginPopup');
           if (!hasSeen) {
               setShowLoginPopup(true);
               sessionStorage.setItem('hasSeenLoginPopup', 'true');
           }
       }
-  }, [user, appSettings.popupNotification]);
+  }, [user, appSettings.popupNotification, activeScreen]);
 
   useEffect(() => {
       // Visibility Checks
@@ -612,8 +616,18 @@ const App: FC = () => {
                             </button>
                         </div>
                         
-                        {/* Image Section */}
-                        {appSettings.popupNotification.imageUrl && (
+                        {/* Video OR Image Section */}
+                        {appSettings.popupNotification.videoUrl ? (
+                            <div className="w-full h-48 bg-black">
+                                <iframe 
+                                    src={appSettings.popupNotification.videoUrl.replace('watch?v=', 'embed/').split('&')[0] + '?autoplay=1&mute=1&controls=0&modestbranding=1'} 
+                                    className="w-full h-full" 
+                                    frameBorder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowFullScreen
+                                ></iframe>
+                            </div>
+                        ) : appSettings.popupNotification.imageUrl ? (
                             <div className="w-full h-40 bg-gray-200 dark:bg-gray-700">
                                 <img 
                                     src={appSettings.popupNotification.imageUrl} 
@@ -621,14 +635,14 @@ const App: FC = () => {
                                     className="w-full h-full object-cover"
                                 />
                             </div>
-                        )}
+                        ) : null}
                         
                         {/* Content Section */}
                         <div className="p-6 text-center">
                             <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">
                                 {appSettings.popupNotification.title}
                             </h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                                 {appSettings.popupNotification.message}
                             </p>
                             
