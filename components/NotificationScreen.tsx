@@ -34,13 +34,13 @@ const NotificationScreen: FC<NotificationScreenProps> = ({ texts, notifications,
         const diff = now.getTime() - date.getTime();
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-        // Format: "02:30 PM"
+        // Format: "02:30 PM" (Locale aware)
         const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         if (days === 0) {
             return timeString; // Just time for today
         } else if (days === 1) {
-            return `Yesterday, ${timeString}`;
+            return `${texts.yesterday}, ${timeString}`;
         } else {
             return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${timeString}`;
         }
@@ -78,7 +78,7 @@ const NotificationScreen: FC<NotificationScreenProps> = ({ texts, notifications,
                                     {/* Header Row: Title */}
                                     <div className="mb-1.5 pr-4">
                                         <h3 className={`text-sm font-bold leading-snug ${isUnread ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
-                                            {n.title || 'Notification'}
+                                            {n.title || texts.notificationDefaultTitle}
                                         </h3>
                                     </div>
                                     
@@ -107,7 +107,7 @@ const NotificationScreen: FC<NotificationScreenProps> = ({ texts, notifications,
                         <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-full flex items-center justify-center mb-4 shadow-inner">
                             <BellIcon className="w-10 h-10 text-gray-400 dark:text-gray-500" />
                         </div>
-                        <h3 className="text-gray-600 dark:text-gray-300 font-bold mb-1 text-sm">No Notifications</h3>
+                        <h3 className="text-gray-600 dark:text-gray-300 font-bold mb-1 text-sm">{texts.noNotificationsTitle}</h3>
                         <p className="text-gray-400 dark:text-gray-500 text-[10px]">{texts.noNotifications}</p>
                     </div>
                 )}

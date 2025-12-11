@@ -191,7 +191,7 @@ const SpecialOfferCard: FC<{ offer: SpecialOffer; texts: any; onBuy: () => void 
         <div className="absolute bottom-0 left-0 w-20 h-20 bg-black/10 rounded-full blur-xl -ml-10 -mb-10"></div>
         
         <div className="absolute top-2 right-2 bg-yellow-400 text-red-700 text-[10px] font-black px-2 py-0.5 rounded-md shadow-lg uppercase tracking-wider animate-pulse">
-            HOT DEAL
+            {texts.hotDeal}
         </div>
 
         <div className="flex flex-row items-center justify-between relative z-10 gap-3">

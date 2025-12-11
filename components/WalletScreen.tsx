@@ -80,9 +80,9 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
   let amountError = '';
   if (amount && !isNaN(numericAmount)) {
       if (numericAmount < MIN_AMOUNT) {
-          amountError = `Minimum deposit ${MIN_AMOUNT} ৳`;
+          amountError = texts.minDepositError;
       } else if (numericAmount > MAX_AMOUNT) {
-          amountError = `Maximum deposit ${MAX_AMOUNT.toLocaleString()} ৳`;
+          amountError = texts.maxDepositError.replace('{amount}', MAX_AMOUNT.toLocaleString());
       }
   }
 
@@ -124,8 +124,6 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
 
       // Since input is restricted, we just check length and pure number
       if (cleanId.length < 8) return { isValid: false, isError: false };
-      // Optional: Prevent pure numbers if TrxID usually contains chars, but some gateways use numbers. 
-      // Keeping generic alphanumeric check for now.
       
       return { isValid: true, isError: false };
   };
@@ -136,7 +134,7 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
     const cleanTrx = transactionId.trim();
 
     if (!isTrxValid) {
-        setError("Invalid Transaction ID");
+        setError(texts.invalidTrx);
         return;
     }
 
@@ -178,7 +176,7 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
             <WavyPath />
              <div className="relative z-10 flex flex-col justify-center py-4">
-                <p className="text-[17px] font-bold text-white tracking-widest mb-1">BALANCE</p>
+                <p className="text-[17px] font-bold text-white tracking-widest mb-1">{texts.balanceTitle}</p>
                 <p className="text-4xl font-extrabold text-white tracking-tight mb-2 drop-shadow-lg">
                     {texts.currency}{Math.floor(user.balance)}
                 </p>
@@ -332,7 +330,7 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
                         />
                          {isTrxError && (
                             <p className="text-red-500 text-[10px] mt-1 ml-1 font-bold animate-pulse">
-                                Invalid TrxID (Must be Alphanumeric)
+                                {texts.invalidTrx}
                             </p>
                         )}
                     </div>

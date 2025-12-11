@@ -61,7 +61,7 @@ const ContactCard: FC<{ contact: SupportContact & { title?: string }, texts: any
                     {displayName}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {contact.type === 'video' ? 'Watch tutorial' : contact.type === 'phone' ? 'Call us directly' : 'Chat with support'}
+                    {contact.type === 'video' ? texts.watchTutorialDesc : contact.type === 'phone' ? texts.callUsDesc : texts.chatSupportDesc}
                 </p>
             </div>
 
