@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, FC, useRef } from 'react';
 import AuthScreen from './components/AuthScreen';
 import HomeScreen from './components/HomeScreen';

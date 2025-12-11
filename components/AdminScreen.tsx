@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, FC, FormEvent, useMemo, useRef } from 'react';
 import { User, Screen, Transaction, Purchase, AppSettings, Language, PaymentMethod, AppVisibility, Notification, DeveloperSettings, Banner, Theme, PopupConfig } from '../types';
 import { db } from '../firebase';
@@ -65,7 +66,7 @@ interface AdminScreenProps {
 const SidebarLink: FC<{ icon: FC<{className?: string}>, label: string, active: boolean, onClick: () => void }> = ({ icon: Icon, label, active, onClick }) => (
     <button 
         onClick={onClick}
-        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 group ${
+        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 group active:scale-95 ${
             active 
             ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30' 
             : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -94,13 +95,13 @@ const QuickActionCard: FC<{ label: string, icon: FC<{className?: string}>, color
     return (
         <button 
             onClick={onClick}
-            className={`relative overflow-hidden rounded-2xl p-4 flex flex-col items-center justify-center gap-2 transition-all active:scale-95 ${bgColors[color]} text-white shadow-lg ${shadowColors[color]}`}
+            className={`relative overflow-hidden rounded-2xl p-4 flex flex-col items-center justify-center gap-2 transition-all active:scale-95 hover:brightness-110 hover:-translate-y-1 ${bgColors[color]} text-white shadow-lg ${shadowColors[color]}`}
         >
             <div className="absolute top-0 right-0 p-2 opacity-10"><Icon className="w-12 h-12" /></div>
             <Icon className="w-6 h-6 mb-1 relative z-10" />
             <span className="text-xs font-bold uppercase tracking-wider relative z-10">{label}</span>
             {count !== undefined && count > 0 && (
-                <span className="absolute top-2 right-2 bg-white text-red-600 text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-sm">
+                <span className="absolute top-2 right-2 bg-white text-red-600 text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-sm animate-pulse">
                     {count}
                 </span>
             )}
@@ -145,7 +146,7 @@ const SmartCopy: FC<{ text: string, label?: string, iconOnly?: boolean }> = ({ t
     return (
         <button 
             onClick={handleCopy} 
-            className={`flex items-center gap-1.5 ${iconOnly ? 'p-2' : 'px-3 py-1.5'} bg-gray-100 dark:bg-gray-700/50 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95 border border-gray-200 dark:border-gray-600 max-w-full`}
+            className={`flex items-center gap-1.5 ${iconOnly ? 'p-2' : 'px-3 py-1.5'} bg-gray-100 dark:bg-gray-700/50 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all active:scale-95 border border-gray-200 dark:border-gray-600 max-w-full`}
             title="Click to copy"
         >
             {!iconOnly && <span className="font-mono text-[10px] text-gray-600 dark:text-gray-300 truncate max-w-[120px] sm:max-w-[150px]">{label || text}</span>}
@@ -190,6 +191,9 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const [orders, setOrders] = useState<Purchase[]>([]);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     
+    // Animation State
+    const [exitingItems, setExitingItems] = useState<Set<string>>(new Set());
+
     // Stats
     const [dashboardStats, setDashboardStats] = useState({
         totalUsers: 0,
@@ -255,7 +259,23 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const [balanceAmount, setBalanceAmount] = useState('');
     const [balanceAction, setBalanceAction] = useState<'add' | 'deduct'>('add');
 
-    // Helper
+    // Helper for micro-animations
+    const animateAndAction = async (id: string, action: () => Promise<void>) => {
+        // Trigger Exit Animation
+        setExitingItems(prev => new Set(prev).add(id));
+        
+        // Wait for visual effect, then execute logic
+        setTimeout(async () => {
+            await action();
+            // Cleanup ID after logic (though item usually disappears from list)
+            setExitingItems(prev => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
+        }, 400); // 400ms delay matches CSS transition
+    };
+
     const requestConfirmation = (action: () => void, messageOverride?: string) => {
         setConfirmDialog({
             show: true,
@@ -444,7 +464,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const handleSaveDeveloperInfo = async () => { try { await update(ref(db, 'config/appSettings/developerSettings'), devSettings); alert("Success: Developer Info Updated."); setIsDevUnlocked(false); } catch (error) { alert("Error updating database."); } };
 
     const handleOrderAction = (order: Purchase, action: 'Completed' | 'Failed') => {
-        requestConfirmation(async () => {
+        requestConfirmation(() => animateAndAction(order.key!, async () => {
             if (order.key && order.userId) {
                 const orderRef = ref(db, `orders/${order.userId}/${order.key}`);
                 const snapshot = await get(orderRef);
@@ -456,12 +476,17 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                     }
                 }
             }
-        }, `Confirm ${action}?`);
+        }), `Confirm ${action}?`);
     };
 
-    const handleDeleteOrder = (orderId: string, userId: string) => requestConfirmation(async () => { await remove(ref(db, `orders/${userId}/${orderId}`)); }, "Delete this order?");
+    const handleDeleteOrder = (orderId: string, userId: string) => {
+        requestConfirmation(() => animateAndAction(orderId, async () => { 
+            await remove(ref(db, `orders/${userId}/${orderId}`)); 
+        }), "Delete this order?");
+    };
+
     const handleTxnAction = (txn: Transaction, action: 'Completed' | 'Failed') => {
-        requestConfirmation(async () => {
+        requestConfirmation(() => animateAndAction(txn.key!, async () => {
             if (txn.key && txn.userId) {
                 const txnRef = ref(db, `transactions/${txn.userId}/${txn.key}`);
                 const snapshot = await get(txnRef);
@@ -473,9 +498,14 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                     }
                 }
             }
-        });
+        }));
     };
-    const handleDeleteTransaction = (txnId: string, userId: string) => requestConfirmation(async () => { await remove(ref(db, `transactions/${userId}/${txnId}`)); }, "Delete this transaction?");
+    
+    const handleDeleteTransaction = (txnId: string, userId: string) => {
+        requestConfirmation(() => animateAndAction(txnId, async () => { 
+            await remove(ref(db, `transactions/${userId}/${txnId}`)); 
+        }), "Delete this transaction?");
+    };
     
     const handleBalanceUpdate = () => {
         if (!balanceModalUser || !balanceAmount) return;
@@ -490,7 +520,19 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
 
     const handleSaveOffer = async (e: FormEvent) => { e.preventDefault(); const path = `config/offers/${offerType}`; let newOffer = { ...editingOffer }; if (!newOffer.id) newOffer.id = Date.now(); if (newOffer.price) newOffer.price = Number(newOffer.price); if (newOffer.diamonds) newOffer.diamonds = Number(newOffer.diamonds); if (offerType === 'special' && newOffer.isActive === undefined) newOffer.isActive = true; let updatedList = [...offersData[offerType]]; if (editingOffer.id && offersData[offerType].find((o: any) => o.id === editingOffer.id)) { updatedList = updatedList.map((o: any) => o.id === editingOffer.id ? newOffer : o); } else { updatedList.push(newOffer); } await set(ref(db, path), updatedList); setIsOfferModalOpen(false); setEditingOffer(null); };
     const handleDeleteOffer = (id: number) => requestConfirmation(async () => { const path = `config/offers/${offerType}`; const updatedList = offersData[offerType].filter((o: any) => o.id !== id); await set(ref(db, path), updatedList); });
-    const handleReorderOffer = async (index: number, direction: 'up' | 'down') => { const currentList = [...offersData[offerType]]; if (direction === 'up' && index > 0) [currentList[index], currentList[index - 1]] = [currentList[index - 1], currentList[index]]; else if (direction === 'down' && index < currentList.length - 1) [currentList[index], currentList[index + 1]] = [currentList[index + 1], currentList[index]]; await set(ref(db, `config/offers/${offerType}`), currentList); setOffersData({ ...offersData, [offerType]: currentList }); };
+    
+    // RE-ENABLED RE-ORDER FUNCTION
+    const handleReorderOffer = async (index: number, direction: 'up' | 'down') => { 
+        const currentList = [...offersData[offerType]]; 
+        if (direction === 'up' && index > 0) {
+            [currentList[index], currentList[index - 1]] = [currentList[index - 1], currentList[index]]; 
+        } else if (direction === 'down' && index < currentList.length - 1) {
+            [currentList[index], currentList[index + 1]] = [currentList[index + 1], currentList[index]]; 
+        }
+        // Optimistic UI Update
+        setOffersData({ ...offersData, [offerType]: currentList });
+        await set(ref(db, `config/offers/${offerType}`), currentList); 
+    };
     
     // Other simple handlers
     const openAddOfferModal = () => { setEditingOffer({}); setIsOfferModalOpen(true); };
@@ -527,6 +569,9 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const isBannerValid = tempBannerUrl?.trim();
     const isNotifValid = newNotif.message.trim().length > 0; // Title Optional
 
+    // Pages that show Back Button
+    const showBackButton = ['orders', 'deposits', 'offers', 'tools'].includes(activeTab);
+
     return (
         <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans overflow-hidden">
             {isSidebarOpen && (<div className="fixed inset-0 z-40 bg-black/50 md:hidden backdrop-blur-sm transition-opacity" onClick={() => setIsSidebarOpen(false)}></div>)}
@@ -538,11 +583,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 </div>
                 <nav className="p-4 space-y-2 overflow-y-auto h-[calc(100%-5rem)]">
                     <SidebarLink icon={DashboardIcon} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
-                    <SidebarLink icon={OrdersIcon} label="Orders" active={activeTab === 'orders'} onClick={() => { setActiveTab('orders'); setIsSidebarOpen(false); }} />
-                    <SidebarLink icon={MoneyIcon} label="Deposits" active={activeTab === 'deposits'} onClick={() => { setActiveTab('deposits'); setIsSidebarOpen(false); }} />
                     <SidebarLink icon={UsersIcon} label="Users" active={activeTab === 'users'} onClick={() => { setActiveTab('users'); setIsSidebarOpen(false); }} />
-                    <SidebarLink icon={TagIcon} label="Offers" active={activeTab === 'offers'} onClick={() => { setActiveTab('offers'); setIsSidebarOpen(false); }} />
-                    <SidebarLink icon={GridIcon} label="Tools" active={activeTab === 'tools'} onClick={() => { setActiveTab('tools'); setIsSidebarOpen(false); }} />
                     <SidebarLink icon={SettingsIcon} label="Settings" active={activeTab === 'settings'} onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }} />
                 </nav>
             </aside>
@@ -551,11 +592,19 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
             <div className="flex-1 flex flex-col min-w-0 bg-gray-50 dark:bg-gray-900">
                 <header className="h-16 bg-white dark:bg-dark-card border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 sticky top-0 z-30 shadow-sm/50">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"><MenuIcon className="w-6 h-6" /></button>
-                        {/* BACK BUTTON: Icon Only for Inner Pages */}
-                        {activeTab !== 'dashboard' && (
-                            <button onClick={() => setActiveTab('dashboard')} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors md:hidden"><BackIcon className="w-6 h-6" /></button>
-                        )}
+                        {/* Mobile Menu OR Back Button Logic */}
+                        <div className="md:hidden">
+                            {showBackButton ? (
+                                <button onClick={() => setActiveTab('dashboard')} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors active:scale-90 transform">
+                                    <BackIcon className="w-6 h-6" />
+                                </button>
+                            ) : (
+                                <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
+                                    <MenuIcon className="w-6 h-6" />
+                                </button>
+                            )}
+                        </div>
+                        
                         <h2 className="text-lg font-bold select-none cursor-pointer text-gray-800 dark:text-white" onClick={handleHeaderTap}>
                             {activeTab === 'dashboard' ? 'Dashboard' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                         </h2>
@@ -566,110 +615,153 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-32">
                     {/* --- DASHBOARD TAB --- */}
                     {activeTab === 'dashboard' && (
-                        <div className="animate-fade-in space-y-8">
-                            
-                            {/* NEW: QUICK ACTIONS (Mobile First) */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="animate-smart-fade-in space-y-8">
+                            {/* QUICK ACTIONS */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-smart-slide-up">
                                 <QuickActionCard label="Orders" icon={OrdersIcon} color="orange" onClick={() => setActiveTab('orders')} count={dashboardStats.pendingOrders} />
                                 <QuickActionCard label="Deposits" icon={WalletIcon} color="purple" onClick={() => setActiveTab('deposits')} count={dashboardStats.pendingDeposits} />
                                 <QuickActionCard label="Offers" icon={TagIcon} color="pink" onClick={() => setActiveTab('offers')} />
                                 <QuickActionCard label="Tools" icon={GridIcon} color="blue" onClick={() => setActiveTab('tools')} />
                             </div>
-
-                            {/* Stats Grid */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div className="bg-white dark:bg-dark-card p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden">
-                                    <div className="flex items-center gap-3 mb-2 text-blue-600"><UsersIcon className="w-5 h-5" /><span className="font-bold text-xs uppercase tracking-wider">Total Users</span></div>
-                                    <p className="text-3xl font-black text-gray-900 dark:text-white">{dashboardStats.totalUsers}</p>
-                                </div>
-                                <div className="bg-white dark:bg-dark-card p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden">
-                                    <div className="flex items-center gap-3 mb-2 text-green-600"><MoneyIcon className="w-5 h-5" /><span className="font-bold text-xs uppercase tracking-wider">Total Deposit</span></div>
-                                    <p className="text-3xl font-black text-gray-900 dark:text-white">৳{dashboardStats.totalDeposit}</p>
-                                </div>
-                                {/* Simplified Stats for cleaner look */}
-                                <div className="bg-white dark:bg-dark-card p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden">
-                                    <div className="flex items-center gap-3 mb-2 text-yellow-600"><DollarIcon className="w-5 h-5" /><span className="font-bold text-xs uppercase tracking-wider">Total Ad Rev</span></div>
-                                    <p className="text-3xl font-black text-gray-900 dark:text-white">৳{dashboardStats.totalAdRevenue}</p>
-                                </div>
-                            </div>
-
-                            {/* Today's Performance */}
-                            <div className="bg-white dark:bg-dark-card p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
-                                <h3 className="font-bold text-xs uppercase text-gray-400 mb-6 tracking-wider">Today's Overview</h3>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
-                                        <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Deposit Today</p>
-                                        <p className="text-xl font-black text-green-600">৳{dashboardStats.todayDeposit}</p>
+                            
+                            {/* Stats Cards - Redesigned */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-smart-slide-up" style={{ animationDelay: '100ms' }}>
+                                
+                                <div className="p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-dark-card">
+                                    <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-125 transition-transform duration-500">
+                                        <UsersIcon className="w-24 h-24 text-blue-600" />
                                     </div>
-                                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
-                                        <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Sales Today</p>
-                                        <p className="text-xl font-black text-blue-600">৳{dashboardStats.todayPurchase}</p>
+                                    <div className="relative z-10">
+                                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-blue-50 text-blue-600 dark:bg-blue-900/20">
+                                            <UsersIcon className="w-6 h-6" />
+                                        </div>
+                                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Users</p>
+                                        <h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{dashboardStats.totalUsers}</h3>
                                     </div>
                                 </div>
+
+                                <div className="p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-dark-card">
+                                    <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-125 transition-transform duration-500">
+                                        <MoneyIcon className="w-24 h-24 text-green-600" />
+                                    </div>
+                                    <div className="relative z-10">
+                                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-green-50 text-green-600 dark:bg-green-900/20">
+                                            <MoneyIcon className="w-6 h-6" />
+                                        </div>
+                                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Deposit</p>
+                                        <h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">৳{dashboardStats.totalDeposit}</h3>
+                                    </div>
+                                </div>
+
+                                <div className="p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-dark-card">
+                                    <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-125 transition-transform duration-500">
+                                        <DollarIcon className="w-24 h-24 text-yellow-600" />
+                                    </div>
+                                    <div className="relative z-10">
+                                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20">
+                                            <DollarIcon className="w-6 h-6" />
+                                        </div>
+                                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Ad Rev</p>
+                                        <h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">৳{dashboardStats.totalAdRevenue}</h3>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
                     )}
 
                     {/* ... Other tabs ... */}
                     {activeTab === 'users' && (
-                        <div className="space-y-4 animate-fade-in">
+                        <div className="space-y-4 animate-smart-fade-in">
                             <div className="flex justify-between items-center mb-2">{selectedUserIds.size > 0 && (<button onClick={() => setIsNotifModalOpen(true)} className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-full shadow-lg animate-pulse ml-auto transform active:scale-95 transition-transform">Message {selectedUserIds.size}</button>)}</div>
                             <SearchInput value={userSearch} onChange={setUserSearch} placeholder="Search by Name, Email or UID..." />
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 animate-smart-slide-up">
                                 {filteredUsers.slice(0, 50).map(u => (
                                     <div key={u.uid} className={`relative bg-white dark:bg-dark-card p-4 rounded-3xl border flex flex-col gap-3 transition-all ${selectedUserIds.has(u.uid) ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-100 dark:border-gray-800'}`}>
                                         <div className="absolute top-4 right-4"><input type="checkbox" checked={selectedUserIds.has(u.uid)} onChange={() => toggleUserSelection(u.uid)} className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 border-gray-300" /></div>
-                                        <div className="flex items-center gap-3">
-                                            <img src={u.avatarUrl || DEFAULT_AVATAR_URL} alt={u.name} className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-600" />
-                                            <div className="flex-1 min-w-0 pr-8">
-                                                <p className="font-bold text-sm truncate text-gray-900 dark:text-white">{u.name}</p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{u.email}</p>
-                                                <div className="flex items-center gap-2 mt-1"><span className="text-[9px] font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-gray-500">UID</span><SmartCopy text={u.uid} label={u.uid} iconOnly={false} /></div>
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-800 p-2.5 rounded-2xl">
-                                            <div><p className="text-[10px] text-gray-500 font-bold uppercase">Balance</p><p className="text-base font-black text-primary">৳{Math.floor(u.balance)}</p></div>
-                                            <div className="flex gap-2">
-                                                <button onClick={() => { setBalanceModalUser(u); setBalanceAction('add'); setBalanceAmount(''); }} className="bg-green-100 text-green-700 p-2 rounded-xl hover:bg-green-200 active:scale-90 transition-transform"><PlusIcon className="w-4 h-4" /></button>
-                                                <button onClick={() => { setBalanceModalUser(u); setBalanceAction('deduct'); setBalanceAmount(''); }} className="bg-red-100 text-red-700 p-2 rounded-xl hover:bg-red-200 active:scale-90 transition-transform"><MinusIcon className="w-4 h-4" /></button>
-                                            </div>
-                                        </div>
+                                        <div className="flex items-center gap-3"><img src={u.avatarUrl || DEFAULT_AVATAR_URL} alt={u.name} className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-600" /><div className="flex-1 min-w-0 pr-8"><p className="font-bold text-sm truncate text-gray-900 dark:text-white">{u.name}</p><p className="text-xs text-gray-500 dark:text-gray-400 truncate">{u.email}</p><div className="flex items-center gap-2 mt-1"><span className="text-[9px] font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-gray-500">UID</span><SmartCopy text={u.uid} label={u.uid} iconOnly={false} /></div></div></div>
+                                        <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-800 p-2.5 rounded-2xl"><div><p className="text-[10px] text-gray-500 font-bold uppercase">Balance</p><p className="text-base font-black text-primary">৳{Math.floor(u.balance)}</p></div><div className="flex gap-2"><button onClick={() => { setBalanceModalUser(u); setBalanceAction('add'); setBalanceAmount(''); }} className="bg-green-100 text-green-700 p-2 rounded-xl hover:bg-green-200 active:scale-90 transition-transform"><PlusIcon className="w-4 h-4" /></button><button onClick={() => { setBalanceModalUser(u); setBalanceAction('deduct'); setBalanceAmount(''); }} className="bg-red-100 text-red-700 p-2 rounded-xl hover:bg-red-200 active:scale-90 transition-transform"><MinusIcon className="w-4 h-4" /></button></div></div>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
 
+                    {/* REDESIGNED OFFERS UI WITH SORTING */}
                     {activeTab === 'offers' && (
-                        <div className="animate-fade-in">
+                        <div className="animate-smart-fade-in">
                             <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
                                 {['diamond', 'levelUp', 'membership', 'premium', 'special'].map((type) => (
-                                    <button key={type} onClick={() => setOfferType(type as any)} className={`px-5 py-2.5 rounded-full font-bold text-xs uppercase whitespace-nowrap transition-all border ${offerType === type ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-lg' : 'bg-white dark:bg-dark-card text-gray-500 border-transparent'}`}>{type}</button>
+                                    <button key={type} onClick={() => setOfferType(type as any)} className={`px-5 py-2.5 rounded-full font-bold text-xs uppercase whitespace-nowrap transition-all border ${offerType === type ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-lg active:scale-95' : 'bg-white dark:bg-dark-card text-gray-500 border-transparent hover:bg-gray-100 dark:hover:bg-gray-800'}`}>{type}</button>
                                 ))}
                             </div>
                             <button onClick={openAddOfferModal} className="w-full py-4 mb-6 border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-500 rounded-3xl font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm active:scale-95 transform">+ Add New {offerType} Offer</button>
-                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                            
+                            {/* Cards Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-smart-slide-up">
                                 {offersData[offerType]?.map((offer: any, index: number) => (
-                                    <div key={offer.id} className="relative p-4 bg-white dark:bg-dark-card rounded-3xl border border-gray-100 dark:border-gray-800 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-                                        {offerType === 'special' && (<div className={`absolute top-4 right-4 w-2.5 h-2.5 rounded-full ${offer.isActive ? 'bg-green-500' : 'bg-red-500'}`}></div>)}
-                                        <div>
-                                            <div className="bg-gray-50 dark:bg-gray-800 w-10 h-10 rounded-2xl flex items-center justify-center mb-3 text-primary">
-                                                {offerType === 'diamond' && <DiamondIcon className="w-5 h-5" />}
-                                                {offerType === 'levelUp' && <StarIcon className="w-5 h-5" />}
-                                                {offerType === 'membership' && <IdCardIcon className="w-5 h-5" />}
-                                                {offerType === 'premium' && <CrownIcon className="w-5 h-5" />}
-                                                {offerType === 'special' && <TagIcon className="w-5 h-5" />}
+                                    <div key={offer.id} className="group bg-white dark:bg-dark-card rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 relative">
+                                        
+                                        {/* Status Badge */}
+                                        {offerType === 'special' && (
+                                            <div className={`absolute top-4 right-4 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide z-10 ${offer.isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                                {offer.isActive ? 'Active' : 'Inactive'}
                                             </div>
-                                            <p className="font-bold text-sm text-gray-900 dark:text-white line-clamp-2 leading-tight">{offer.name || `${offer.diamonds} Diamonds`}</p>
-                                            <p className="text-[10px] text-gray-500 mt-1">{offerType === 'diamond' ? `${offer.diamonds} DM` : 'Package'}</p>
+                                        )}
+                                        
+                                        {/* Header Area */}
+                                        <div className="p-5 pb-0 flex items-start justify-between">
+                                            <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-2xl">
+                                                {offerType === 'diamond' ? <DiamondIcon className="w-6 h-6 text-blue-500" /> : 
+                                                 offerType === 'levelUp' ? <StarIcon className="w-6 h-6 text-purple-500" /> :
+                                                 offerType === 'membership' ? <IdCardIcon className="w-6 h-6 text-orange-500" /> :
+                                                 offerType === 'special' ? <TagIcon className="w-6 h-6 text-red-500" /> :
+                                                 <CrownIcon className="w-6 h-6 text-yellow-500" />}
+                                            </div>
+                                            
+                                            {/* Sorting Controls */}
+                                            <div className="flex flex-col gap-1">
+                                                <button 
+                                                    onClick={() => handleReorderOffer(index, 'up')}
+                                                    disabled={index === 0}
+                                                    className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                                                >
+                                                    <ArrowUpIcon className="w-4 h-4" />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleReorderOffer(index, 'down')}
+                                                    disabled={index === offersData[offerType].length - 1}
+                                                    className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                                                >
+                                                    <ArrowDownIcon className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                                            <span className="font-bold text-base text-primary">৳{offer.price}</span>
-                                            <div className="flex gap-1">
-                                                <button onClick={() => handleReorderOffer(index, 'up')} disabled={index === 0} className="p-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 disabled:opacity-30 active:scale-90 transition-transform"><ArrowUpIcon className="w-3 h-3"/></button>
-                                                <button onClick={() => handleReorderOffer(index, 'down')} disabled={index === offersData[offerType].length - 1} className="p-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 disabled:opacity-30 active:scale-90 transition-transform"><ArrowDownIcon className="w-3 h-3"/></button>
-                                                <button onClick={() => { setEditingOffer(offer); setIsOfferModalOpen(true); }} className="p-2 bg-blue-50 text-blue-600 rounded-xl active:scale-90 transition-transform"><EditIcon className="w-4 h-4"/></button>
-                                                <button onClick={() => handleDeleteOffer(offer.id)} className="p-2 bg-red-50 text-red-600 rounded-xl active:scale-90 transition-transform"><TrashIcon className="w-4 h-4"/></button>
+
+                                        {/* Content */}
+                                        <div className="p-5">
+                                            <h3 className="font-extrabold text-gray-900 dark:text-white text-lg leading-tight mb-1 truncate">
+                                                {offer.name || `${offer.diamonds} Diamonds`}
+                                            </h3>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
+                                                {offerType === 'diamond' ? `${offer.diamonds} DM` : 
+                                                 offerType === 'levelUp' ? 'Level Up Pass' :
+                                                 offerType === 'special' ? offer.title : 'Package'}
+                                            </p>
+                                            
+                                            <div className="flex items-baseline gap-1 mb-4">
+                                                <span className="text-sm font-bold text-gray-500">৳</span>
+                                                <span className="text-2xl font-black text-gray-900 dark:text-white">{offer.price}</span>
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="grid grid-cols-2 gap-2 border-t border-gray-100 dark:border-gray-800 pt-4">
+                                                <button onClick={() => { setEditingOffer(offer); setIsOfferModalOpen(true); }} className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-blue-600 font-bold text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors active:scale-95">
+                                                    <EditIcon className="w-4 h-4" /> Edit
+                                                </button>
+                                                <button onClick={() => handleDeleteOffer(offer.id)} className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-red-600 font-bold text-xs hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors active:scale-95">
+                                                    <TrashIcon className="w-4 h-4" /> Delete
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -678,76 +770,94 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                         </div>
                     )}
 
+                    {/* REDESIGNED ORDERS UI WITH MICRO ANIMATION */}
                     {activeTab === 'orders' && (
-                        <div className="space-y-5 animate-fade-in">
+                        <div className="space-y-5 animate-smart-fade-in">
                             <SearchInput value={orderSearch} onChange={setOrderSearch} placeholder="Search Order ID..." />
                             <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-2xl">
                                 {(['Pending', 'Completed', 'Failed'] as const).map(status => (
-                                    <button key={status} onClick={() => setOrderFilter(status)} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${orderFilter === status ? 'bg-white dark:bg-dark-card shadow-sm text-primary' : 'text-gray-500'}`}>{status}</button>
+                                    <button key={status} onClick={() => setOrderFilter(status)} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${orderFilter === status ? 'bg-white dark:bg-dark-card shadow-sm text-primary' : 'text-gray-500'}`}>{status}</button>
                                 ))}
                             </div>
-                            <div className="space-y-3">
-                                {filteredOrders.length === 0 ? <div className="text-center py-20 text-gray-400 text-sm">No orders found</div> : filteredOrders.map(order => (
-                                    <div key={order.key} className="bg-white dark:bg-dark-card p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div>
-                                                <span className="font-bold text-sm block text-gray-900 dark:text-white">{order.offer?.diamonds || order.offer?.name}</span>
-                                                <span className="text-[10px] text-gray-400 font-mono">{new Date(order.date).toLocaleString()}</span>
+                            <div className="space-y-3 animate-smart-slide-up">
+                                {filteredOrders.length === 0 ? <div className="text-center py-20 text-gray-400 text-sm">No orders found</div> : filteredOrders.map(order => {
+                                    const isExiting = exitingItems.has(order.key!);
+                                    return (
+                                        <div 
+                                            key={order.key} 
+                                            className={`bg-white dark:bg-dark-card p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-all duration-500 ease-in-out transform ${
+                                                isExiting ? 'opacity-0 translate-x-full scale-95 pointer-events-none' : 'opacity-100'
+                                            }`}
+                                        >
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div>
+                                                    <span className="font-bold text-sm block text-gray-900 dark:text-white">{order.offer?.diamonds || order.offer?.name}</span>
+                                                    <span className="text-[10px] text-gray-400 font-mono">{new Date(order.date).toLocaleString()}</span>
+                                                </div>
+                                                <span className="font-black text-primary text-base">৳{order.offer?.price || 0}</span>
                                             </div>
-                                            <span className="font-black text-primary text-base">৳{order.offer?.price || 0}</span>
+                                            <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl space-y-2 mb-4 border border-gray-100 dark:border-gray-700">
+                                                <div><p className="text-[10px] text-gray-400 mb-0.5">Player Info</p><SmartCopy text={order.uid} /></div>
+                                                <div><p className="text-[10px] text-gray-400 mb-0.5">Order ID</p><SmartCopy text={order.id} /></div>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                {order.status === 'Pending' && (
+                                                    <>
+                                                        <button onClick={() => handleOrderAction(order, 'Completed')} className="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform hover:bg-green-600">Approve</button>
+                                                        <button onClick={() => handleOrderAction(order, 'Failed')} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform hover:bg-red-600">Reject</button>
+                                                    </>
+                                                )}
+                                                <button onClick={() => handleDeleteOrder(order.key!, order.userId)} className="px-4 py-3 bg-gray-100 dark:bg-gray-800 text-red-500 rounded-xl hover:bg-red-50 active:scale-95 transition-transform"><TrashIcon className="w-4 h-4" /></button>
+                                            </div>
                                         </div>
-                                        <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl space-y-2 mb-4">
-                                            <div><p className="text-[10px] text-gray-400 mb-0.5">Player Info</p><SmartCopy text={order.uid} /></div>
-                                            <div><p className="text-[10px] text-gray-400 mb-0.5">Order ID</p><SmartCopy text={order.id} /></div>
-                                        </div>
-                                        <div className="flex gap-3">
-                                            {order.status === 'Pending' && (
-                                                <>
-                                                    <button onClick={() => handleOrderAction(order, 'Completed')} className="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform">Approve</button>
-                                                    <button onClick={() => handleOrderAction(order, 'Failed')} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform">Reject</button>
-                                                </>
-                                            )}
-                                            <button onClick={() => handleDeleteOrder(order.key!, order.userId)} className="px-4 py-3 bg-gray-100 dark:bg-gray-800 text-red-500 rounded-xl hover:bg-red-50 active:scale-95 transition-transform"><TrashIcon className="w-4 h-4" /></button>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
 
+                    {/* REDESIGNED DEPOSITS UI WITH MICRO ANIMATION */}
                     {activeTab === 'deposits' && (
-                        <div className="space-y-5 animate-fade-in">
+                        <div className="space-y-5 animate-smart-fade-in">
                             <SearchInput value={depositSearch} onChange={setDepositSearch} placeholder="Search TrxID..." />
                             <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-2xl">
                                 {(['Pending', 'Completed', 'Failed'] as const).map(status => (
-                                    <button key={status} onClick={() => setDepositFilter(status)} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${depositFilter === status ? 'bg-white dark:bg-dark-card shadow-sm text-primary' : 'text-gray-500'}`}>{status}</button>
+                                    <button key={status} onClick={() => setDepositFilter(status)} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${depositFilter === status ? 'bg-white dark:bg-dark-card shadow-sm text-primary' : 'text-gray-500'}`}>{status}</button>
                                 ))}
                             </div>
-                            <div className="space-y-3">
-                                {filteredTransactions.length === 0 ? <div className="text-center py-20 text-gray-400 text-sm">No deposits found</div> : filteredTransactions.map(txn => (
-                                    <div key={txn.key} className="bg-white dark:bg-dark-card p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
-                                        <div className="flex justify-between mb-3">
-                                            <div><span className="font-bold text-sm block text-gray-900 dark:text-white">{txn.method}</span><span className="text-[10px] text-gray-400">{new Date(txn.date).toLocaleString()}</span></div>
-                                            <span className="font-black text-green-600 text-base">+৳{txn.amount}</span>
+                            <div className="space-y-3 animate-smart-slide-up">
+                                {filteredTransactions.length === 0 ? <div className="text-center py-20 text-gray-400 text-sm">No deposits found</div> : filteredTransactions.map(txn => {
+                                    const isExiting = exitingItems.has(txn.key!);
+                                    return (
+                                        <div 
+                                            key={txn.key} 
+                                            className={`bg-white dark:bg-dark-card p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-all duration-500 ease-in-out transform ${
+                                                isExiting ? 'opacity-0 translate-x-full scale-95 pointer-events-none' : 'opacity-100'
+                                            }`}
+                                        >
+                                            <div className="flex justify-between mb-3">
+                                                <div><span className="font-bold text-sm block text-gray-900 dark:text-white">{txn.method}</span><span className="text-[10px] text-gray-400">{new Date(txn.date).toLocaleString()}</span></div>
+                                                <span className="font-black text-green-600 text-base">+৳{txn.amount}</span>
+                                            </div>
+                                            <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl mb-4 flex justify-between items-center border border-gray-100 dark:border-gray-700"><span className="text-gray-500 text-xs">TrxID:</span><SmartCopy text={txn.transactionId} label={txn.transactionId} /></div>
+                                            <div className="flex gap-3">
+                                                {txn.status === 'Pending' && (
+                                                    <>
+                                                        <button onClick={() => handleTxnAction(txn, 'Completed')} className="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform hover:bg-green-600">Approve</button>
+                                                        <button onClick={() => handleTxnAction(txn, 'Failed')} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform hover:bg-red-600">Reject</button>
+                                                    </>
+                                                )}
+                                                <button onClick={() => handleDeleteTransaction(txn.key!, txn.userId)} className="px-4 py-3 bg-gray-100 dark:bg-gray-800 text-red-500 rounded-xl hover:bg-red-50 active:scale-95 transition-transform"><TrashIcon className="w-4 h-4" /></button>
+                                            </div>
                                         </div>
-                                        <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl mb-4 flex justify-between items-center"><span className="text-gray-500 text-xs">TrxID:</span><SmartCopy text={txn.transactionId} label={txn.transactionId} /></div>
-                                        <div className="flex gap-3">
-                                            {txn.status === 'Pending' && (
-                                                <>
-                                                    <button onClick={() => handleTxnAction(txn, 'Completed')} className="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform">Approve</button>
-                                                    <button onClick={() => handleTxnAction(txn, 'Failed')} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform">Reject</button>
-                                                </>
-                                            )}
-                                            <button onClick={() => handleDeleteTransaction(txn.key!, txn.userId)} className="px-4 py-3 bg-gray-100 dark:bg-gray-800 text-red-500 rounded-xl hover:bg-red-50 active:scale-95 transition-transform"><TrashIcon className="w-4 h-4" /></button>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
 
                     {activeTab === 'tools' && (
-                        <div className="animate-fade-in">
+                        <div className="animate-smart-fade-in">
                             <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
                                 {[
                                     { id: 'wallet', label: 'Wallet', icon: WalletIcon },
@@ -757,11 +867,11 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                     { id: 'notifications', label: 'Notifs', icon: BellIcon },
                                     { id: 'contacts', label: 'Contacts', icon: ContactIcon },
                                 ].map(tool => (
-                                    <button key={tool.id} onClick={() => setActiveTool(tool.id as any)} className={`flex flex-col items-center justify-center min-w-[70px] p-3 rounded-2xl transition-all border ${activeTool === tool.id ? 'bg-primary text-white border-primary shadow-lg' : 'bg-white dark:bg-dark-card text-gray-500 border-transparent'}`}><tool.icon className="w-6 h-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wide">{tool.label}</span></button>
+                                    <button key={tool.id} onClick={() => setActiveTool(tool.id as any)} className={`flex flex-col items-center justify-center min-w-[70px] p-3 rounded-2xl transition-all border active:scale-95 ${activeTool === tool.id ? 'bg-primary text-white border-primary shadow-lg' : 'bg-white dark:bg-dark-card text-gray-500 border-transparent hover:bg-gray-100 dark:hover:bg-gray-800'}`}><tool.icon className="w-6 h-6 mb-1" /><span className="text-[10px] font-bold uppercase tracking-wide">{tool.label}</span></button>
                                 ))}
                             </div>
 
-                            <div className="bg-white dark:bg-dark-card p-6 rounded-3xl shadow-sm min-h-[300px] border border-gray-100 dark:border-gray-800">
+                            <div className="bg-white dark:bg-dark-card p-6 rounded-3xl shadow-sm min-h-[300px] border border-gray-100 dark:border-gray-800 animate-smart-slide-up">
                                 {activeTool === 'wallet' && (
                                     <div>
                                         <button onClick={openAddMethodModal} className="w-full py-4 mb-6 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl text-gray-500 font-bold hover:bg-gray-50 dark:hover:bg-gray-800 text-sm active:scale-95 transform">+ Add Wallet</button>
@@ -796,7 +906,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                         </div>
                                     </div>
                                 )}
-                                {/* ... Rest of tools (Graphics, Ads, Notifs, Contacts) ... */}
                                 {activeTool === 'graphics' && (
                                     <div className="space-y-6">
                                         <div><h3 className="font-bold mb-3 text-sm text-gray-500 uppercase">App Logo URL</h3><div className="flex gap-3"><img src={settings.logoUrl || APP_LOGO_URL} className="w-12 h-12 rounded-2xl border" /><input type="text" value={settings.logoUrl || ''} onChange={(e) => setSettings({...settings, logoUrl: e.target.value})} className={inputClass} placeholder="Image URL" /></div><button onClick={handleUpdateLogo} className="mt-3 text-xs bg-primary text-white px-4 py-2 rounded-xl font-bold active:scale-95 transform">Update Logo</button></div>
@@ -849,7 +958,8 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 {activeTool === 'notifications' && (
                                     <div className="space-y-6">
                                         <div className="bg-purple-50 dark:bg-purple-900/10 p-5 rounded-3xl border border-purple-100 dark:border-purple-900/20"><h3 className="text-sm font-bold text-purple-600 dark:text-purple-400 mb-4">Quick Send</h3><button onClick={() => setIsNotifModalOpen(true)} className="w-full py-3.5 bg-purple-600 text-white rounded-2xl font-bold shadow-md hover:bg-purple-700 transition-colors text-sm active:scale-95 transform">+ Create Message</button></div>
-                                        {/* LOGIN POPUP SETTINGS WITH VIDEO URL */}
+                                        
+                                        {/* LOGIN POPUP SETTINGS - VIDEO URL REMOVED */}
                                         <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-200 dark:border-gray-700">
                                             <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-100">
                                                 <h4 className="font-bold text-sm text-indigo-600">Login Popup</h4>
@@ -861,8 +971,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                                 <input type="text" placeholder="Title" value={popupConfig.title} onChange={(e) => setPopupConfig({...popupConfig, title: e.target.value})} className={inputClass} />
                                                 <textarea placeholder="Message..." value={popupConfig.message} onChange={(e) => setPopupConfig({...popupConfig, message: e.target.value})} className={inputClass} rows={2} />
                                                 <input type="text" placeholder="Image URL (Optional)" value={popupConfig.imageUrl || ''} onChange={(e) => setPopupConfig({...popupConfig, imageUrl: e.target.value})} className={inputClass} />
-                                                {/* NEW: Video URL Input */}
-                                                <input type="text" placeholder="Video URL (YouTube/MP4 - Optional)" value={popupConfig.videoUrl || ''} onChange={(e) => setPopupConfig({...popupConfig, videoUrl: e.target.value})} className={inputClass} />
                                                 
                                                 <button onClick={handleSavePopupConfig} className="w-full py-3 bg-indigo-600 text-white rounded-2xl font-bold text-xs mt-2 hover:bg-indigo-700 active:scale-95 transform">Save Popup</button>
                                             </div>
@@ -871,14 +979,14 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                     </div>
                                 )}
                                 {activeTool === 'contacts' && (
-                                    <div><div className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6"><h4 className="font-bold text-sm mb-4 text-blue-600">Contact Page Text</h4><div className="space-y-4"><div><label className="block text-xs font-bold text-gray-500 mb-2">Support Message</label><textarea value={settings.contactMessage || ''} onChange={(e) => setSettings({...settings, contactMessage: e.target.value})} className={inputClass} rows={3} /></div><div><label className="block text-xs font-bold text-gray-500 mb-2">Operating Hours</label><input type="text" value={settings.operatingHours || ''} onChange={(e) => setSettings({...settings, operatingHours: e.target.value})} className={inputClass} /></div></div><button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full mt-4 py-3.5 font-bold text-xs rounded-2xl shadow-md transition-all active:scale-95 transform ${isSettingsChanged ? 'bg-blue-600 text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Save Settings</button></div><button onClick={openAddContactModal} className="w-full py-4 mb-6 bg-blue-50 text-blue-600 rounded-2xl font-bold text-sm active:scale-95 transform">+ Add Contact</button><div className="space-y-3">{contacts.map((c, i) => (<div key={i} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl flex justify-between items-center border border-gray-100 dark:border-gray-700"><div><p className="font-bold text-sm text-gray-900 dark:text-white">{c.title || c.labelKey}</p><p className="text-[10px] text-gray-500 uppercase">{c.type}</p></div><div className="flex gap-2"><button onClick={() => openEditContactModal(c, i)} className="text-blue-500 p-2 active:scale-90 transform"><EditIcon className="w-5 h-5"/></button><button onClick={() => handleDeleteContact(i)} className="text-red-500 p-2 active:scale-90 transform"><TrashIcon className="w-5 h-5"/></button></div></div>))}</div></div>
+                                    <div><div className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6"><h4 className="font-bold text-sm mb-4 text-blue-600">Contact Page Text</h4><div className="space-y-4"><div><label className="block text-xs font-bold text-gray-500 mb-2">Support Message</label><textarea value={settings.contactMessage || ''} onChange={(e) => setSettings({...settings,contactMessage: e.target.value})} className={inputClass} rows={3} /></div><div><label className="block text-xs font-bold text-gray-500 mb-2">Operating Hours</label><input type="text" value={settings.operatingHours || ''} onChange={(e) => setSettings({...settings, operatingHours: e.target.value})} className={inputClass} /></div></div><button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full mt-4 py-3.5 font-bold text-xs rounded-2xl shadow-md transition-all active:scale-95 transform ${isSettingsChanged ? 'bg-blue-600 text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Save Settings</button></div><button onClick={openAddContactModal} className="w-full py-4 mb-6 bg-blue-50 text-blue-600 rounded-2xl font-bold text-sm active:scale-95 transform">+ Add Contact</button><div className="space-y-3">{contacts.map((c, i) => (<div key={i} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl flex justify-between items-center border border-gray-100 dark:border-gray-700"><div><p className="font-bold text-sm text-gray-900 dark:text-white">{c.title || c.labelKey}</p><p className="text-[10px] text-gray-500 uppercase">{c.type}</p></div><div className="flex gap-2"><button onClick={() => openEditContactModal(c, i)} className="text-blue-500 p-2 active:scale-90 transform"><EditIcon className="w-5 h-5"/></button><button onClick={() => handleDeleteContact(i)} className="text-red-500 p-2 active:scale-90 transform"><TrashIcon className="w-5 h-5"/></button></div></div>))}</div></div>
                                 )}
                             </div>
                         </div>
                     )}
 
                     {activeTab === 'settings' && (
-                        <div className="space-y-6 animate-fade-in">
+                        <div className="space-y-6 animate-smart-fade-in">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700"><div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-3"><SettingsIcon className="w-5 h-5 text-blue-500" /><h4 className="font-bold text-sm">Identity</h4></div><div className="space-y-4"><div><label className="block text-xs font-bold text-gray-500 mb-2">App Name</label><input type="text" value={settings.appName} onChange={(e) => setSettings({...settings, appName: e.target.value})} className={inputClass} /></div><div><label className="block text-xs font-bold text-gray-500 mb-2">Notice Message</label><textarea value={settings.notice || ''} onChange={(e) => setSettings({...settings, notice: e.target.value})} className={inputClass} rows={2} /></div></div></div>
                                 <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700"><div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-3"><EyeIcon className="w-5 h-5 text-purple-500" /><h4 className="font-bold text-sm">Control</h4></div><div className="space-y-4"><div className="flex justify-between items-center p-3 bg-gray-50 rounded-2xl"><span className="font-bold text-xs text-red-500">Maintenance</span><div onClick={() => setSettings({...settings, maintenanceMode: !settings.maintenanceMode})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.maintenanceMode ? 'bg-red-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.maintenanceMode ? 'translate-x-5' : ''}`}></div></div></div><div className="grid grid-cols-2 gap-3">{Object.keys(settings.visibility || {}).map((key) => (<div key={key} className="flex justify-between items-center p-3 bg-gray-50 rounded-2xl"><span className="capitalize text-[10px] font-bold">{key}</span><div onClick={() => setSettings({...settings, visibility: {...settings.visibility!, [key]: !settings.visibility![key as keyof AppVisibility]}})} className={`flex-shrink-0 w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.visibility![key as keyof AppVisibility] ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.visibility![key as keyof AppVisibility] ? 'translate-x-4' : ''}`}></div></div></div>))}</div><div className="flex justify-between items-center p-3 bg-gray-50 rounded-2xl mt-2"><span className="font-bold text-xs text-gray-600">Animations</span><div onClick={() => setSettings({ ...settings, uiSettings: { ...settings.uiSettings!, animationsEnabled: !settings.uiSettings?.animationsEnabled } })} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.uiSettings?.animationsEnabled ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.uiSettings?.animationsEnabled ? 'translate-x-5' : ''}`}></div></div></div></div></div>
