@@ -4,14 +4,13 @@ import { GoogleGenAI } from "@google/genai";
 import { User, AppSettings, DiamondOffer, PaymentMethod, SupportContact, LevelUpPackage, Membership, PremiumApp, SpecialOffer, Screen } from '../types';
 import { DEFAULT_AI_KEY } from '../constants';
 import { db } from '../firebase';
-import { ref, get } from 'firebase/database';
+import { ref, get, update } from 'firebase/database';
 
-// --- SOUND ASSETS (Short, crisp UI sounds) ---
+// --- SOUND ASSETS ---
 const SEND_SOUND = "data:audio/mp3;base64,SUQzBAAAAAAAI1RTSVMAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWgAAAA0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAABzgM0AAAAAAOAAAAAAAAAAAA0gAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAALQAAAAADgOAAA///+5JkAAAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD//+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAADcADQAAAAADgAAAAAAAAAtAAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAAAAAANIAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA"; 
 const RECEIVE_SOUND = "data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWgAAAA0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAABzgM0AAAAAAOAAAAAAAAAAAA0gAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAALQAAAAADgOAAA///+5JkAAAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAADcADQAAAAADgAAAAAAAAAtAAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAAAAAANIAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA";
 
 // --- ANIMATED ICONS ---
-
 const LiveRobotIcon = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <style>
@@ -28,7 +27,6 @@ const LiveRobotIcon = ({ className }: { className?: string }) => (
     <path d="M20 14h2" />
     <path d="M15 13v2" />
     <path d="M9 13v2" />
-    {/* Animated Eyes */}
     <g className="bot-eyes">
         <circle cx="9" cy="12" r="1.5" fill="currentColor" stroke="none" />
         <circle cx="15" cy="12" r="1.5" fill="currentColor" stroke="none" />
@@ -77,37 +75,40 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
   activeScreen,
   setActiveScreen
 }) => {
-  const botName = appSettings.aiName || "Smart Assistant"; 
+  const botName = appSettings.aiName || "Support"; 
   const appName = appSettings.appName || "FF SHOP";
+  const DAILY_LIMIT = 30; // Max questions per day
   
   const [messages, setMessages] = useState<Message[]>([]);
   
+  // Custom Greeting
   useEffect(() => {
-      const greeting = `আসসালামু আলাইকুম ${user.name}! ${appName}-এর সাপোর্টে আপনাকে স্বাগতম। অ্যাপের যেকোনো ফিচার বা সমস্যা নিয়ে আমাকে প্রশ্ন করতে পারেন।`;
-      setMessages([{ id: 'init', role: 'model', text: greeting }]);
-  }, [user.name, appName]);
+      if (messages.length === 0) {
+          setMessages([{ 
+              id: 'init', 
+              role: 'model', 
+              text: `আসসালামু আলাইকুম, ${user.name}। ${appName}-এ আপনাকে স্বাগতম। আমি আপনার স্মার্ট অ্যাসিস্ট্যান্ট। অ্যাপ সম্পর্কিত যেকোনো প্রশ্ন করতে পারেন।` 
+          }]);
+      }
+  }, [appName, user.name]);
   
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [recentHistory, setRecentHistory] = useState<string>(''); 
   const [isAdminMode, setIsAdminMode] = useState(false);
   
-  // RANKING STATE
-  const [rankingData, setRankingData] = useState<{ tradingRank: number | string, earningRank: number | string }>({ tradingRank: 'N/A', earningRank: 'N/A' });
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // --- AUDIO UTILS ---
   const playSound = (type: 'send' | 'receive') => {
       try {
           const audio = new Audio(type === 'send' ? SEND_SOUND : RECEIVE_SOUND);
           audio.volume = 0.5;
-          audio.play().catch(e => {}); // Audio blocked
+          audio.play().catch(e => {}); 
       } catch (e) {}
   };
 
-  // --- DRAGGABLE BUTTON STATE ---
+  // Dragging Logic
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const isDragging = useRef(false);
   const dragStartPos = useRef({ x: 0, y: 0 });
@@ -116,18 +117,13 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
 
   useEffect(() => {
       if (typeof window !== 'undefined') {
-          setPosition({
-              x: window.innerWidth - 75,
-              y: window.innerHeight - 140
-          });
+          setPosition({ x: window.innerWidth - 75, y: window.innerHeight - 140 });
       }
   }, []);
 
-  // --- 1. CALCULATE RANKING & HISTORY ---
+  // Fetch History
   useEffect(() => {
       if (!user.uid) return;
-
-      // Fetch History
       const ordersRef = ref(db, `orders/${user.uid}`);
       const txnRef = ref(db, `transactions/${user.uid}`);
       
@@ -138,170 +134,101 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
               
               if (ordersSnap.exists()) {
                   const oList = Object.values(ordersSnap.val()) as any[];
-                  const topOrders = oList
-                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                      .slice(0, 3)
-                      .map(o => `[Order] Item: ${o.offer?.name || o.offer?.diamonds}, Price: ${o.price}, Status: ${o.status}`);
-                  historyStr += "Recent Orders:\n" + topOrders.join('\n') + "\n\n";
+                  const topOrders = oList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3).map(o => `[Order: ${o.offer?.name || o.offer?.diamonds}] Status: ${o.status}`);
+                  historyStr += "LAST ORDERS:\n" + topOrders.join('\n') + "\n";
               }
-              
               if (txnsSnap.exists()) {
                   const tList = Object.values(txnsSnap.val()) as any[];
-                  const topTxns = tList
-                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                      .slice(0, 3)
-                      .map(t => `[Deposit] Method: ${t.method}, Amount: ${t.amount}, Status: ${t.status}, TrxID: ${t.transactionId}`);
-                  historyStr += "Recent Transactions:\n" + topTxns.join('\n');
+                  const topTxns = tList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3).map(t => `[Deposit: ${t.method} ${t.amount}tk] Status: ${t.status}`);
+                  historyStr += "LAST DEPOSITS:\n" + topTxns.join('\n');
               }
               setRecentHistory(historyStr);
           } catch (e) { }
       };
-      
-      // Calculate Rank (Exact Match to RankingScreen.tsx Logic)
-      const usersRef = ref(db, 'users');
-      const updateRanking = async () => {
-          const snap = await get(usersRef);
-          if (snap.exists()) {
-              const data = snap.val();
-              const allUsers: User[] = Object.entries(data).map(([key, val]: [string, any]) => ({
-                  ...val,
-                  uid: key
-              }));
-              
-              const safeNumber = (val: any) => {
-                  if (val === undefined || val === null) return 0;
-                  const num = parseFloat(val); 
-                  return (isNaN(num) || !isFinite(num)) ? 0 : num;
-              };
-
-              // Sort for Transaction Rank (Deposit + Spent)
-              const sortedByTrade = [...allUsers].sort((a, b) => {
-                  const volA = safeNumber(a.totalDeposit) + safeNumber(a.totalSpent);
-                  const volB = safeNumber(b.totalDeposit) + safeNumber(b.totalSpent);
-                  if (volB !== volA) return volB - volA; // Higher score first
-                  return (a.name || "").localeCompare(b.name || ""); // A-Z tie breaker
-              });
-              const myTradeIndex = sortedByTrade.findIndex(u => u.uid === user.uid);
-
-              // Sort for Earning Rank (Ads)
-              const sortedByEarn = [...allUsers].sort((a, b) => {
-                  const earnA = safeNumber(a.totalEarned);
-                  const earnB = safeNumber(b.totalEarned);
-                  if (earnB !== earnA) return earnB - earnA;
-                  return (a.name || "").localeCompare(b.name || "");
-              });
-              const myEarnIndex = sortedByEarn.findIndex(u => u.uid === user.uid);
-
-              setRankingData({
-                  tradingRank: myTradeIndex !== -1 ? myTradeIndex + 1 : 'Unranked',
-                  earningRank: myEarnIndex !== -1 ? myEarnIndex + 1 : 'Unranked'
-              });
-          }
-      };
-
       updateHistoryContext();
-      updateRanking();
-
   }, [user.uid]);
 
-
-  // Auto-scroll
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, activeScreen]);
-  // Auto-resize
   useEffect(() => { if (textareaRef.current) { textareaRef.current.style.height = 'auto'; textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`; }}, [input]);
 
-  // Drag Handlers
   const handlePointerDown = (e: any) => { isDragging.current = true; hasMoved.current = false; const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; dragStartPos.current = { x: clientX, y: clientY }; buttonStartPos.current = { ...position }; };
   const handlePointerMove = (e: any) => { if (!isDragging.current) return; const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; const deltaX = clientX - dragStartPos.current.x; const deltaY = clientY - dragStartPos.current.y; if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) hasMoved.current = true; let newX = buttonStartPos.current.x + deltaX; let newY = buttonStartPos.current.y + deltaY; const maxX = window.innerWidth - 60; const maxY = window.innerHeight - 130; if (newX < 0) newX = 0; if (newX > maxX) newX = maxX; if (newY < 0) newY = 0; if (newY > maxY) newY = maxY; setPosition({ x: newX, y: newY }); };
   const handlePointerUp = () => { isDragging.current = false; };
   const handleButtonClick = () => { if (!hasMoved.current) setActiveScreen('aiChat'); };
 
-  // --- THE BRAIN (System Instruction) ---
+  // --- THE LOGIC CORE (UPDATED) ---
   const systemInstruction = useMemo(() => {
     
-    // 1. Prepare Data for the AI (Internal Data Sheet)
-    const appFeatureMap = `
-    [INTERNAL APP CONFIGURATION & FEATURES]
-    
-    1. **Wallet System** (Location: Home > Wallet Icon)
-       - Feature: Add Money via bKash, Nagad, Rocket.
-       - Process: User enters amount -> Selects method -> Copies Admin Number -> Sends Money (Send Money option) -> Enters Transaction ID (TrxID) -> Submits.
-       - Status: Deposit requests are 'Pending' until Admin approves. Money is added to 'Balance'.
-       - Minimum Deposit: ${20} Taka.
-    
-    2. **Purchase System** (Location: Home Screen Tabs)
-       - Types: Diamond Topup, Level Up Pass, Membership, Premium Apps.
-       - Process: Select Item -> Click 'Buy Now' -> Enter Player UID (or Email for Apps) -> Confirm.
-       - Logic: Cost is deducted from Balance immediately. Status 'Pending'. Admin completes order manually.
-       - Refund: If Admin rejects (Failed), money is auto-refunded to Balance.
-    
-    3. **Ads Earning System** (Location: Earn/Watch Ads)
-       - Feature: Watch Video Ads to earn free money.
-       - Rules: Daily Limit: ${appSettings.earnSettings?.dailyLimit} ads. Reward: ${appSettings.earnSettings?.rewardPerAd} Taka per ad. Cooldown: ${appSettings.earnSettings?.adCooldownSeconds}s.
-       - Restriction: VPN might be required (US/UK). 24-hour reset logic applies.
-    
-    4. **Ranking System** (Location: Profile > Leaderboard)
-       - Traders Rank: Based on Total Volume (Deposit + Spent). Your Rank: ${rankingData.tradingRank}.
-       - Earners Rank: Based on Total Earned from Ads. Your Rank: ${rankingData.earningRank}.
-       - Awards: Top 3 get badges (Gold, Silver, Bronze).
-       - *Note: Ranking is real-time. If it doesn't update, please wait a moment for the server.*
-    
-    5. **Profile & Security**
-       - Location: Profile Screen.
-       - Features: Change Password, Edit Profile (Name/Avatar/UID), Logout.
-       - Contact Support: Links to WhatsApp/Telegram/Email found in 'Contact Us'.
-       - Note: Forgot Password is NOT available in-app; users must contact Admin if logged out.
-    `;
+    // 1. Live Features Check
+    const availableFeatures = [];
+    if (appSettings.visibility?.diamonds) availableFeatures.push("- Diamond Topup");
+    if (appSettings.visibility?.levelUp) availableFeatures.push("- Level Up Pass");
+    if (appSettings.visibility?.membership) availableFeatures.push("- Weekly/Monthly Membership");
+    if (appSettings.visibility?.premium) availableFeatures.push("- Premium Apps (Netflix, YT Pro)");
+    if (appSettings.visibility?.earn) availableFeatures.push("- Watch Ads & Earn");
+    if (appSettings.visibility?.ranking) availableFeatures.push("- Leaderboard");
 
-    const devSettings = appSettings.developerSettings || { title: "Dev", url: "", message: "Dev Info" };
+    const premiumList = premiumApps.length > 0 ? premiumApps.map(p => `${p.name} (${p.price}৳)`).join(', ') : "None";
+    
+    // 2. LIVE DEVELOPER INFO (Strict Source)
+    const devInfo = appSettings.developerSettings || { title: "RBN Saiful", url: "N/A" };
 
     return `
-      You are the intelligent, helpful, and logical AI Assistant for the app "${appName}".
+      You are the official Smart Assistant for "${appName}". 
+      Your goal is to provide precise, logical, and helpful answers.
+
+      ### 1. STRICT CONTACT RULES (DO NOT MIX THESE)
       
-      *** PRIMARY DIRECTIVES ***
-      1. **Scope of Knowledge:** You answer questions ONLY about this app, its features, rules, and troubleshooting. Do NOT answer general knowledge (math, science, politics, etc.).
-      2. **Context Awareness:** Do NOT react to keywords blindly. If a user says "I forgot my password", understand they need the reset process. If they say "The password field is nice", do NOT give reset instructions. Understand the *intent*.
-      3. **Tone:** Speak naturally, politely, and respectfully in Bengali (default). Be concise but helpful. Avoid robotic language.
-      4. **Logic:** Always use the provided [INTERNAL APP CONFIGURATION] to give accurate step-by-step guides.
+      **CASE A: USER NEEDS APP SUPPORT**
+      - Issues: Order pending, money not added, refund, bug, password lost.
+      - **Action:** Direct them ONLY to "Profile > Contact Us".
+      - **Do NOT** give the Developer's personal link for support issues.
+      - **Response:** "অর্ডার বা পেমেন্ট সংক্রান্ত সমস্যার জন্য অ্যাপের 'Profile > Contact Us' অপশন থেকে আমাদের সাপোর্ট টিমের সাথে কথা বলুন।"
 
-      *** FEATURE KNOWLEDGE BASE ***
-      ${appFeatureMap}
+      **CASE B: USER ASKS ABOUT DEVELOPER**
+      - Issues: "Who made this app?", "I want to hire developer", "Contact Owner", "Who is RBN Saiful?".
+      - **Action:** Praise the developer logically and provide the LIVE link below.
+      - **Developer Name:** ${devInfo.title}
+      - **Developer Link:** ${devInfo.url}
+      - **Response:** "এই অ্যাপটি তৈরি করেছেন অত্যন্ত দক্ষ ডেভেলপার **${devInfo.title}**। আপনি যদি অ্যাপ ডেভেলপমেন্ট বা টেকনিক্যাল বিষয়ে যোগাযোগ করতে চান, তবে এই লিংকে ভিজিট করুন: ${devInfo.url}"
 
-      *** DEVELOPER INFO (Use only if explicitly asked) ***
-      - Name: ${devSettings.title}
-      - Bio: ${devSettings.message}
-      - Contact: ${devSettings.url}
-      - Praise: "উনি আমাদের সিস্টেম ডিজাইন করেছেন এবং দ্রুত সাপোর্ট দেন।"
-
-      *** RESPONSE GUIDELINES ***
+      ### 2. LOGICAL INTELLIGENCE
+      - **Password:** No 'Forgot Password' button. User must contact support manually.
+      - **Settings:** No 'Settings' menu. Everything is in 'Profile'.
+      - **Features:** Only mention features listed below. If a user asks for a feature not listed, say it's currently unavailable.
       
-      - **If User asks "How to Deposit?":**
-        "টাকা যোগ করতে এই ধাপগুলো অনুসরণ করুন:
-        ১. Wallet অপশনে যান।
-        ২. টাকার পরিমাণ লিখুন এবং পেমেন্ট মেথড (bKash/Nagad) সিলেক্ট করুন।
-        ৩. আমাদের নম্বরে টাকা 'Send Money' করুন।
-        ৪. TrxID টি অ্যাপে দিয়ে Submit করুন। ১০ মিনিটের মধ্যে ব্যালেন্স যোগ হবে।"
+      ### 3. LIVE DATA (READ ONLY)
+      **Active Features:** ${availableFeatures.join(', ')}
+      **Premium Stock:** ${premiumList}
+      **User Name:** ${user.name}
+      **User Balance:** ${Math.floor(user.balance)} BDT
 
-      - **If User asks "Order Pending why?":**
-        "আপনার অর্ডারটি বর্তমানে 'Pending' আছে। অ্যাডমিন এটি যাচাই করে শীঘ্রই কমপ্লিট করে দেবেন। সাধারণত ১০-৩০ মিনিট সময় লাগে। দয়া করে ধৈর্য ধরুন।"
+      ### 4. TONE
+      - Smart, Professional, Concise.
+      - Language: Bengali.
+      - Do not overuse the user's name.
 
-      - **If User asks "Forgot Password":**
-        "দুঃখিত, অ্যাপের ভেতর সরাসরি পাসওয়ার্ড রিসেট অপশন নেই। তবে আপনি লগইন করা থাকলে Profile > Change Password থেকে পাল্টাতে পারেন। লগইন করতে না পারলে আমাদের সাপোর্টে (WhatsApp) যোগাযোগ করুন।"
-
-      - **If User asks Out of Scope (e.g. "Capital of Bangladesh?"):**
-        "দুঃখিত, আমি কেবল ${appName} অ্যাপ সম্পর্কিত বিষয়ে সহায়তা করতে পারি। বাইরের কোনো তথ্যের জন্য আমি পারদর্শী নই।"
-
-      - **If User makes a mistake/typo:**
-        Politely correct them based on context (e.g., if they say "Bkash problem", assume Deposit issue).
-
-      *** CURRENT USER CONTEXT ***
-      - Name: ${user.name}
-      - Balance: ${Math.floor(user.balance)} Taka
-      - Pending Orders: Check Recent History below.
-      - Recent Activity: 
-      ${recentHistory.substring(0, 500)}
+      Start serving now based on these strict logic rules.
     `;
-  }, [appSettings, user, rankingData, recentHistory, activeScreen, appName]);
+  }, [appSettings, user, recentHistory, activeScreen, appName, diamondOffers, paymentMethods, supportContacts, premiumApps, levelUpPackages, memberships]);
+
+  // Rate Limiting
+  const checkDailyLimit = async (): Promise<boolean> => {
+      if (isAdminMode) return true;
+      const today = new Date().toISOString().split('T')[0];
+      const usageRef = ref(db, `users/${user.uid}/aiDailyUsage`);
+      try {
+          const snapshot = await get(usageRef);
+          let currentUsage = { date: today, count: 0 };
+          if (snapshot.exists()) {
+              const data = snapshot.val();
+              if (data.date === today) currentUsage = data;
+          }
+          if (currentUsage.count >= DAILY_LIMIT) return false;
+          await update(ref(db, `users/${user.uid}/aiDailyUsage`), { date: today, count: currentUsage.count + 1 });
+          return true;
+      } catch (error) { return true; }
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
@@ -309,28 +236,36 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
     if (input.trim() === 'SAIFULISLAM+999') {
         setIsAdminMode(true);
         setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: '******' }]); 
-        setTimeout(() => {
-            setMessages(prev => [...prev, { id: 'admin-welcome', role: 'model', text: "🟢 ADMIN MODE: I am ready to learn." }]);
-        }, 500);
-        setInput('');
-        return;
+        setTimeout(() => { setMessages(prev => [...prev, { id: 'admin-welcome', role: 'model', text: "🟢 ADMIN MODE ACTIVATED." }]); }, 500);
+        setInput(''); return;
+    }
+    if (isAdminMode && input.trim().toLowerCase() === 'exit') {
+        setIsAdminMode(false);
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: 'exit' }, { id: 'admin-exit', role: 'model', text: "🔴 Admin Mode Off." }]);
+        setInput(''); return;
     }
 
-    if (isAdminMode) {
-        if (input.trim().toLowerCase() === 'exit') {
-            setIsAdminMode(false);
-            setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: 'exit' }, { id: 'admin-exit', role: 'model', text: "🔴 Admin Mode Off." }]);
-            setInput(''); return;
-        }
-        setInput(''); return; 
-    }
-
-    playSound('send');
     const userMessageText = input;
+    setInput('');
+    
     const userMessage: Message = { id: Date.now().toString(), role: 'user', text: userMessageText };
     setMessages(prev => [...prev, userMessage]);
-    setInput('');
+    playSound('send');
     setIsTyping(true);
+
+    const isAllowed = await checkDailyLimit();
+    if (!isAllowed) {
+        setIsTyping(false);
+        setTimeout(() => {
+            setMessages(prev => [...prev, { 
+                id: Date.now().toString(), 
+                role: 'model', 
+                text: `দুঃখিত ${user.name}, আপনার আজকের লিমিট শেষ। জরুরি প্রয়োজনে সাপোর্টে যোগাযোগ করুন।` 
+            }]);
+            playSound('receive');
+        }, 500);
+        return;
+    }
 
     try {
       let apiKey = appSettings.aiApiKey ? appSettings.aiApiKey.trim() : ""; 
@@ -356,7 +291,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
         }
       }
     } catch (error: any) {
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: "দুঃখিত, নেটওয়ার্ক সমস্যার কারণে উত্তর দিতে পারছি না। একটু পরে আবার চেষ্টা করুন।" }]);
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: "নেটওয়ার্ক সমস্যার কারণে উত্তর দিতে পারছি না। দয়া করে আবার চেষ্টা করুন।" }]);
     } finally {
       setIsTyping(false);
     }
@@ -376,7 +311,6 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
             style={{ left: position.x, top: position.y, position: 'fixed', zIndex: 50, touchAction: 'none' }}
             className="cursor-move active:cursor-grabbing"
         >
-            {/* UPDATED TO BRAND GRADIENT */}
             <div className="bg-gradient-to-r from-primary to-secondary text-white p-2.5 rounded-full shadow-lg shadow-primary/40 hover:scale-105 active:scale-95 transition-transform duration-200 flex items-center justify-center">
                 <LiveRobotIcon className="w-7 h-7" />
             </div>
@@ -390,7 +324,6 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
               <button onClick={() => setActiveScreen('home')} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-300"><ArrowLeftIcon className="w-6 h-6" /></button>
               <div className="flex items-center gap-3">
                   <div className="relative">
-                      {/* UPDATED HEADER ICON TO BRAND GRADIENT */}
                       <div className="bg-gradient-to-r from-primary to-secondary p-1.5 rounded-full text-white shadow-md">
                           <LiveRobotIcon className="w-5 h-5" />
                       </div>
