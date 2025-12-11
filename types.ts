@@ -1,3 +1,4 @@
+
 import type { FC } from 'react';
 
 export type Language = 'en' | 'bn';
@@ -176,7 +177,7 @@ export interface DeveloperSettings {
 }
 
 export interface UiSettings {
-    cardSize: 'small' | 'medium' | 'large';
+    cardSize: 'normal' | 'small' | 'smaller' | 'extra-small';
     animationsEnabled: boolean;
 }
 

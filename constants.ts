@@ -1,3 +1,4 @@
+
 import type { DiamondOffer, PaymentMethod, SupportContact, LevelUpPackage, Membership, PremiumApp, Banner } from './types';
 
 export const APP_LOGO_URL = 'https://i.ibb.co/k2nGxqwY/1763225878291.jpg';
@@ -148,7 +149,7 @@ export const DEFAULT_APP_SETTINGS = {
         description: "Contact for development"
     },
     uiSettings: {
-        cardSize: 'medium', // small, medium, large
+        cardSize: 'normal', // normal, small, smaller, extra-small
         animationsEnabled: true
     }
 };

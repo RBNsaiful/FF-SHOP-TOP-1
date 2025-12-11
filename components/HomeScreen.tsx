@@ -109,20 +109,11 @@ const BannerCarousel: FC<{ images: Banner[] }> = ({ images }) => {
 };
 
 
-const PackageCard: FC<{ name: string; price: number; texts: any; onBuy: () => void; icon: FC<{className?: string}>; description?: string; isPremium?: boolean; size?: 'small' | 'medium' | 'large' }> = ({ name, price, texts, onBuy, icon: Icon, description, isPremium, size = 'medium' }) => {
+const PackageCard: FC<{ name: string; price: number; texts: any; onBuy: () => void; icon: FC<{className?: string}>; description?: string; isPremium?: boolean; size?: 'normal' | 'small' | 'smaller' | 'extra-small' }> = ({ name, price, texts, onBuy, icon: Icon, description, isPremium, size = 'normal' }) => {
     
-    // Dynamic styles based on size prop
+    // Dynamic styles based on size prop - NEW SIZE LOGIC
     const sizeConfig = {
-        small: {
-            padding: 'p-1.5',
-            iconSize: 'w-6 h-6',
-            titleSize: 'text-[9px] leading-tight',
-            descSize: 'text-[7px]',
-            priceSize: 'text-[10px]',
-            btnSize: 'text-[9px] py-0.5 h-6 flex items-center justify-center',
-            minHeight: 'min-h-0'
-        },
-        medium: {
+        'normal': {
             padding: 'p-2',
             iconSize: 'w-10 h-10',
             titleSize: 'text-xs',
@@ -131,18 +122,37 @@ const PackageCard: FC<{ name: string; price: number; texts: any; onBuy: () => vo
             btnSize: 'text-xs py-1.5',
             minHeight: 'min-h-[1.8rem]'
         },
-        large: {
-            padding: 'p-4',
-            iconSize: 'w-14 h-14',
-            titleSize: 'text-sm',
-            descSize: 'text-[10px]',
-            priceSize: 'text-base',
-            btnSize: 'text-sm py-2',
-            minHeight: 'min-h-[2.2rem]'
+        'small': {
+            padding: 'p-1.5',
+            iconSize: 'w-8 h-8',
+            titleSize: 'text-[10px] leading-tight',
+            descSize: 'text-[8px]',
+            priceSize: 'text-xs',
+            btnSize: 'text-[10px] py-1',
+            minHeight: 'min-h-[1.5rem]'
+        },
+        'smaller': {
+            padding: 'p-1',
+            iconSize: 'w-6 h-6',
+            titleSize: 'text-[9px] leading-tight',
+            descSize: 'text-[7px]',
+            priceSize: 'text-[10px]',
+            btnSize: 'text-[9px] py-0.5',
+            minHeight: 'min-h-0'
+        },
+        'extra-small': {
+            padding: 'p-0.5',
+            iconSize: 'w-5 h-5',
+            titleSize: 'text-[8px] leading-tight',
+            descSize: 'hidden',
+            priceSize: 'text-[9px]',
+            btnSize: 'text-[8px] py-0.5 h-5 flex items-center justify-center',
+            minHeight: 'min-h-0'
         }
     };
 
-    const s = sizeConfig[size] || sizeConfig.medium;
+    // Default to 'normal' if invalid size passed
+    const s = sizeConfig[size] || sizeConfig.normal;
 
     return (
         <div className={`bg-light-card dark:bg-dark-card rounded-2xl shadow-md ${s.padding} flex flex-col items-center justify-between transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 border border-transparent dark:border-gray-800 text-center relative overflow-hidden h-full ${isPremium ? 'border-primary/30 shadow-lg shadow-primary/10' : 'hover:border-primary/50'}`}>
@@ -221,7 +231,7 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
   const showMembership = visibility?.membership ?? true;
   const showPremium = visibility?.premium ?? true;
 
-  const cardSize = uiSettings?.cardSize || 'medium';
+  const cardSize = uiSettings?.cardSize || 'normal';
 
   const activeSpecialOffers = specialOffers.filter(offer => offer.isActive);
 
