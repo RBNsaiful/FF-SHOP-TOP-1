@@ -52,6 +52,15 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
     const cooldownTimerRef = useRef<number | null>(null);
     const resetTimerRef = useRef<number | null>(null);
 
+    // Force Scroll Top on Mount
+    useEffect(() => {
+        window.scrollTo(0, 0);
+        const timer = setTimeout(() => {
+            window.scrollTo(0, 0);
+        }, 50);
+        return () => clearTimeout(timer);
+    }, []);
+
     // --- Extract Settings (with safe defaults) ---
     const dailyLimit = earnSettings?.dailyLimit ?? 20;
     const rewardAmount = earnSettings?.rewardPerAd ?? 5;

@@ -222,20 +222,15 @@ const App: FC = () => {
   const prevBalanceRef = useRef<number | null>(null);
 
   // --- NAVIGATION FIX: Scroll to Top on Screen Change ---
+  // Fixes bug where screens open at the bottom if previously scrolled down
   useLayoutEffect(() => {
-    // Immediate scroll to top
+    // Standard and robust scroll to top
+    // Using instant behavior to prevent animation conflicts
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
     
     // Backup scroll reset for various browsers
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-
-    // Delayed ensure for complex renders or mobile browsers
-    const timer = setTimeout(() => {
-        window.scrollTo(0, 0);
-    }, 10);
-    
-    return () => clearTimeout(timer);
   }, [activeScreen]);
 
   // Fetch App Config & Content

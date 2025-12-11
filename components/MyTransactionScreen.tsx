@@ -1,3 +1,4 @@
+
 import React, { FC, useEffect, useState } from 'react';
 import type { User, Transaction } from '../types';
 import { PAYMENT_METHODS } from '../constants';
@@ -90,6 +91,15 @@ const TransactionItem: FC<{ transaction: Transaction, texts: any, index: number 
 
 const MyTransactionScreen: FC<MyTransactionScreenProps> = ({ user, texts, adCode, adActive }) => {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+    // Force Scroll Top on Mount
+    useEffect(() => {
+        window.scrollTo(0, 0);
+        const timer = setTimeout(() => {
+            window.scrollTo(0, 0);
+        }, 50);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         if (!user.uid) return;

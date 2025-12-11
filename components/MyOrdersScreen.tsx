@@ -178,6 +178,15 @@ const MyOrdersScreen: FC<MyOrdersScreenProps> = ({ user, texts, adCode, adActive
     const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Force Scroll Top on Mount
+    useEffect(() => {
+        window.scrollTo(0, 0);
+        const timer = setTimeout(() => {
+            window.scrollTo(0, 0);
+        }, 50);
+        return () => clearTimeout(timer);
+    }, []);
+
     useEffect(() => {
         if (!user.uid) return;
         const ordersRef = ref(db, 'orders/' + user.uid);
