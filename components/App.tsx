@@ -20,7 +20,7 @@ import { TEXTS, DIAMOND_OFFERS as initialDiamondOffers, LEVEL_UP_PACKAGES as ini
 import type { User, Language, Theme, Screen, DiamondOffer, LevelUpPackage, Membership, PremiumApp, Notification, AppSettings, PaymentMethod, SupportContact, Banner, SpecialOffer } from './types';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { ref, onValue } from 'firebase/database';
+import { ref, onValue, get } from 'firebase/database';
 
 const ArrowLeftIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>);
 const WalletHeaderIcon: FC<{ className?: string }> = ({ className }) => (
@@ -185,7 +185,6 @@ const App: FC = () => {
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
   
   // LOGOUT LOCK REF (Critical for stopping auto-relogin loops)
-  // When true, we ignore any auth state changes that might imply a logged-in user
   const isLoggingOutRef = useRef(false);
 
   // Function to release lock (Passed to AuthScreen)
@@ -193,7 +192,7 @@ const App: FC = () => {
       isLoggingOutRef.current = false;
   };
 
-  // Dynamic Data States - Initialize from LocalStorage if available to prevent flashing old data
+  // Dynamic Data States
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
       const saved = localStorage.getItem('cachedAppSettings');
       return saved ? { ...DEFAULT_APP_SETTINGS, ...JSON.parse(saved) } : DEFAULT_APP_SETTINGS;
@@ -218,22 +217,16 @@ const App: FC = () => {
   // Login Popup State
   const [showLoginPopup, setShowLoginPopup] = useState(false);
 
-  // Track previous balance to detect deposits
   const prevBalanceRef = useRef<number | null>(null);
 
   // --- NAVIGATION FIX: Scroll to Top on Screen Change ---
-  // Fixes bug where screens open at the bottom if previously scrolled down
   useLayoutEffect(() => {
-    // Standard and robust scroll to top
-    // Using instant behavior to prevent animation conflicts
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-    
-    // Backup scroll reset for various browsers
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
   }, [activeScreen]);
 
-  // Fetch App Config & Content
+  // Fetch App Config & Content (Same as before)
   useEffect(() => {
       const configRef = ref(db, 'config');
       const unsubscribeConfig = onValue(configRef, (snapshot) => {
@@ -262,17 +255,12 @@ const App: FC = () => {
                               ...DEFAULT_APP_SETTINGS.uiSettings,
                               ...(data.appSettings.uiSettings || {})
                           },
-                          // Ensure new flags have defaults if missing
                           aiSupportActive: data.appSettings.aiSupportActive ?? DEFAULT_APP_SETTINGS.aiSupportActive,
-                          // Dynamic Contact Info
                           contactMessage: data.appSettings.contactMessage || DEFAULT_APP_SETTINGS.contactMessage,
                           operatingHours: data.appSettings.operatingHours || DEFAULT_APP_SETTINGS.operatingHours,
                           popupNotification: data.appSettings.popupNotification
                       };
-                      
-                      // Cache immediately to prevent flashing on next reload
                       localStorage.setItem('cachedAppSettings', JSON.stringify(newSettings));
-                      
                       return newSettings;
                   });
               }
@@ -286,7 +274,6 @@ const App: FC = () => {
               if (data.paymentMethods) setPaymentMethods(Object.values(data.paymentMethods));
               if (data.banners) {
                   const rawBanners = Object.values(data.banners);
-                  // Ensure backwards compatibility with old string[] banners
                   const formattedBanners = rawBanners.map((b: any) => 
                       typeof b === 'string' ? { imageUrl: b, actionUrl: '' } : b
                   );
@@ -294,83 +281,86 @@ const App: FC = () => {
               }
               if (data.supportContacts) setSupportContacts(Object.values(data.supportContacts));
           }
-      }, (error) => {
-          // Suppress errors
-      });
+      }, (error) => {});
       return () => unsubscribeConfig();
   }, []);
 
-  // Auth & Data Listener
+  // --- STRICT AUTH & DATA LISTENER ---
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
         // BLOCKER: If we are intentionally logging out, ignore any 'user found' events
-        // This prevents the race condition where a lingering token triggers a data fetch/re-login loop
         if (isLoggingOutRef.current) {
-            // Force sign out again if a ghost user is detected during logout phase
             if (firebaseUser) {
-                signOut(auth).catch(err => {}); // Ghost session kill failed
+                signOut(auth).catch(err => {}); 
             }
             return;
         }
 
         if (firebaseUser) {
+            // --- SECURITY CHECK: AUTO-LOGIN VALIDATION ---
+            // If the user logs in automatically (e.g. from local storage/persistence),
+            // we MUST verify their 'authMethod' in DB to prevent method mismatch conflicts.
             const userRef = ref(db, 'users/' + firebaseUser.uid);
-            const unsubscribeData = onValue(userRef, (snapshot) => {
+            
+            try {
+                const snapshot = await get(userRef);
                 const data = snapshot.val();
+
                 if (data) {
+                    // Check logic: 
+                    // If auth provider is password, but DB says 'google', force logout
+                    // If auth provider is google, but DB says 'password', force logout
+                    const providerId = firebaseUser.providerData[0]?.providerId;
+                    const dbMethod = data.authMethod;
+
+                    let mismatch = false;
+                    if (providerId === 'password' && dbMethod === 'google') mismatch = true;
+                    if (providerId === 'google.com' && dbMethod === 'password') mismatch = true;
+
+                    if (mismatch) {
+                        console.warn("Security Mismatch Detected. Forcing Logout.");
+                        await signOut(auth);
+                        setUser(null);
+                        setLoading(false);
+                        return; // STOP HERE
+                    }
+
+                    // Proceed if valid
                     const userData = { ...data, uid: firebaseUser.uid, playerUid: data.playerUid || '', role: data.role || 'user', isBanned: data.isBanned || false };
                     
-                    // CRITICAL FIX: STRICT ROLE-BASED ROUTING
-                    // If user is admin, force them to admin screen immediately to prevent user UI leakage.
                     if (userData.role === 'admin') {
                         setActiveScreen('admin');
                     }
 
                     setUser(userData);
                 } else {
-                    // Fallback if DB record doesn't exist yet (created by AuthScreen)
+                    // New user or data missing - Allow basic creation flow (handled by AuthScreen usually, but here for safety)
                     setUser({ name: firebaseUser.displayName || 'User', email: firebaseUser.email || '', balance: 0, uid: firebaseUser.uid, playerUid: '', avatarUrl: firebaseUser.photoURL || undefined, totalAdsWatched: 0, totalEarned: 0, role: 'user', isBanned: false });
                 }
-                setLoading(false);
-            }, (error) => {
-                // IGNORE: If we are intentionally logging out, suppress permission errors
-                if (isLoggingOutRef.current) return;
-
-                // CRITICAL FIX: Handle Permission Denied (e.g. Account Disabled, Logout Race Condition)
-                // If we cannot read data, we MUST NOT show a "0 Balance" user. We must log them out.
-                // Auth Data Error (Permission Denied/Network)
-                
-                // Force logout to clear invalid session state
+            } catch (error) {
+                // If data fetch fails (e.g. permission denied), force logout
                 setUser(null);
-                setLoading(false);
-                signOut(auth).catch(() => {}); 
-            });
-            return () => unsubscribeData();
+                signOut(auth).catch(() => {});
+            }
+            setLoading(false);
         } else {
-            // Session Expired or Logged Out - Ensure clean slate
+            // Logged Out
             setUser(null);
             setNotifications([]); 
             setLoading(false);
-            
-            // NOTE: We do NOT reset isLoggingOutRef here. It stays true until
-            // the user explicitly interacts with the login screen (calling resetLogoutLock).
-            // This is the key fix for the "Loop".
         }
     });
     return () => unsubscribeAuth();
   }, []);
 
-  // Notifications Listener - With Target Filtering
+  // Notifications Listener
   useEffect(() => {
       const notifRef = ref(db, 'notifications');
       const unsubscribeNotifs = onValue(notifRef, (snapshot) => {
           const data = snapshot.val();
           if (data) {
               const notifList: Notification[] = Object.keys(data).map(key => ({ ...data[key], id: key })).sort((a, b) => b.timestamp - a.timestamp);
-              
-              // Filter logic: Show global (no targetUid) OR targeted to current user
               const relevantNotifs = notifList.filter(n => !n.targetUid || (user && n.targetUid === user.uid));
-              
               setNotifications(relevantNotifs);
               const lastReadTimestamp = Number(localStorage.getItem('lastReadTimestamp') || 0);
               const hasNew = relevantNotifs.some(n => n.timestamp > lastReadTimestamp);
@@ -379,20 +369,13 @@ const App: FC = () => {
               setNotifications([]);
               setHasUnreadNotifications(false);
           }
-      }, (error) => {
-          // Ignore notification errors if permissions deny
-      });
+      }, (error) => {});
       return () => unsubscribeNotifs();
   }, [user?.uid]);
 
   // LOGIN POPUP LOGIC
   useEffect(() => {
-      // Ensure popup only shows for non-admin users if active AND not on admin screen
       if (user && appSettings.popupNotification?.active && activeScreen !== 'admin') {
-          // If user is admin but viewing user screens, we might still show it, 
-          // but user requested "Admin Panel-এ Login Popup যেন কখনো না দেখায়"
-          // The activeScreen !== 'admin' check handles that.
-          
           const hasSeen = sessionStorage.getItem('hasSeenLoginPopup');
           if (!hasSeen) {
               setShowLoginPopup(true);
@@ -402,7 +385,6 @@ const App: FC = () => {
   }, [user, appSettings.popupNotification, activeScreen]);
 
   useEffect(() => {
-      // Visibility Checks
       if (activeScreen === 'watchAds' && appSettings.visibility && !appSettings.visibility.earn) {
           setActiveScreen('home');
       }
@@ -411,11 +393,10 @@ const App: FC = () => {
       }
   }, [activeScreen, appSettings.visibility]);
 
-  // Balance Change Detection for Animations
+  // Balance Change Detection
   useEffect(() => {
       if (user) {
           if (prevBalanceRef.current !== null && user.balance > prevBalanceRef.current) {
-              // Balance Increased (Deposit)
               document.dispatchEvent(new CustomEvent('wallet-deposit'));
               setIsBalancePulsing(true);
           }
@@ -450,11 +431,9 @@ const App: FC = () => {
 
   const handleLogout = async () => {
     // CRITICAL: Secure Logout - Wipe all user data immediately
-    // Set the lock ref to prevent race conditions during sign-out
     isLoggingOutRef.current = true;
 
     try { 
-        // 1. Wipe UI State FIRST to unmount components that might have listeners (e.g. RankingScreen)
         setUser(null); 
         setNotifications([]);
         setHasUnreadNotifications(false);
@@ -463,16 +442,12 @@ const App: FC = () => {
         setShowRewardAnim(false);
         setActiveScreen('home'); 
 
-        // 2. Wipe Storage (User Specific)
         localStorage.removeItem('lastReadTimestamp'); 
         sessionStorage.clear(); 
 
-        // 3. Perform Firebase SignOut (Await invalidation)
         await signOut(auth); 
 
     } catch (error) { 
-        // Logout failed
-        // Even if API fails, ensure UI is logged out and lock is maintained
         setUser(null);
     }
   };
@@ -492,7 +467,6 @@ const App: FC = () => {
   }
   const handleSuccessNavigate = (screen: Screen) => { setActiveScreen(screen); };
 
-  // --- Global Animation Control ---
   const animationsEnabled = appSettings.uiSettings?.animationsEnabled ?? true;
 
   if (loading) return (<div className="min-h-screen w-full flex items-center justify-center bg-gray-100 dark:bg-gray-900"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>);
@@ -548,15 +522,13 @@ const App: FC = () => {
       case 'editProfile': return <EditProfileScreen user={user} texts={texts} onNavigate={setActiveScreen} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
       case 'notifications': return <NotificationScreen texts={texts} notifications={notifications} onRead={handleMarkNotificationsAsRead} />;
       case 'ranking': 
-        // Ranking Screen: Pass onClose handler to navigate back
         if (appSettings.visibility && !appSettings.visibility.ranking) return null;
         return <RankingScreen user={user} texts={texts} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} onClose={() => setActiveScreen('profile')} />;
       case 'admin':
-          // Strict check: if user role isn't admin, force home
           if (user.role !== 'admin') return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} specialOffers={specialOffers} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} uiSettings={appSettings.uiSettings} />;
           return <AdminScreen user={user} texts={texts} onNavigate={handleSuccessNavigate} onLogout={handleLogout} language={language} setLanguage={setLanguage} appSettings={appSettings} theme={theme} setTheme={setTheme} />;
       case 'aiChat':
-          return null; // AI Bot logic handles rendering itself when activeScreen is 'aiChat'
+          return null;
       default: return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} specialOffers={specialOffers} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} uiSettings={appSettings.uiSettings} />;
     }
   };
@@ -571,7 +543,6 @@ const App: FC = () => {
                     animation: none !important;
                     transition: none !important;
                 }
-                /* FORCE OPACITY 1 to fix disappearing elements */
                 [class*="opacity-0"], .opacity-0 {
                     opacity: 1 !important;
                     transform: none !important;
@@ -579,18 +550,15 @@ const App: FC = () => {
             `}</style>
         )}
         
-        {/* Expanded Container for Desktop */}
         <div className="w-full max-w-md md:max-w-7xl min-h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text relative shadow-2xl overflow-x-hidden transition-all duration-300 ease-in-out">
             <Header appName={appSettings.appName} screen={activeScreen} texts={texts} onBack={handleBack} user={user} onNavigate={setActiveScreen} isBalancePulsing={isBalancePulsing} onBalancePulseEnd={() => setIsBalancePulsing(false)} hasUnreadNotifications={hasUnreadNotifications} />
             
             <div className={!isFullScreenPage ? 'pb-24 md:pb-10' : ''}>
-                {/* Center Sub-screens on Desktop */}
                 <div className={`h-full w-full ${['wallet', 'profile', 'changePassword', 'editProfile', 'contactUs', 'myOrders', 'myTransaction', 'notifications', 'ranking'].includes(activeScreen) ? 'md:max-w-3xl md:mx-auto md:mt-6' : ''}`}>
                     {renderScreen()}
                 </div>
             </div>
             
-            {/* AI Support Bot (Only visible if enabled by admin and not on admin screen) */}
             {activeScreen !== 'admin' && (
                 <AiSupportBot
                     user={user}
@@ -610,56 +578,27 @@ const App: FC = () => {
             {activeScreen !== 'admin' && activeScreen !== 'aiChat' && activeScreen !== 'ranking' && (<BottomNav activeScreen={activeScreen} setActiveScreen={setActiveScreen} texts={texts} earnEnabled={appSettings.visibility?.earn ?? true} />)}
             {showRewardAnim && (<RewardAnimation amount={earnedAmount} texts={texts} onAnimationEnd={() => setShowRewardAnim(false)} />)}
             
-            {/* LOGIN POPUP MODAL */}
             {showLoginPopup && appSettings.popupNotification && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-smart-fade-in">
                     <div className="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden animate-smart-pop-in">
-                        {/* Header with Close */}
                         <div className="absolute top-3 right-3 z-10">
-                            <button 
-                                onClick={() => setShowLoginPopup(false)} 
-                                className="p-2 bg-black/20 hover:bg-black/30 text-white rounded-full transition-colors backdrop-blur-md"
-                            >
+                            <button onClick={() => setShowLoginPopup(false)} className="p-2 bg-black/20 hover:bg-black/30 text-white rounded-full transition-colors backdrop-blur-md">
                                 <XIcon className="w-5 h-5" />
                             </button>
                         </div>
-                        
-                        {/* Video OR Image Section */}
                         {appSettings.popupNotification.videoUrl ? (
                             <div className="w-full h-48 bg-black">
-                                <iframe 
-                                    src={appSettings.popupNotification.videoUrl.replace('watch?v=', 'embed/').split('&')[0] + '?autoplay=1&mute=1&controls=0&modestbranding=1'} 
-                                    className="w-full h-full" 
-                                    frameBorder="0" 
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                    allowFullScreen
-                                ></iframe>
+                                <iframe src={appSettings.popupNotification.videoUrl.replace('watch?v=', 'embed/').split('&')[0] + '?autoplay=1&mute=1&controls=0&modestbranding=1'} className="w-full h-full" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
                             </div>
                         ) : appSettings.popupNotification.imageUrl ? (
                             <div className="w-full h-40 bg-gray-200 dark:bg-gray-700">
-                                <img 
-                                    src={appSettings.popupNotification.imageUrl} 
-                                    alt="Announcement" 
-                                    className="w-full h-full object-cover"
-                                />
+                                <img src={appSettings.popupNotification.imageUrl} alt="Announcement" className="w-full h-full object-cover" />
                             </div>
                         ) : null}
-                        
-                        {/* Content Section */}
                         <div className="p-6 text-center">
-                            <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">
-                                {appSettings.popupNotification.title}
-                            </h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                                {appSettings.popupNotification.message}
-                            </p>
-                            
-                            <button 
-                                onClick={() => setShowLoginPopup(false)}
-                                className="mt-6 w-full py-3 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-xl shadow-lg shadow-primary/30 hover:opacity-90 active:scale-95 transition-all"
-                            >
-                                OK, Got it!
-                            </button>
+                            <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">{appSettings.popupNotification.title}</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{appSettings.popupNotification.message}</p>
+                            <button onClick={() => setShowLoginPopup(false)} className="mt-6 w-full py-3 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-xl shadow-lg shadow-primary/30 hover:opacity-90 active:scale-95 transition-all">OK, Got it!</button>
                         </div>
                     </div>
                 </div>

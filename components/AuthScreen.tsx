@@ -1,6 +1,6 @@
 
 import React, { useState, FC, FormEvent } from 'react';
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut, fetchSignInMethodsForEmail } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { ref, set, get, query, orderByChild, equalTo } from 'firebase/database';
 
@@ -8,7 +8,7 @@ interface AuthScreenProps {
   texts: any;
   appName: string;
   logoUrl: string;
-  onLoginAttempt: () => void; // New prop to unlock app logout state
+  onLoginAttempt: () => void;
 }
 
 // Icons
@@ -17,7 +17,6 @@ const LockIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://
 const UserIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>);
 const EyeIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>);
 const EyeOffIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x="1" y1="1" x2="23" y2="23"/></svg>);
-// Bold Check Icon for Success
 const CheckIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12" /></svg>);
 
 const Spinner: FC = () => (<div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>);
@@ -27,117 +26,65 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
   const [name, setName] = useState('');
-  const [nameTouched, setNameTouched] = useState(false); // Track if user left the field
-
+  
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Form Validation Logic
-  const isEmailValid = email.includes('@') && email.includes('.');
-  const isPasswordValid = password.length >= 6;
-  
-  // Name Validation: 6-15 chars
-  const validateName = (val: string) => {
-      if (val.length < 6 || val.length > 15) return false;
-      return true;
+  // --- HELPER: CHECK DATABASE FOR EMAIL CONFLICTS ---
+  const checkEmailConflict = async (emailToCheck: string, intendedMethod: 'google' | 'password') => {
+      const usersRef = ref(db, 'users');
+      const emailQuery = query(usersRef, orderByChild('email'), equalTo(emailToCheck));
+      const snapshot = await get(emailQuery);
+
+      if (snapshot.exists()) {
+          let conflictFound = false;
+          snapshot.forEach((child) => {
+              const val = child.val();
+              // STRICT CHECK: If authMethod exists and DOES NOT MATCH intended method
+              if (val.authMethod && val.authMethod !== intendedMethod) {
+                  conflictFound = true;
+              }
+          });
+          return conflictFound;
+      }
+      return false;
   };
 
-  const isNameValid = isLogin || validateName(name);
-  const doPasswordsMatch = isLogin || (password === confirmPassword);
-  
-  const isFormValid = isEmailValid && isPasswordValid && isNameValid && doPasswordsMatch;
-
-  // Sanitization Handler
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const raw = e.target.value;
-      const sanitized = raw.replace(/[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/g, '');
-      setName(sanitized);
-      if (nameTouched) setNameTouched(false);
-  };
-
-  const handleNameBlur = () => {
-      setNameTouched(true);
-  };
-
+  // --- GOOGLE LOGIN (QUICK LOGIN) ---
   const handleGoogleLogin = async () => {
-    // UNLOCK LOGOUT STATE: User is explicitly trying to login
     onLoginAttempt();
-
-    const provider = new GoogleAuthProvider();
     setLoading(true);
     setError('');
 
     try {
+      const provider = new GoogleAuthProvider();
+      // Force account selection to avoid auto-login loops if multiple accounts exist
+      provider.setCustomParameters({ prompt: 'select_account' });
+      
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // --- CRITICAL SECURITY CHECK: PREVENT PROVIDER MERGING ---
-      // If the user has a password provider linked, we block Google login to prevent overwriting/merging issues.
-      // This enforces strict separation: Password users MUST use password.
-      const providerIds = user.providerData.map(p => p.providerId);
-      if (providerIds.includes('password')) {
+      // 1. DATABASE CONFLICT CHECK
+      const isConflict = await checkEmailConflict(user.email || '', 'google');
+      
+      if (isConflict) {
+          // CRITICAL: Force Logout immediately if this email belongs to a Password account
           await signOut(auth);
-          setError("এই ইমেইল দিয়ে পাসওয়ার্ড এর মাধ্যমে অ্যাকাউন্ট খোলা আছে। দয়া করে পাসওয়ার্ড দিয়ে লগইন করুন।"); // Account exists with password
+          setError("এই ইমেইল দিয়ে পাসওয়ার্ড এর মাধ্যমে অ্যাকাউন্ট খোলা আছে। দয়া করে পাসওয়ার্ড দিয়ে লগইন করুন।");
           setLoading(false);
           return;
       }
 
-      // --- CRITICAL CONFLICT CHECK: Existing Database Account? ---
-      // We must ensure that if this email is already registered via Password (but maybe under a different UID in case of "Multiple accounts per email" setting), we do NOT allow Google Login.
-      if (user.email) {
-          const usersRef = ref(db, 'users');
-          const emailQuery = query(usersRef, orderByChild('email'), equalTo(user.email));
-          const emailSnapshot = await get(emailQuery);
-
-          if (emailSnapshot.exists()) {
-              let existingUserVal: any = null;
-              let existingUid = null;
-              
-              emailSnapshot.forEach((child) => {
-                  existingUserVal = child.val();
-                  existingUid = child.key;
-              });
-
-              // Check DB Auth Method
-              if (existingUserVal) {
-                  // Conflict A: Database says 'password' method
-                  if (existingUserVal.authMethod === 'password') {
-                      await signOut(auth);
-                      setError("এই ইমেইল দিয়ে পাসওয়ার্ড এর মাধ্যমে অ্যাকাউন্ট খোলা আছে। দয়া করে পাসওয়ার্ড দিয়ে লগইন করুন।");
-                      setLoading(false);
-                      return;
-                  }
-                  
-                  // Conflict B: UIDs do not match (Different accounts for same email)
-                  if (existingUid && existingUid !== user.uid) {
-                      // Security Measure: Sign out the Google session immediately
-                      await signOut(auth);
-                      setError("এই ইমেইল দিয়ে পাসওয়ার্ড এর মাধ্যমে অ্যাকাউন্ট খোলা আছে। দয়া করে পাসওয়ার্ড দিয়ে লগইন করুন।");
-                      setLoading(false);
-                      return; 
-                  }
-              }
-          }
-      }
-
-      // --- Proceed if No Conflict ---
+      // 2. Setup/Update User in DB
       const userRef = ref(db, 'users/' + user.uid);
       const snapshot = await get(userRef);
 
-      if (snapshot.exists()) {
-          // Existing Google User - Ensure authMethod is consistent
-          const data = snapshot.val();
-          if (!data.authMethod) {
-               // Update legacy account if needed, but only if safe
-               // await set(ref(db, 'users/' + user.uid + '/authMethod'), 'google');
-          }
-      } else {
-          // New User Creation via Google
+      if (!snapshot.exists()) {
+          // Create new Google User
           await set(userRef, {
             name: user.displayName || 'User',
             email: user.email || '',
@@ -147,50 +94,70 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             totalEarned: 0,
             totalAdsWatched: 0,
             isBanned: false,
-            authMethod: 'google' // MARK AS GOOGLE ACCOUNT
+            authMethod: 'google' // MARKER
         });
+      } else {
+          // Ensure marker is set for legacy accounts
+          if (!snapshot.val().authMethod) {
+              await set(ref(db, 'users/' + user.uid + '/authMethod'), 'google');
+          }
       }
+      
       setSuccess(true);
     } catch (error: any) {
-      // Google Login failed
-      let msg = "Google Login Failed.";
-      
-      if (error.code === 'auth/account-exists-with-different-credential') {
-          msg = "এই ইমেইল দিয়ে পাসওয়ার্ড এর মাধ্যমে অ্যাকাউন্ট খোলা আছে। দয়া করে পাসওয়ার্ড দিয়ে লগইন করুন।";
-      } else if (error.code === 'auth/popup-closed-by-user') {
-          msg = "Login canceled.";
-      } else if (error.code === 'auth/unauthorized-domain') {
-          msg = "Domain not authorized. Add to Firebase Console.";
-      } else if (error.code === 'auth/popup-blocked') {
-          msg = "Popup blocked. Please allow popups.";
-      }
-      
-      setError(msg);
       setLoading(false);
+      // Handle Firebase Merge Error specifically
+      if (error.code === 'auth/account-exists-with-different-credential') {
+          setError("এই ইমেইল দিয়ে পাসওয়ার্ড অ্যাকাউন্ট আছে। দয়া করে পাসওয়ার্ড ব্যবহার করুন।");
+      } else {
+          setError("Google Login canceled or failed.");
+      }
     }
   };
 
+  // --- PASSWORD LOGIN / REGISTER ---
   const handleAuth = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    // UNLOCK LOGOUT STATE: User is explicitly trying to login
     onLoginAttempt();
-
-    if (!isFormValid) {
-        if (!isLogin && !validateName(name)) {
-             setNameTouched(true);
-             return;
-        }
-        return;
-    }
-
+    setError('');
     setLoading(true);
 
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        // --- LOGIN FLOW ---
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // 1. DATABASE CONFLICT CHECK
+        // If user logged in successfully via password, we MUST ensure the DB doesn't say it's a Google account
+        const isConflict = await checkEmailConflict(user.email || '', 'password');
+        
+        if (isConflict) {
+            await signOut(auth);
+            setError("এই ইমেইল দিয়ে Google (Quick Login) এর মাধ্যমে অ্যাকাউন্ট খোলা আছে। দয়া করে Google দিয়ে লগইন করুন।");
+            setLoading(false);
+            return;
+        }
+
+        // Update authMethod if missing (Migration path)
+        const userRef = ref(db, 'users/' + user.uid);
+        const snapshot = await get(userRef);
+        if (snapshot.exists() && !snapshot.val().authMethod) {
+             await set(ref(db, 'users/' + user.uid + '/authMethod'), 'password');
+        }
+
+        setSuccess(true);
+
       } else {
+        // --- REGISTER FLOW ---
+        
+        // 1. PRE-CHECK: Does this email exist in our DB with 'google'?
+        // We do this BEFORE firebase create to avoid creating a "ghost" auth record that conflicts
+        const isConflict = await checkEmailConflict(email, 'password');
+        if (isConflict) {
+            throw new Error("এই ইমেইল দিয়ে Google অ্যাকাউন্ট খোলা আছে। দয়া করে Google Login ব্যবহার করুন।");
+        }
+
         if (password !== confirmPassword) {
             throw new Error(texts.passwordsDoNotMatch);
         }
@@ -200,7 +167,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
         
         await updateProfile(user, { displayName: name });
 
-        // MARK AS PASSWORD ACCOUNT
+        // 2. Create User Record with STRICT 'password' marker
         await set(ref(db, 'users/' + user.uid), {
             name: name,
             email: email,
@@ -210,22 +177,19 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             totalEarned: 0,
             totalAdsWatched: 0,
             isBanned: false,
-            authMethod: 'password' // CRITICAL for separation
+            authMethod: 'password' // MARKER
         });
+        
+        setSuccess(true);
       }
-      // Show success state briefly before redirect (handled by auth listener)
-      setLoading(false);
-      setSuccess(true);
     } catch (err: any) {
       setLoading(false);
       let msg = "Authentication failed.";
-      if (err.code === 'auth/invalid-email') msg = texts.emailInvalid;
-      if (err.code === 'auth/user-not-found') msg = "No account found.";
-      if (err.code === 'auth/wrong-password') msg = texts.incorrectCurrentPassword;
-      if (err.code === 'auth/email-already-in-use') msg = "Email already in use.";
-      if (err.code === 'auth/weak-password') msg = "Password too weak (min 6 chars).";
-      if (err.code === 'auth/invalid-credential') msg = "Invalid email or password.";
-      if (err.message === texts.passwordsDoNotMatch) msg = texts.passwordsDoNotMatch;
+      if (err.code === 'auth/email-already-in-use') msg = "এই ইমেইল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট খোলা আছে।";
+      else if (err.code === 'auth/wrong-password') msg = "ভুল পাসওয়ার্ড। আবার চেষ্টা করুন।";
+      else if (err.code === 'auth/user-not-found') msg = "এই ইমেইলে কোনো অ্যাকাউন্ট পাওয়া যায়নি।";
+      else if (err.code === 'auth/invalid-email') msg = "ইমেইল অ্যাড্রেসটি সঠিক নয়।";
+      else if (err.message) msg = err.message;
       setError(msg);
     }
   };
@@ -237,7 +201,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           
           {/* App Header */}
           <div className="flex flex-col items-center mb-6 mt-20">
-              <div className="relative mb-2"> {/* Reduced from mb-4 to bring name closer */}
+              <div className="relative mb-2">
                   <div className="w-24 h-24 rounded-full bg-white dark:bg-dark-card p-1 shadow-md ring-1 ring-gray-200 dark:ring-gray-700">
                       <img src={logoUrl} alt={appName} className="w-full h-full object-cover rounded-full" />
                   </div>
@@ -246,7 +210,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                 {appName}
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">
-                  {isLogin ? "Login to your account" : "Create a new account"}
+                  {isLogin ? texts.loginTitle : texts.registerTitle}
               </p>
           </div>
 
@@ -263,16 +227,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                         <input
                             type="text"
                             value={name}
-                            onChange={handleNameChange}
-                            onBlur={handleNameBlur}
+                            onChange={(e) => setName(e.target.value)}
                             placeholder="Name"
-                            className={`w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
-                                ${nameTouched && !validateName(name) ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'}
-                            `}
+                            className="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium text-gray-800 dark:text-white"
                             required={!isLogin}
                         />
                     </div>
-                    {nameTouched && !validateName(name) && <p className="text-red-500 text-xs mt-1 ml-1">Invalid name</p>}
                 </div>
             )}
 
@@ -329,12 +289,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             placeholder="Confirm Password"
-                            className={`w-full pl-10 pr-10 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
-                                ${confirmPassword && password !== confirmPassword 
-                                    ? 'border-red-500 focus:ring-red-500' 
-                                    : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
-                                }
-                            `}
+                            className="w-full pl-10 pr-10 py-3.5 bg-gray-50 dark:bg-dark-card border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium text-gray-800 dark:text-white"
                             required={!isLogin}
                         />
                         <button
@@ -345,20 +300,17 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                             {showConfirmPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                         </button>
                     </div>
-                    {confirmPassword && password !== confirmPassword && (
-                        <p className="text-red-500 text-xs mt-1 ml-1">{texts.passwordsDoNotMatch}</p>
-                    )}
                 </div>
             )}
 
             <button
                 type="submit"
-                disabled={loading || success || !isFormValid}
+                disabled={loading || success}
                 className={`w-full h-14 font-bold rounded-xl flex justify-center items-center transition-all duration-200
                     bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30
-                    ${!isFormValid || loading || success
-                        ? 'opacity-50 cursor-not-allowed' // 50% opacity for inactive
-                        : 'opacity-100 hover:opacity-90 active:scale-[0.98]' // 100% opacity for active
+                    ${loading || success
+                        ? 'opacity-70 cursor-wait'
+                        : 'opacity-100 hover:opacity-90 active:scale-[0.98]'
                     }
                 `}
             >
@@ -367,11 +319,11 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                 ) : success ? (
                     <CheckIcon className="w-8 h-8 text-white drop-shadow-md animate-smart-pop-in" />
                 ) : (
-                    isLogin ? "Login" : "Register"
+                    isLogin ? texts.login : texts.register
                 )}
             </button>
             
-            {/* Error Message - BELOW BUTTON to prevent layout shift of button */}
+            {/* Error Message */}
             {error && (
                 <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center border border-red-100 dark:border-red-800 animate-fade-in font-medium">
                     {error}
@@ -381,7 +333,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           </form>
 
           {/* Divider */}
-          <div className="relative flex py-4 items-center w-full"> {/* Reduced spacing to move bottom elements up */}
+          <div className="relative flex py-4 items-center w-full"> 
                 <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
                 <span className="flex-shrink-0 mx-4 text-gray-400 dark:text-gray-500 text-xs font-medium">Or</span>
                 <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
@@ -402,12 +354,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           {/* Toggle Login/Register */}
           <div className="text-center pb-8">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+                  {isLogin ? texts.noAccount : texts.haveAccount}{" "}
                   <button 
-                    onClick={() => { setIsLogin(!isLogin); setError(''); setPassword(''); setConfirmPassword(''); setNameTouched(false); setSuccess(false); }}
+                    onClick={() => { setIsLogin(!isLogin); setError(''); setPassword(''); setConfirmPassword(''); setSuccess(false); }}
                     className="text-primary font-bold hover:underline transition-colors ml-1"
                   >
-                      {isLogin ? "Register" : "Login"}
+                      {isLogin ? texts.register : texts.login}
                   </button>
               </p>
           </div>
