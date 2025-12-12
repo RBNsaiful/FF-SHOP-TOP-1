@@ -76,42 +76,60 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // --- CRITICAL DUPLICATE CHECK START ---
-      // We must verify if this email already exists in our database under a DIFFERENT UID.
-      // This happens if the user created an account via Password first.
-      
+      // --- 1. CRITICAL CONFLICT CHECK: Existing via Password? ---
+      // We must ensure that if this email is already registered via Password, we do NOT allow Google Login.
+      // This prevents the "overwriting" or "linking" issue.
       if (user.email) {
           const usersRef = ref(db, 'users');
           const emailQuery = query(usersRef, orderByChild('email'), equalTo(user.email));
           const emailSnapshot = await get(emailQuery);
 
           if (emailSnapshot.exists()) {
-              let existingUid = null;
+              let existingUserVal: any = null;
+              
               emailSnapshot.forEach((child) => {
-                  existingUid = child.key;
+                  existingUserVal = child.val();
               });
 
-              // CONFLICT DETECTED: Database has this email, but the UID is different from the current Google Auth UID
-              if (existingUid && existingUid !== user.uid) {
-                  // Security Measure: Sign out the Google session immediately to prevent access
-                  await signOut(auth);
+              // CHECK AUTH METHOD
+              if (existingUserVal) {
+                  // If the existing account explicitly says it's a password account
+                  if (existingUserVal.authMethod === 'password') {
+                      await signOut(auth);
+                      setError("এই ইমেইল দিয়ে পাসওয়ার্ড এর মাধ্যমে অ্যাকাউন্ট খোলা আছে। দয়া করে পাসওয়ার্ড দিয়ে লগইন করুন।");
+                      setLoading(false);
+                      return;
+                  }
                   
-                  // Show the error message requested
-                  setError("এই ইমেইল দিয়ে একটি অ্যাকাউন্ট ইতিমধ্যে খোলা আছে। অনুগ্রহ করে পাসওয়ার্ড দিয়ে লগইন করুন।");
-                  setLoading(false);
-                  return; // STOP EXECUTION
+                  // Legacy Fallback: If no authMethod but it has a password credential in Firebase (harder to check client side directly without admin sdk)
+                  // We rely on our DB field 'authMethod'. 
+                  
+                  // Also Check UID Mismatch (The Duplicate Issue)
+                  // If we found an email match but the UIDs are different, it's a conflict
+                  let existingUid = Object.keys(emailSnapshot.val())[0];
+                  if (existingUid && existingUid !== user.uid) {
+                      await signOut(auth);
+                      setError("এই ইমেইল দিয়ে পাসওয়ার্ড এর মাধ্যমে অ্যাকাউন্ট খোলা আছে। দয়া করে পাসওয়ার্ড দিয়ে লগইন করুন।");
+                      setLoading(false);
+                      return; 
+                  }
               }
           }
       }
-      // --- CRITICAL DUPLICATE CHECK END ---
 
+      // --- 2. Proceed if No Conflict ---
       const userRef = ref(db, 'users/' + user.uid);
       const snapshot = await get(userRef);
 
       if (snapshot.exists()) {
-          // Existing user logged in via Google (UID matches). Data preserved.
+          // Existing Google User - Ensure authMethod is consistent (repair if missing)
+          const data = snapshot.val();
+          if (!data.authMethod) {
+               // If logging in via Google and no method set, assume Google/Legacy.
+               // We don't force 'google' here to avoid breaking hybrid legacy, but for new/clean flow it's safer.
+          }
       } else {
-          // New User Creation
+          // New User Creation via Google
           await set(userRef, {
             name: user.displayName || 'User',
             email: user.email || '',
@@ -120,7 +138,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             uid: user.uid,
             totalEarned: 0,
             totalAdsWatched: 0,
-            isBanned: false
+            isBanned: false,
+            authMethod: 'google' // MARK AS GOOGLE ACCOUNT
         });
       }
       setSuccess(true);
@@ -128,9 +147,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       // Google Login failed
       let msg = "Google Login Failed.";
       
-      // Handle Firebase's native duplicate credential error (if 'One account per email' is ON)
       if (error.code === 'auth/account-exists-with-different-credential') {
-          msg = "এই ইমেইল দিয়ে একটি অ্যাকাউন্ট ইতিমধ্যে খোলা আছে। অনুগ্রহ করে পাসওয়ার্ড দিয়ে লগইন করুন।";
+          msg = "এই ইমেইল দিয়ে পাসওয়ার্ড এর মাধ্যমে অ্যাকাউন্ট খোলা আছে। দয়া করে পাসওয়ার্ড দিয়ে লগইন করুন।";
       } else if (error.code === 'auth/popup-closed-by-user') {
           msg = "Login canceled.";
       } else if (error.code === 'auth/unauthorized-domain') {
@@ -174,6 +192,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
         
         await updateProfile(user, { displayName: name });
 
+        // MARK AS PASSWORD ACCOUNT
         await set(ref(db, 'users/' + user.uid), {
             name: name,
             email: email,
@@ -182,7 +201,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             uid: user.uid,
             totalEarned: 0,
             totalAdsWatched: 0,
-            isBanned: false
+            isBanned: false,
+            authMethod: 'password' // CRITICAL for separation
         });
       }
       // Show success state briefly before redirect (handled by auth listener)

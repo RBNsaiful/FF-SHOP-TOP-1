@@ -18,6 +18,7 @@ export interface User {
   totalDeposit?: number; // New: Track total money added
   role?: 'user' | 'admin';
   isBanned?: boolean;
+  authMethod?: 'password' | 'google'; // CRITICAL: To separate login systems
   aiRequestCount?: number; // New: Tracks number of AI interactions
   adsWatchedInfo?: {
       count: number;
