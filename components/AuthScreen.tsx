@@ -76,9 +76,19 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // --- 1. CRITICAL CONFLICT CHECK: Existing via Password? ---
-      // We must ensure that if this email is already registered via Password, we do NOT allow Google Login.
-      // This prevents the "overwriting" or "linking" issue.
+      // --- CRITICAL SECURITY CHECK: PREVENT PROVIDER MERGING ---
+      // If the user has a password provider linked, we block Google login to prevent overwriting/merging issues.
+      // This enforces strict separation: Password users MUST use password.
+      const providerIds = user.providerData.map(p => p.providerId);
+      if (providerIds.includes('password')) {
+          await signOut(auth);
+          setError("এই ইমেইল দিয়ে পাসওয়ার্ড এর মাধ্যমে অ্যাকাউন্ট খোলা আছে। দয়া করে পাসওয়ার্ড দিয়ে লগইন করুন।"); // Account exists with password
+          setLoading(false);
+          return;
+      }
+
+      // --- CRITICAL CONFLICT CHECK: Existing Database Account? ---
+      // We must ensure that if this email is already registered via Password (but maybe under a different UID in case of "Multiple accounts per email" setting), we do NOT allow Google Login.
       if (user.email) {
           const usersRef = ref(db, 'users');
           const emailQuery = query(usersRef, orderByChild('email'), equalTo(user.email));
@@ -86,14 +96,16 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
           if (emailSnapshot.exists()) {
               let existingUserVal: any = null;
+              let existingUid = null;
               
               emailSnapshot.forEach((child) => {
                   existingUserVal = child.val();
+                  existingUid = child.key;
               });
 
-              // CHECK AUTH METHOD
+              // Check DB Auth Method
               if (existingUserVal) {
-                  // If the existing account explicitly says it's a password account
+                  // Conflict A: Database says 'password' method
                   if (existingUserVal.authMethod === 'password') {
                       await signOut(auth);
                       setError("এই ইমেইল দিয়ে পাসওয়ার্ড এর মাধ্যমে অ্যাকাউন্ট খোলা আছে। দয়া করে পাসওয়ার্ড দিয়ে লগইন করুন।");
@@ -101,13 +113,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                       return;
                   }
                   
-                  // Legacy Fallback: If no authMethod but it has a password credential in Firebase (harder to check client side directly without admin sdk)
-                  // We rely on our DB field 'authMethod'. 
-                  
-                  // Also Check UID Mismatch (The Duplicate Issue)
-                  // If we found an email match but the UIDs are different, it's a conflict
-                  let existingUid = Object.keys(emailSnapshot.val())[0];
+                  // Conflict B: UIDs do not match (Different accounts for same email)
                   if (existingUid && existingUid !== user.uid) {
+                      // Security Measure: Sign out the Google session immediately
                       await signOut(auth);
                       setError("এই ইমেইল দিয়ে পাসওয়ার্ড এর মাধ্যমে অ্যাকাউন্ট খোলা আছে। দয়া করে পাসওয়ার্ড দিয়ে লগইন করুন।");
                       setLoading(false);
@@ -117,16 +125,16 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           }
       }
 
-      // --- 2. Proceed if No Conflict ---
+      // --- Proceed if No Conflict ---
       const userRef = ref(db, 'users/' + user.uid);
       const snapshot = await get(userRef);
 
       if (snapshot.exists()) {
-          // Existing Google User - Ensure authMethod is consistent (repair if missing)
+          // Existing Google User - Ensure authMethod is consistent
           const data = snapshot.val();
           if (!data.authMethod) {
-               // If logging in via Google and no method set, assume Google/Legacy.
-               // We don't force 'google' here to avoid breaking hybrid legacy, but for new/clean flow it's safer.
+               // Update legacy account if needed, but only if safe
+               // await set(ref(db, 'users/' + user.uid + '/authMethod'), 'google');
           }
       } else {
           // New User Creation via Google
