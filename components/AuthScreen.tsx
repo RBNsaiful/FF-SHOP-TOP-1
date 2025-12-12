@@ -1,7 +1,8 @@
+
 import React, { useState, FC, FormEvent } from 'react';
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { ref, set, get } from 'firebase/database';
+import { ref, set, get, query, orderByChild, equalTo } from 'firebase/database';
 
 interface AuthScreenProps {
   texts: any;
@@ -69,16 +70,48 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
     const provider = new GoogleAuthProvider();
     setLoading(true);
+    setError('');
+
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
+
+      // --- CRITICAL DUPLICATE CHECK START ---
+      // We must verify if this email already exists in our database under a DIFFERENT UID.
+      // This happens if the user created an account via Password first.
+      
+      if (user.email) {
+          const usersRef = ref(db, 'users');
+          const emailQuery = query(usersRef, orderByChild('email'), equalTo(user.email));
+          const emailSnapshot = await get(emailQuery);
+
+          if (emailSnapshot.exists()) {
+              let existingUid = null;
+              emailSnapshot.forEach((child) => {
+                  existingUid = child.key;
+              });
+
+              // CONFLICT DETECTED: Database has this email, but the UID is different from the current Google Auth UID
+              if (existingUid && existingUid !== user.uid) {
+                  // Security Measure: Sign out the Google session immediately to prevent access
+                  await signOut(auth);
+                  
+                  // Show the error message requested
+                  setError("এই ইমেইল দিয়ে একটি অ্যাকাউন্ট ইতিমধ্যে খোলা আছে। অনুগ্রহ করে পাসওয়ার্ড দিয়ে লগইন করুন।");
+                  setLoading(false);
+                  return; // STOP EXECUTION
+              }
+          }
+      }
+      // --- CRITICAL DUPLICATE CHECK END ---
 
       const userRef = ref(db, 'users/' + user.uid);
       const snapshot = await get(userRef);
 
       if (snapshot.exists()) {
-          // Existing user logged in via Google. Data preserved.
+          // Existing user logged in via Google (UID matches). Data preserved.
       } else {
+          // New User Creation
           await set(userRef, {
             name: user.displayName || 'User',
             email: user.email || '',
@@ -94,13 +127,18 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
     } catch (error: any) {
       // Google Login failed
       let msg = "Google Login Failed.";
-      if (error.code === 'auth/popup-closed-by-user') {
+      
+      // Handle Firebase's native duplicate credential error (if 'One account per email' is ON)
+      if (error.code === 'auth/account-exists-with-different-credential') {
+          msg = "এই ইমেইল দিয়ে একটি অ্যাকাউন্ট ইতিমধ্যে খোলা আছে। অনুগ্রহ করে পাসওয়ার্ড দিয়ে লগইন করুন।";
+      } else if (error.code === 'auth/popup-closed-by-user') {
           msg = "Login canceled.";
-      } else if (error.code === 'auth/account-exists-with-different-credential') {
-          msg = "An account already exists with this email. Please sign in with your Password.";
       } else if (error.code === 'auth/unauthorized-domain') {
           msg = "Domain not authorized. Add to Firebase Console.";
+      } else if (error.code === 'auth/popup-blocked') {
+          msg = "Popup blocked. Please allow popups.";
       }
+      
       setError(msg);
       setLoading(false);
     }
@@ -307,7 +345,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             
             {/* Error Message - BELOW BUTTON to prevent layout shift of button */}
             {error && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center border border-red-100 dark:border-red-800 animate-fade-in">
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center border border-red-100 dark:border-red-800 animate-fade-in font-medium">
                     {error}
                 </div>
             )}
