@@ -161,41 +161,44 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
   const OfferIcon = offer.icon || DiamondIcon;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-start justify-center z-50 p-4 animate-fade-in overflow-y-auto">
-      <div className="bg-light-card dark:bg-dark-card rounded-2xl p-6 w-full max-w-xs animate-slide-in-from-top shadow-xl flex flex-col mt-10">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-smart-fade-in">
+      <div 
+        className="bg-light-card dark:bg-dark-card rounded-3xl p-6 w-full max-w-xs animate-smart-pop-in shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto border border-gray-100 dark:border-gray-800"
+        onClick={(e) => e.stopPropagation()} 
+      >
         {status !== 'success' ? (
           <div className="w-full">
-            <h3 className="text-xl font-bold text-center mb-4">{texts.confirmPurchase}</h3>
+            <h3 className="text-xl font-bold text-center mb-5 text-gray-900 dark:text-white">{texts.confirmPurchase}</h3>
             
-            <div className="flex flex-col items-center text-center mb-4 p-4 bg-light-bg dark:bg-dark-bg rounded-lg">
-                <OfferIcon className="w-12 h-12 mb-2 text-primary"/>
-                <h4 className="text-2xl font-extrabold">{offer.name}</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase">Package</p>
-                <p className="text-xl font-bold text-primary mt-2">{texts.currency}{offer.price.toLocaleString()}</p>
+            <div className="flex flex-col items-center text-center mb-5 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700">
+                <OfferIcon className="w-12 h-12 mb-2 text-primary drop-shadow-md"/>
+                <h4 className="text-2xl font-extrabold text-gray-900 dark:text-white">{offer.name}</h4>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mt-1">Package Price</p>
+                <p className="text-xl font-black text-primary mt-1">{texts.currency}{offer.price.toLocaleString()}</p>
             </div>
             
-            <div className="text-sm mb-4 p-3 bg-light-bg dark:bg-dark-bg rounded-lg space-y-1 text-light-text dark:text-dark-text">
+            <div className="text-sm mb-5 p-3 bg-white dark:bg-dark-bg rounded-xl border border-gray-100 dark:border-gray-700 space-y-2 text-light-text dark:text-dark-text shadow-sm">
                 <div className="flex justify-between">
-                    <span className="text-gray-500 dark:text-gray-400">{texts.balance}</span>
-                    <span>{texts.currency}{Math.floor(userBalance)}</span>
+                    <span className="text-gray-500 dark:text-gray-400 font-medium">{texts.balance}</span>
+                    <span className="font-bold">{texts.currency}{Math.floor(userBalance)}</span>
                 </div>
                 <div className="flex justify-between">
-                    <span className="text-gray-500 dark:text-gray-400">{texts.purchase}</span>
-                    <span className="text-red-500">-{texts.currency}{offer.price.toLocaleString()}</span>
+                    <span className="text-gray-500 dark:text-gray-400 font-medium">{texts.purchase}</span>
+                    <span className="text-red-500 font-bold">-{texts.currency}{offer.price.toLocaleString()}</span>
                 </div>
-                <hr className="border-gray-200 dark:border-gray-700 my-1.5"/>
+                <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
                 <div className="flex justify-between font-bold text-base">
                     <span>{texts.newBalance}</span>
-                    <span className={insufficientBalance ? 'text-red-500' : 'text-primary'}>
+                    <span className={insufficientBalance ? 'text-red-500' : 'text-green-500'}>
                         {texts.currency}{Math.floor(userBalance - offer.price)}
                     </span>
                 </div>
             </div>
 
             {/* Main Input (UID or Email) */}
-            <div className="mb-3">
-              <label htmlFor="uidInput" className="text-sm font-medium block mb-1">
-                  {isEmailType ? "Gmail" : texts.uid}
+            <div className="mb-4">
+              <label htmlFor="uidInput" className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2 ml-1">
+                  {isEmailType ? "Email" : texts.uid}
               </label>
               <input
                 type={isEmailType ? 'email' : 'text'}
@@ -206,18 +209,18 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
                 onChange={handleInputChange}
                 onBlur={handleBlur}
                 onFocus={handleInputFocus}
-                placeholder={isEmailType ? "Gmail" : texts.enterUID}
-                className={`w-full p-3 bg-light-bg dark:bg-dark-bg border rounded-lg focus:outline-none focus:ring-2 ${inputError ? 'border-red-500 focus:ring-red-500/50' : 'border-gray-300 dark:border-gray-600 focus:ring-primary'}`}
+                placeholder={isEmailType ? "Email" : texts.enterUID}
+                className={`w-full p-3.5 bg-gray-50 dark:bg-dark-bg border rounded-2xl focus:outline-none focus:ring-2 font-medium transition-all ${inputError ? 'border-red-500 focus:ring-red-500/30' : 'border-gray-200 dark:border-gray-700 focus:ring-primary/50'}`}
                 disabled={status === 'processing' || status === 'button-success'}
                 maxLength={!isEmailType ? 12 : undefined}
               />
-              {inputError && <p className="text-red-500 text-xs mt-1 font-bold">{inputError}</p>}
+              {inputError && <p className="text-red-500 text-xs mt-1.5 font-bold ml-1 animate-fade-in">{inputError}</p>}
             </div>
 
             {/* Additional Phone Input for Premium Apps */}
             {isEmailType && (
-                <div className="mb-3 animate-fade-in">
-                    <label htmlFor="phoneInput" className="text-sm font-medium block mb-1">
+                <div className="mb-4 animate-fade-in">
+                    <label htmlFor="phoneInput" className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2 ml-1">
                         Number
                     </label>
                     <input
@@ -229,20 +232,24 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
                         onBlur={handlePhoneBlur}
                         onFocus={handleInputFocus}
                         placeholder="WA or IMO"
-                        className={`w-full p-3 bg-light-bg dark:bg-dark-bg border rounded-lg focus:outline-none focus:ring-2 ${phoneError ? 'border-red-500 focus:ring-red-500/50' : 'border-gray-300 dark:border-gray-600 focus:ring-primary'}`}
+                        className={`w-full p-3.5 bg-gray-50 dark:bg-dark-bg border rounded-2xl focus:outline-none focus:ring-2 font-medium transition-all ${phoneError ? 'border-red-500 focus:ring-red-500/30' : 'border-gray-200 dark:border-gray-700 focus:ring-primary/50'}`}
                         disabled={status === 'processing' || status === 'button-success'}
                         maxLength={11}
                     />
-                    {/* Error message text removed as requested, validation purely controls button state */}
+                    {phoneError && <p className="text-red-500 text-xs mt-1.5 font-bold ml-1 animate-fade-in">{phoneError}</p>}
                 </div>
             )}
             
-            {insufficientBalance && <p className="text-red-500 text-sm text-center mb-2">{texts.insufficientBalance}</p>}
+            {insufficientBalance && (
+                <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-xl mb-2 text-xs font-bold text-center border border-red-100 dark:border-red-800 animate-pulse">
+                    {texts.insufficientBalance}
+                </div>
+            )}
 
-            <div className="flex space-x-2 mt-2">
+            <div className="flex gap-3 mt-6">
               <button
                 onClick={onClose}
-                className="w-full bg-gray-200 dark:bg-gray-600 text-light-text dark:text-dark-text font-bold py-3 rounded-lg hover:opacity-80 transition-opacity"
+                className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold py-3.5 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm active:scale-95"
                 disabled={status === 'processing' || status === 'button-success'}
               >
                 {texts.cancel}
@@ -250,36 +257,36 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
               <button
                 onClick={handleConfirm}
                 disabled={isConfirmDisabled}
-                className={`w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 rounded-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300
+                className={`flex-1 bg-gradient-to-r from-primary to-secondary text-white font-bold py-3.5 rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg shadow-primary/30 text-sm active:scale-95
                     ${status === 'button-success' ? 'bg-green-500' : ''}
                 `}
               >
                 {status === 'processing' ? (
                     <Spinner />
                 ) : status === 'button-success' ? (
-                    <CheckIcon className="w-6 h-6 animate-smart-pop-in" />
+                    <CheckIcon className="w-5 h-5 animate-smart-pop-in" />
                 ) : (
-                    texts.confirmPurchase
+                    texts.purchase
                 )}
               </button>
             </div>
           </div>
         ) : (
-            <div className="flex flex-col items-center justify-center text-center p-4 overflow-hidden">
-                <div className="relative w-24 h-24 mb-4 flex items-center justify-center">
+            <div className="flex flex-col items-center justify-center text-center p-4 overflow-hidden py-10">
+                <div className="relative w-24 h-24 mb-6 flex items-center justify-center">
                     <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
                     <div className="absolute inset-2 bg-primary/30 rounded-full animate-ping" style={{animationDelay: '0.2s'}}></div>
                     
                     <OfferIcon className="w-20 h-20 animate-burst relative z-10 text-primary" />
                 </div>
                 <h3 
-                    className="text-2xl font-bold text-primary mb-2 opacity-0 animate-fade-in-up" 
+                    className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mb-2 opacity-0 animate-fade-in-up" 
                     style={{animationDelay: '0.4s'}}
                 >
                     {texts.orderSuccessful}
                 </h3>
                 <p 
-                    className="text-gray-600 dark:text-gray-300 opacity-0 animate-fade-in-up"
+                    className="text-gray-600 dark:text-gray-300 opacity-0 animate-fade-in-up text-sm max-w-[200px]"
                     style={{animationDelay: '0.6s'}}
                 >
                     {texts.orderPendingGeneric.replace('{packageName}', String(offer.name))}

@@ -16,6 +16,13 @@ interface MyTransactionScreenProps {
 const PlusCircleIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>);
 const WalletIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>);
 
+// New Solid Earn/Money Icon
+const EarnIcon: FC<{className?: string}> = ({className}) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.12h-2.17c-.09-.65-.61-1.58-2.38-1.58-1.39 0-2 .61-2 1.4 0 .78.41 1.41 2.25 1.89 2.71.7 4.53 1.84 4.53 3.91 0 2.18-1.55 3.26-3.46 3.6z"/>
+    </svg>
+);
+
 const WavyPath = () => (
   <svg className="absolute w-full h-full top-0 left-0" preserveAspectRatio="none" viewBox="0 0 350 210">
     <path d="M0 70 C50 30, 100 110, 150 70 S250 30, 300 70 S400 110, 450 70" stroke="rgba(255, 255, 255, 0.2)" fill="none" strokeWidth="2" />
@@ -26,10 +33,9 @@ const WavyPath = () => (
 
 const TransactionItem: FC<{ transaction: Transaction, texts: any, index: number }> = ({ transaction, texts, index }) => {
     
-    const getPaymentMethodLogo = (methodName: string) => {
-        const method = PAYMENT_METHODS.find(p => p.name === methodName);
-        return method ? method.logo : 'https://placehold.co/100x100';
-    };
+    // Find payment method details based on transaction method name
+    const methodDetails = PAYMENT_METHODS.find(p => p.name === transaction.method);
+    const hasLogo = !!methodDetails;
 
     const statusColors = {
         Completed: 'bg-green-500',
@@ -53,8 +59,12 @@ const TransactionItem: FC<{ transaction: Transaction, texts: any, index: number 
             <div className="flex items-center justify-between pl-3">
                 <div className="flex items-center space-x-3">
                     <div className="relative">
-                        <div className="w-10 h-10 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center p-1.5">
-                             <img src={getPaymentMethodLogo(transaction.method)} alt={transaction.method} className="w-full h-full object-contain" />
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center p-1.5 overflow-hidden transition-colors ${hasLogo ? 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700' : 'bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800'}`}>
+                             {hasLogo ? (
+                                <img src={methodDetails.logo} alt={transaction.method} className="w-full h-full object-contain" />
+                             ) : (
+                                <EarnIcon className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                             )}
                         </div>
                          <div className="absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-0.5 border-2 border-white dark:border-dark-card">
                             <PlusCircleIcon className="w-3 h-3" />
@@ -62,7 +72,9 @@ const TransactionItem: FC<{ transaction: Transaction, texts: any, index: number 
                     </div>
                     
                     <div>
-                        <h4 className="font-bold text-xs text-light-text dark:text-dark-text">{texts.addFunds}</h4>
+                        <h4 className="font-bold text-xs text-light-text dark:text-dark-text">
+                            {hasLogo ? texts.addFunds : (transaction.type === 'ad_reward' ? 'Ad Earnings' : 'Bonus/Deposit')}
+                        </h4>
                         <div className="flex items-center space-x-2 text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
                             <span className="font-medium">{transaction.method}</span>
                             <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></span>
