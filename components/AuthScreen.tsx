@@ -1,8 +1,8 @@
 
 import React, { useState, FC, FormEvent, useEffect } from 'react';
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence, signOut } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { ref, set, get } from 'firebase/database';
+import { ref, set, get, update } from 'firebase/database';
 
 interface AuthScreenProps {
   texts: any;
@@ -40,74 +40,30 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
   // --- INITIALIZATION & SESSION CLEANUP ---
   useEffect(() => {
-      // 1. Recover any error message from session (e.g., from a forced logout)
       const storedError = sessionStorage.getItem('auth_error');
       if (storedError) {
           setError(storedError);
           sessionStorage.removeItem('auth_error'); 
           setLoading(false); 
       }
-
-      // 2. Enforce Persistence
       setPersistence(auth, browserLocalPersistence).catch(console.error);
   }, []);
 
   // --- VALIDATION HELPERS ---
-  const validateNameRule = (val: string): boolean => {
-      if (val.length < 3 || val.length > 20) return false;
-      return true;
-  };
-
-  const validateEmailRule = (val: string): boolean => {
-      return /\S+@\S+\.\S+/.test(val);
-  };
-
-  const validatePasswordRule = (val: string): boolean => {
-      return val.length >= 6;
-  };
+  const validateNameRule = (val: string): boolean => { return val.length >= 3 && val.length <= 20; };
+  const validateEmailRule = (val: string): boolean => { return /\S+@\S+\.\S+/.test(val); };
+  const validatePasswordRule = (val: string): boolean => { return val.length >= 6; };
 
   // --- INPUT HANDLERS ---
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const val = e.target.value;
-      setName(val);
-      setNameFieldError('');
-  };
-
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setEmail(e.target.value);
-      setEmailFieldError('');
-  };
-
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setPassword(e.target.value);
-      setPassFieldError('');
-  };
-
-  const handleConfirmPassChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setConfirmPassword(e.target.value);
-      setPassFieldError('');
-  };
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => { setName(e.target.value); setNameFieldError(''); };
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => { setEmail(e.target.value); setEmailFieldError(''); };
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => { setPassword(e.target.value); setPassFieldError(''); };
+  const handleConfirmPassChange = (e: React.ChangeEvent<HTMLInputElement>) => { setConfirmPassword(e.target.value); setPassFieldError(''); };
 
   // --- BLUR HANDLERS ---
-  const handleNameBlur = () => {
-      if (!isLogin && !validateNameRule(name)) {
-          setNameFieldError("Name must be 3-20 characters");
-      }
-  };
-
-  const handleEmailBlur = () => {
-      if (email.length > 0 && !validateEmailRule(email)) {
-          setEmailFieldError("Invalid Email");
-      }
-  };
-
-  const handlePasswordBlur = () => {
-      if (password.length > 0 && !validatePasswordRule(password)) {
-          setPassFieldError("Password must be at least 6 chars");
-      } else if (!isLogin && confirmPassword.length > 0 && password !== confirmPassword) {
-          setPassFieldError("Passwords do not match");
-      }
-  };
+  const handleNameBlur = () => { if (!isLogin && !validateNameRule(name)) setNameFieldError("Name must be 3-20 characters"); };
+  const handleEmailBlur = () => { if (email.length > 0 && !validateEmailRule(email)) setEmailFieldError("Invalid Email"); };
+  const handlePasswordBlur = () => { if (password.length > 0 && !validatePasswordRule(password)) setPassFieldError("Password must be at least 6 chars"); else if (!isLogin && confirmPassword.length > 0 && password !== confirmPassword) setPassFieldError("Passwords do not match"); };
 
   const isNameValid = isLogin ? true : validateNameRule(name);
   const isEmailValid = validateEmailRule(email);
@@ -115,7 +71,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const isConfirmValid = isLogin ? true : password === confirmPassword;
   const isFormValid = isNameValid && isEmailValid && isPasswordValid && isConfirmValid;
 
-  // --- GOOGLE LOGIN ---
+  // --- GOOGLE LOGIN (FIXED: NO BLOCKING) ---
   const handleGoogleLogin = async () => {
     onLoginAttempt(); 
     setLoading(true);
@@ -128,63 +84,16 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // --- GUARDIAN CHECK (Fix for Lockout Issue) ---
-      // Check immediately if this user has a password provider attached.
-      // This is the source of truth, ignoring what the Database says initially.
-      const isPasswordAccount = user.providerData.some(p => p.providerId === 'password');
-
+      // Logic: Allow login, just update DB if needed. No more blocking.
       const userRef = ref(db, 'users/' + user.uid);
       const snapshot = await get(userRef);
 
-      // --- SCENARIO 1: PASSWORD USER TRYING GOOGLE ---
-      if (isPasswordAccount) {
-          // If the DB Record exists, ensure it's marked as 'password'
-          if (snapshot.exists()) {
-              const val = snapshot.val();
-              if (val.authMethod !== 'password') {
-                  // SELF-HEALING: Fix corruption
-                  await set(ref(db, 'users/' + user.uid + '/authMethod'), 'password');
-              }
-          } else {
-              // RECOVERY: Password user exists in Auth but not in DB (Data loss edge case)
-              // Create the user but FORCE 'password' method so they don't get locked out.
-              await set(userRef, {
-                name: user.displayName || 'User',
-                email: user.email || '',
-                balance: 0,
-                role: 'user',
-                uid: user.uid,
-                totalEarned: 0,
-                totalAdsWatched: 0,
-                isBanned: false,
-                authMethod: 'password' // FORCE PASSWORD
-            });
-          }
-
-          // STRICTLY DENY ACCESS via Google Button
-          sessionStorage.setItem('auth_error', "Please log in using your Email & Password.");
-          await signOut(auth);
-          return;
-      }
-
-      // --- SCENARIO 2: LEGACY/GOOGLE USER ---
       if (snapshot.exists()) {
-          const val = snapshot.val();
-          
-          // Double check: if DB says password, block (even if providerData didn't show it yet)
-          if (val.authMethod === 'password') {
-              sessionStorage.setItem('auth_error', "Please log in using your Email & Password.");
-              await signOut(auth);
-              return;
-          }
-          
-          // Legacy migration: If no method set, assume Google
-          if (!val.authMethod) {
-              await set(ref(db, 'users/' + user.uid + '/authMethod'), 'google');
-          }
+          // USER EXISTS: Update authMethod to 'hybrid' to indicate both methods are valid
+          // This prevents any future logic from getting confused
+          await update(userRef, { authMethod: 'hybrid' });
       } else {
-          // --- SCENARIO 3: NEW USER ---
-          // Create new Google Account
+          // NEW USER: Create record
           await set(userRef, {
             name: user.displayName || 'User',
             email: user.email || '',
@@ -200,16 +109,16 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       setSuccess(true);
     } catch (error: any) {
       setLoading(false);
-      // Handle merge conflicts (e.g. Email exists with Password)
-      if (error.code === 'auth/account-exists-with-different-credential' || error.code === 'auth/credential-already-in-use') {
-          setError("Please log in using your Email & Password.");
+      // Even if account exists, we try to fail gracefully or prompt password
+      if (error.code === 'auth/account-exists-with-different-credential') {
+          setError("This email is already registered with a password. Please log in with password.");
       } else {
-          setError("Google Login Failed");
+          setError("Google Login Failed. Please try again.");
       }
     }
   };
 
-  // --- PASSWORD AUTH ---
+  // --- PASSWORD AUTH (FIXED: NO BLOCKING) ---
   const handleAuth = async (e: FormEvent) => {
     e.preventDefault();
     
@@ -225,29 +134,24 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
     setError('');
     
     if (isLogin) {
-        // Login Logic
+        // --- LOGIN LOGIC ---
         setLoading(true);
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
+            // FIX: If login successful, ensure DB allows it.
             const userRef = ref(db, 'users/' + user.uid);
             const snapshot = await get(userRef);
             
-            // --- CRITICAL FIX FOR PASSWORD LOGIN ---
-            // If the user successfully logs in with password credentials, they are verified.
-            // We ignore any conflicting 'authMethod: google' flag in the database that might exist
-            // due to previous bugs. We overwrite it to 'password' and grant access.
             if (snapshot.exists()) {
                 const val = snapshot.val();
-                
-                // SELF-HEALING: Always enforce 'password' if they logged in via password.
-                // This breaks the "Invalid Credentials" loop.
-                if (val.authMethod !== 'password') {
-                    await set(ref(db, 'users/' + user.uid + '/authMethod'), 'password');
+                // If it was marked as google-only before, update to hybrid/password
+                // This breaks the loop where DB says 'google' and kicks user out.
+                if (val.authMethod === 'google') {
+                    await update(userRef, { authMethod: 'hybrid' });
                 }
             }
-            // Success - No blocking logic here anymore.
             setSuccess(true);
         } catch (err: any) {
             setLoading(false);
@@ -258,7 +162,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             }
         }
     } else {
-        // Registration Logic
+        // --- REGISTRATION LOGIC ---
         setLoading(true);
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
