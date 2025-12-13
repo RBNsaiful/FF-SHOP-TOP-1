@@ -1,6 +1,6 @@
 
 import React, { useState, FC, FormEvent, useEffect } from 'react';
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { ref, set, get } from 'firebase/database';
 
@@ -38,14 +38,19 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // --- RECOVER ERROR MESSAGE FROM SESSION ---
+  // --- INITIALIZATION & SESSION CLEANUP ---
   useEffect(() => {
+      // 1. Recover any error message from session (e.g., from a forced logout)
       const storedError = sessionStorage.getItem('auth_error');
       if (storedError) {
           setError(storedError);
           sessionStorage.removeItem('auth_error'); 
           setLoading(false); 
       }
+
+      // 2. Enforce Persistence
+      // This ensures that even if a "ghost" session exists, we handle it correctly.
+      setPersistence(auth, browserLocalPersistence).catch(console.error);
   }, []);
 
   // --- VALIDATION HELPERS ---
@@ -113,7 +118,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
   // --- GOOGLE LOGIN ---
   const handleGoogleLogin = async () => {
-    onLoginAttempt();
+    onLoginAttempt(); // Signal App.tsx to unlock logout logic
     setLoading(true);
     setError('');
 
@@ -132,14 +137,18 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           
           // STRICT CHECK: If user registered via Password, BLOCK Google Login.
           if (val.authMethod === 'password') {
-              // SAFE FIX: Just Sign Out. Do NOT Unlink.
-              // Unlinking causes provider issues. Just blocking access is enough.
+              // CRITICAL FIX: Safe Sign Out
+              // We do NOT modify/unlink the provider to avoid account corruption.
+              // We simply sign out and ask the user to use the correct method.
               sessionStorage.setItem('auth_error', "Please log in using your Email & Password.");
+              
               await signOut(auth);
+              // We return here. App.tsx listener will detect null user and re-render AuthScreen.
+              // The useEffect above will catch the 'auth_error' and display it.
               return;
           }
           
-          // Only update if no authMethod is set
+          // Only update if no authMethod is set (migration for old users)
           if (!val.authMethod) {
               await set(ref(db, 'users/' + user.uid + '/authMethod'), 'google');
           }
@@ -160,10 +169,11 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       setSuccess(true);
     } catch (error: any) {
       setLoading(false);
-      // Catch merge conflict errors specifically
+      // Catch merge conflict errors specifically (e.g. if 'One account per email' is ON)
       if (error.code === 'auth/account-exists-with-different-credential' || error.code === 'auth/credential-already-in-use') {
           setError("Please log in using your Email & Password.");
       } else {
+          // Generic error
           setError("Google Login Failed");
       }
     }
