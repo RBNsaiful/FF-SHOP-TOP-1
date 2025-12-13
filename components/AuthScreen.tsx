@@ -1,6 +1,6 @@
 
 import React, { useState, FC, FormEvent, useEffect } from 'react';
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut, unlink } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { ref, set, get } from 'firebase/database';
 
@@ -40,21 +40,19 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // --- CRITICAL FIX: RECOVER ERROR MESSAGE FROM SESSION ---
-  // When we signOut() quickly, the component remounts and loses state.
-  // We check sessionStorage to see if we left a message for the user.
   useEffect(() => {
       const storedError = sessionStorage.getItem('auth_error');
       if (storedError) {
           setError(storedError);
-          sessionStorage.removeItem('auth_error'); // Clear it so it doesn't persist forever
-          setLoading(false); // Ensure loading is off
+          sessionStorage.removeItem('auth_error'); 
+          setLoading(false); 
       }
   }, []);
 
   // --- VALIDATION HELPERS ---
   const validateNameRule = (val: string): boolean => {
       if (val.length < 6 || val.length > 15) return false;
-      if (/(.)\1\1/.test(val)) return false; // No 3 consecutive chars
+      if (/(.)\1\1/.test(val)) return false; 
       return true;
   };
 
@@ -66,13 +64,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       return val.length >= 6;
   };
 
-  // --- INPUT HANDLERS (Masking & Clear Error) ---
+  // --- INPUT HANDLERS ---
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
-      // STRICT MASK: Only Letters and Spaces
       if (/^[a-zA-Z\s]*$/.test(val)) {
           setName(val);
-          setNameFieldError(''); // Clear error on type
+          setNameFieldError('');
       }
   };
 
@@ -91,7 +88,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       setPassFieldError('');
   };
 
-  // --- BLUR HANDLERS (Show Error) ---
+  // --- BLUR HANDLERS ---
   const handleNameBlur = () => {
       if (!isLogin && !validateNameRule(name)) {
           setNameFieldError("Invalid Name");
@@ -128,7 +125,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
     try {
       const provider = new GoogleAuthProvider();
-      // Ensure we prompt for account selection to avoid auto-sign-in loops with wrong accounts
       provider.setCustomParameters({ prompt: 'select_account' });
       
       const result = await signInWithPopup(auth, provider);
@@ -142,12 +138,18 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           
           // STRICT CHECK: If user registered via Password, BLOCK Google Login.
           if (val.authMethod === 'password') {
-              // CRITICAL: We must store the error in Session Storage because 
-              // signOut() will cause this component to unmount/remount immediately.
-              sessionStorage.setItem('auth_error', "This email is already registered with a password. Please log in using your Email & Password.");
-              
+              // CRITICAL: UNLINK GOOGLE TO PREVENT ACCOUNT CORRUPTION
+              if (user.providerData.some(p => p.providerId === GoogleAuthProvider.PROVIDER_ID)) {
+                  try {
+                      await unlink(user, GoogleAuthProvider.PROVIDER_ID);
+                  } catch (e) {
+                      console.error("Unlink failed", e);
+                  }
+              }
+
+              // Simplified Error Message
+              sessionStorage.setItem('auth_error', "Please log in using your Email & Password.");
               await signOut(auth);
-              // Explicit return to ensure NO further code execution (DB writes etc.)
               return;
           }
           
@@ -172,9 +174,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       setSuccess(true);
     } catch (error: any) {
       setLoading(false);
-      // Handle Firebase's specific error for conflicting accounts
       if (error.code === 'auth/account-exists-with-different-credential' || error.code === 'auth/credential-already-in-use') {
-          setError("This email is already registered with a password. Please log in using your Email & Password.");
+          // Simplified Error Message
+          setError("Please log in using your Email & Password.");
       } else {
           setError("Google Login Failed");
       }
@@ -211,8 +213,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                 const val = snapshot.val();
                 // STRICT CHECK: If user registered via Google, BLOCK Password Login.
                 if (val.authMethod === 'google') {
-                    // Use Session Storage here too for consistency, though less critical
-                    sessionStorage.setItem('auth_error', "This email is registered via Google. Please use Google Login.");
+                    // Simplified Error Message
+                    sessionStorage.setItem('auth_error', "Please log in using Google.");
                     await signOut(auth);
                     return;
                 }
@@ -223,7 +225,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             if (err.code === 'auth/invalid-email') {
                 setEmailFieldError("Invalid Email");
             } else if (err.code === 'auth/wrong-password') {
-                setError("Wrong Email or Password");
+                setError("Invalid Email or Password");
+            } else if (err.code === 'auth/invalid-credential') {
+                // Simplified generic error
+                setError("Invalid Email or Password");
             } else {
                 setError("Login Failed: " + (err.message || "Unknown Error"));
             }
