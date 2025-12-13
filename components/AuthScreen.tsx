@@ -49,7 +49,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       }
 
       // 2. Enforce Persistence
-      // This ensures that even if a "ghost" session exists, we handle it correctly.
       setPersistence(auth, browserLocalPersistence).catch(console.error);
   }, []);
 
@@ -118,7 +117,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
   // --- GOOGLE LOGIN ---
   const handleGoogleLogin = async () => {
-    onLoginAttempt(); // Signal App.tsx to unlock logout logic
+    onLoginAttempt(); 
     setLoading(true);
     setError('');
 
@@ -129,31 +128,63 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
+      // --- GUARDIAN CHECK (Fix for Lockout Issue) ---
+      // Check immediately if this user has a password provider attached.
+      // This is the source of truth, ignoring what the Database says initially.
+      const isPasswordAccount = user.providerData.some(p => p.providerId === 'password');
+
       const userRef = ref(db, 'users/' + user.uid);
       const snapshot = await get(userRef);
 
+      // --- SCENARIO 1: PASSWORD USER TRYING GOOGLE ---
+      if (isPasswordAccount) {
+          // If the DB Record exists, ensure it's marked as 'password'
+          if (snapshot.exists()) {
+              const val = snapshot.val();
+              if (val.authMethod !== 'password') {
+                  // SELF-HEALING: Fix corruption
+                  await set(ref(db, 'users/' + user.uid + '/authMethod'), 'password');
+              }
+          } else {
+              // RECOVERY: Password user exists in Auth but not in DB (Data loss edge case)
+              // Create the user but FORCE 'password' method so they don't get locked out.
+              await set(userRef, {
+                name: user.displayName || 'User',
+                email: user.email || '',
+                balance: 0,
+                role: 'user',
+                uid: user.uid,
+                totalEarned: 0,
+                totalAdsWatched: 0,
+                isBanned: false,
+                authMethod: 'password' // FORCE PASSWORD
+            });
+          }
+
+          // STRICTLY DENY ACCESS via Google Button
+          sessionStorage.setItem('auth_error', "Please log in using your Email & Password.");
+          await signOut(auth);
+          return;
+      }
+
+      // --- SCENARIO 2: LEGACY/GOOGLE USER ---
       if (snapshot.exists()) {
           const val = snapshot.val();
           
-          // STRICT CHECK: If user registered via Password, BLOCK Google Login.
+          // Double check: if DB says password, block (even if providerData didn't show it yet)
           if (val.authMethod === 'password') {
-              // CRITICAL FIX: Safe Sign Out
-              // We do NOT modify/unlink the provider to avoid account corruption.
-              // We simply sign out and ask the user to use the correct method.
               sessionStorage.setItem('auth_error', "Please log in using your Email & Password.");
-              
               await signOut(auth);
-              // We return here. App.tsx listener will detect null user and re-render AuthScreen.
-              // The useEffect above will catch the 'auth_error' and display it.
               return;
           }
           
-          // Only update if no authMethod is set (migration for old users)
+          // Legacy migration: If no method set, assume Google
           if (!val.authMethod) {
               await set(ref(db, 'users/' + user.uid + '/authMethod'), 'google');
           }
       } else {
-          // New User via Google
+          // --- SCENARIO 3: NEW USER ---
+          // Create new Google Account
           await set(userRef, {
             name: user.displayName || 'User',
             email: user.email || '',
@@ -169,11 +200,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       setSuccess(true);
     } catch (error: any) {
       setLoading(false);
-      // Catch merge conflict errors specifically (e.g. if 'One account per email' is ON)
+      // Handle merge conflicts (e.g. Email exists with Password)
       if (error.code === 'auth/account-exists-with-different-credential' || error.code === 'auth/credential-already-in-use') {
           setError("Please log in using your Email & Password.");
       } else {
-          // Generic error
           setError("Google Login Failed");
       }
     }
@@ -204,21 +234,23 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             const userRef = ref(db, 'users/' + user.uid);
             const snapshot = await get(userRef);
             
+            // --- CRITICAL FIX FOR PASSWORD LOGIN ---
+            // If the user successfully logs in with password credentials, they are verified.
+            // We ignore any conflicting 'authMethod: google' flag in the database that might exist
+            // due to previous bugs. We overwrite it to 'password' and grant access.
             if (snapshot.exists()) {
                 const val = snapshot.val();
-                // STRICT CHECK: If user registered via Google, BLOCK Password Login.
-                // NOTE: If they registered via password, then mistakenly clicked Google (merged),
-                // val.authMethod will still be 'password', so this block won't trigger, allowing them to login.
-                if (val.authMethod === 'google') {
-                    sessionStorage.setItem('auth_error', "Please log in using Google.");
-                    await signOut(auth);
-                    return;
+                
+                // SELF-HEALING: Always enforce 'password' if they logged in via password.
+                // This breaks the "Invalid Credentials" loop.
+                if (val.authMethod !== 'password') {
+                    await set(ref(db, 'users/' + user.uid + '/authMethod'), 'password');
                 }
             }
+            // Success - No blocking logic here anymore.
             setSuccess(true);
         } catch (err: any) {
             setLoading(false);
-            // Unified Error Message
             if (err.code === 'auth/invalid-email' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') {
                 setError("Invalid Email or Password");
             } else {
