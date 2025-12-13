@@ -1,5 +1,5 @@
 
-import React, { useState, FC, FormEvent } from 'react';
+import React, { useState, FC, FormEvent, useEffect } from 'react';
 import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { ref, set, get } from 'firebase/database';
@@ -38,6 +38,18 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // --- CRITICAL FIX: RECOVER ERROR MESSAGE FROM SESSION ---
+  // When we signOut() quickly, the component remounts and loses state.
+  // We check sessionStorage to see if we left a message for the user.
+  useEffect(() => {
+      const storedError = sessionStorage.getItem('auth_error');
+      if (storedError) {
+          setError(storedError);
+          sessionStorage.removeItem('auth_error'); // Clear it so it doesn't persist forever
+          setLoading(false); // Ensure loading is off
+      }
+  }, []);
 
   // --- VALIDATION HELPERS ---
   const validateNameRule = (val: string): boolean => {
@@ -130,17 +142,21 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           
           // STRICT CHECK: If user registered via Password, BLOCK Google Login.
           if (val.authMethod === 'password') {
+              // CRITICAL: We must store the error in Session Storage because 
+              // signOut() will cause this component to unmount/remount immediately.
+              sessionStorage.setItem('auth_error', "This email is already registered with a password. Please log in using your Email & Password.");
+              
               await signOut(auth);
-              setError("This email is already registered with a password. Please log in using your Email & Password."); 
-              setLoading(false);
+              // Explicit return to ensure NO further code execution (DB writes etc.)
               return;
           }
           
+          // Only update if no authMethod is set (Legacy migration)
           if (!val.authMethod) {
-              // Legacy users or users who managed to login without authMethod set (rare)
               await set(ref(db, 'users/' + user.uid + '/authMethod'), 'google');
           }
       } else {
+          // New User via Google
           await set(userRef, {
             name: user.displayName || 'User',
             email: user.email || '',
@@ -156,7 +172,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       setSuccess(true);
     } catch (error: any) {
       setLoading(false);
-      if (error.code === 'auth/account-exists-with-different-credential') {
+      // Handle Firebase's specific error for conflicting accounts
+      if (error.code === 'auth/account-exists-with-different-credential' || error.code === 'auth/credential-already-in-use') {
           setError("This email is already registered with a password. Please log in using your Email & Password.");
       } else {
           setError("Google Login Failed");
@@ -194,9 +211,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                 const val = snapshot.val();
                 // STRICT CHECK: If user registered via Google, BLOCK Password Login.
                 if (val.authMethod === 'google') {
+                    // Use Session Storage here too for consistency, though less critical
+                    sessionStorage.setItem('auth_error', "This email is registered via Google. Please use Google Login.");
                     await signOut(auth);
-                    setError("This email is registered via Google. Please use Google Login.");
-                    setLoading(false);
                     return;
                 }
             }
@@ -205,8 +222,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             setLoading(false);
             if (err.code === 'auth/invalid-email') {
                 setEmailFieldError("Invalid Email");
-            } else {
+            } else if (err.code === 'auth/wrong-password') {
                 setError("Wrong Email or Password");
+            } else {
+                setError("Login Failed: " + (err.message || "Unknown Error"));
             }
         }
     } else {
@@ -218,6 +237,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             
             await updateProfile(user, { displayName: name });
 
+            // Explicitly set authMethod: 'password'
             await set(ref(db, 'users/' + user.uid), {
                 name: name,
                 email: email,
