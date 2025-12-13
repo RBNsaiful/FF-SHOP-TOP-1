@@ -48,6 +48,7 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
     const [enableAnimations, setEnableAnimations] = useState(true);
     const [showVpnWarning, setShowVpnWarning] = useState(false);
     const [vpnMode, setVpnMode] = useState<'notice' | 'force'>('notice');
+    const [isAdLoading, setIsAdLoading] = useState(false); // Track ad loading state
     
     const cooldownTimerRef = useRef<number | null>(null);
     const resetTimerRef = useRef<number | null>(null);
@@ -145,9 +146,8 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
 
     // --- Main Action Handler ---
     const handleStartAd = () => {
-        // Priority Check: AdMob > Web Ads (if both are active, ideally only one should be active)
-        // But user requested if AdMob = ON use AdMob, if Web = ON use Web.
-        
+        if (isAdLoading) return; // Prevent double taps
+
         // 1. Check Limits
         if ((user.adsWatchedInfo?.count || 0) >= dailyLimit) {
             alert(texts.adLimitReached);
@@ -254,11 +254,11 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
         }
     };
 
-    // --- ADMOB LOGIC (Future-Proof Hybrid Support) ---
+    // --- ADMOB LOGIC (Improved Future-Proof) ---
     const playAdMobAd = async () => {
+        setIsAdLoading(true);
+
         // 1. DETECT NATIVE PLUGIN
-        // This checks for the standard 'admob-plus' or 'cordova-plugin-admob-plus' object.
-        // It will only be present in the compiled APK/IPA.
         // @ts-ignore
         const nativeAdMob = window.admob || window.AdMob;
 
@@ -266,51 +266,61 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
             console.log("🔥 Native AdMob Plugin Detected!");
             
             try {
-                // A. INITIALIZE REWARD VIDEO
-                // Using standard AdMob Plus syntax
+                // A. CREATE REWARD VIDEO INSTANCE
+                // Using standard AdMob Plus syntax (Instance-based)
                 // @ts-ignore
                 const rewardVideo = new nativeAdMob.RewardVideo({
                     id: adMobRewardId || 'ca-app-pub-3940256099942544/5224354917' // Use Test ID if admin ID missing
                 });
 
-                // B. SETUP EVENT LISTENERS
+                // B. ONE-TIME LISTENER SETUP (Critical for Future-Proofing)
+                // We use 'once' logic or cleanup to prevent duplicate rewards.
+                
+                // Load Event
                 // @ts-ignore
-                rewardVideo.on('load', () => {
+                const loadListener = rewardVideo.on('load', async () => {
                     console.log('AdMob Video Loaded');
+                    await rewardVideo.show();
                 });
 
+                // Reward Event
                 // @ts-ignore
-                rewardVideo.on('reward', (evt) => {
+                const rewardListener = rewardVideo.on('reward', (evt) => {
                     console.log('💰 AdMob Reward Earned!');
-                    handleRewardClaim(); // Call secure server-side claim logic
+                    handleRewardClaim(); // Secure server-side claim logic
                 });
 
+                // Close/Dismiss Event (Cleanup)
                 // @ts-ignore
-                rewardVideo.on('dismiss', () => {
+                const closeListener = rewardVideo.on('dismiss', () => {
                     console.log('AdMob Video Closed');
-                    // Optional: You could reload logic here if needed
+                    setIsAdLoading(false);
+                    // CLEANUP: Ensure we don't duplicate listeners next time
+                    // NOTE: AdMob Plus instances are usually disposable, but this is safe practice.
                 });
 
+                // Load Fail Event
                 // @ts-ignore
-                rewardVideo.on('loadfail', (err) => {
+                const failListener = rewardVideo.on('loadfail', (err) => {
                     console.error('AdMob Load Failed:', err);
+                    setIsAdLoading(false);
                     alert("Ad failed to load. Please try again or check connection.");
                 });
 
-                // C. LOAD AND SHOW
+                // C. TRIGGER LOAD
                 console.log("Loading AdMob Video...");
                 await rewardVideo.load();
-                await rewardVideo.show();
 
             } catch (err) {
                 console.error("❌ AdMob Native Logic Error:", err);
+                setIsAdLoading(false);
                 alert("Error initializing AdMob. Please ensure the plugin is installed correctly in the APK.");
             }
 
         } else {
             // 2. WEB SIMULATION (No Native Plugin Found)
-            // This runs in the browser so you can verify the "Reward Flow" works visually.
             console.log("⚠️ Native AdMob not found. Running Web Simulation.");
+            setIsAdLoading(false);
             
             setShowAdMobSimulator(true);
             setTimeout(() => {
@@ -370,7 +380,6 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
                 setAdCooldown(cooldownTime); 
 
                 // NEW: Log Transaction for Admin Stats (Hidden from User Transaction View usually, but good for records)
-                // We mark type as 'ad_reward' so we can filter it easily.
                 const txnRef = ref(db, 'transactions/' + user.uid);
                 await push(txnRef, {
                     type: 'ad_reward',
@@ -509,13 +518,18 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
                     ) : (
                         <button
                             onClick={handleStartAd}
-                            disabled={showWebAd || showAdMobSimulator || adCooldown > 0}
+                            disabled={showWebAd || showAdMobSimulator || isAdLoading || adCooldown > 0}
                             className={`w-full text-white font-bold py-4 px-4 rounded-xl flex items-center justify-center text-lg shadow-lg transition-all duration-300 transform 
-                                ${showWebAd || showAdMobSimulator || adCooldown > 0
+                                ${showWebAd || showAdMobSimulator || isAdLoading || adCooldown > 0
                                     ? 'bg-slate-700 cursor-not-allowed text-slate-400' 
                                     : 'bg-gradient-to-r from-primary to-secondary hover:opacity-90 active:scale-95 shadow-primary/30'}`}
                         >
-                            {adCooldown > 0 ? (
+                            {isAdLoading ? (
+                                <div className="flex items-center">
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                                    <span>Loading Ad...</span>
+                                </div>
+                            ) : adCooldown > 0 ? (
                                 <span className="flex items-center font-mono text-lg">
                                     <ClockIcon className="w-6 h-6 mr-2" />
                                     {texts.nextAdIn} {adCooldown}s

@@ -448,15 +448,35 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     // --- HANDLERS (PRESERVED LOGIC) ---
     const handleSettingsSave = async (e: FormEvent) => {
         e.preventDefault();
-        const currentKey = settings.aiApiKey || '';
+        
+        // SAFE KEY VALIDATION & TRIMMING
+        const currentKey = settings.aiApiKey ? settings.aiApiKey.trim() : '';
         if (currentKey.length > 0 && !/^AIza[0-9A-Za-z\-_]{35}$/.test(currentKey)) {
-            setApiKeyError("Invalid API Key format."); alert("Settings NOT Saved! Invalid API Key."); return;
+            setApiKeyError("Invalid API Key format."); 
+            alert("Settings NOT Saved! Invalid API Key."); 
+            return;
         }
         setApiKeyError(''); 
-        let finalSettings = { ...settings };
+        
+        // TRIM ALL KEY FIELDS
+        let finalSettings = { 
+            ...settings,
+            aiApiKey: currentKey,
+            earnSettings: {
+                ...settings.earnSettings,
+                adMob: {
+                    ...settings.earnSettings?.adMob,
+                    appId: settings.earnSettings?.adMob?.appId?.trim() || '',
+                    rewardId: settings.earnSettings?.adMob?.rewardId?.trim() || ''
+                }
+            }
+        } as AppSettings; // Use type assertion to help TS if needed
+
         const { developerSettings, ...safeSettings } = finalSettings;
         await update(ref(db, 'config/appSettings'), safeSettings);
-        setSettings(finalSettings); setOriginalSettings(finalSettings); alert("Settings Saved!");
+        setSettings(finalSettings); 
+        setOriginalSettings(finalSettings); 
+        alert("Settings Saved Successfully!");
     };
 
     const handleUnlockDevInfo = () => { setSecurityKeyInput(''); setIsSecurityModalOpen(true); };
