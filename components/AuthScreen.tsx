@@ -116,6 +116,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
     try {
       const provider = new GoogleAuthProvider();
+      // Ensure we prompt for account selection to avoid auto-sign-in loops with wrong accounts
+      provider.setCustomParameters({ prompt: 'select_account' });
+      
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
@@ -124,13 +127,17 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
       if (snapshot.exists()) {
           const val = snapshot.val();
+          
+          // STRICT CHECK: If user registered via Password, BLOCK Google Login.
           if (val.authMethod === 'password') {
               await signOut(auth);
-              setError("Wrong Email or Password"); 
+              setError("This email is already registered with a password. Please log in using your Email & Password."); 
               setLoading(false);
               return;
           }
+          
           if (!val.authMethod) {
+              // Legacy users or users who managed to login without authMethod set (rare)
               await set(ref(db, 'users/' + user.uid + '/authMethod'), 'google');
           }
       } else {
@@ -149,7 +156,11 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       setSuccess(true);
     } catch (error: any) {
       setLoading(false);
-      setError("Google Login Failed");
+      if (error.code === 'auth/account-exists-with-different-credential') {
+          setError("This email is already registered with a password. Please log in using your Email & Password.");
+      } else {
+          setError("Google Login Failed");
+      }
     }
   };
 
@@ -181,9 +192,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             
             if (snapshot.exists()) {
                 const val = snapshot.val();
+                // STRICT CHECK: If user registered via Google, BLOCK Password Login.
                 if (val.authMethod === 'google') {
                     await signOut(auth);
-                    setError("Wrong Email or Password");
+                    setError("This email is registered via Google. Please use Google Login.");
                     setLoading(false);
                     return;
                 }
