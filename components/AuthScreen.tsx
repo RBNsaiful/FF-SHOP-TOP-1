@@ -1,6 +1,6 @@
 
 import React, { useState, FC, FormEvent, useEffect } from 'react';
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut, unlink } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { ref, set, get } from 'firebase/database';
 
@@ -28,7 +28,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   
-  // Field-level errors
   const [nameFieldError, setNameFieldError] = useState('');
   const [emailFieldError, setEmailFieldError] = useState('');
   const [passFieldError, setPassFieldError] = useState('');
@@ -39,7 +38,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // --- CRITICAL FIX: RECOVER ERROR MESSAGE FROM SESSION ---
+  // --- RECOVER ERROR MESSAGE FROM SESSION ---
   useEffect(() => {
       const storedError = sessionStorage.getItem('auth_error');
       if (storedError) {
@@ -51,8 +50,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
   // --- VALIDATION HELPERS ---
   const validateNameRule = (val: string): boolean => {
-      if (val.length < 6 || val.length > 15) return false;
-      if (/(.)\1\1/.test(val)) return false; 
+      if (val.length < 3 || val.length > 20) return false;
       return true;
   };
 
@@ -67,10 +65,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   // --- INPUT HANDLERS ---
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
-      if (/^[a-zA-Z\s]*$/.test(val)) {
-          setName(val);
-          setNameFieldError('');
-      }
+      setName(val);
+      setNameFieldError('');
   };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,7 +87,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   // --- BLUR HANDLERS ---
   const handleNameBlur = () => {
       if (!isLogin && !validateNameRule(name)) {
-          setNameFieldError("Invalid Name");
+          setNameFieldError("Name must be 3-20 characters");
       }
   };
 
@@ -103,18 +99,16 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
   const handlePasswordBlur = () => {
       if (password.length > 0 && !validatePasswordRule(password)) {
-          setPassFieldError("Invalid Password");
+          setPassFieldError("Password must be at least 6 chars");
       } else if (!isLogin && confirmPassword.length > 0 && password !== confirmPassword) {
           setPassFieldError("Passwords do not match");
       }
   };
 
-  // --- FORM STATE ---
   const isNameValid = isLogin ? true : validateNameRule(name);
   const isEmailValid = validateEmailRule(email);
   const isPasswordValid = validatePasswordRule(password);
   const isConfirmValid = isLogin ? true : password === confirmPassword;
-
   const isFormValid = isNameValid && isEmailValid && isPasswordValid && isConfirmValid;
 
   // --- GOOGLE LOGIN ---
@@ -138,22 +132,14 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           
           // STRICT CHECK: If user registered via Password, BLOCK Google Login.
           if (val.authMethod === 'password') {
-              // CRITICAL: UNLINK GOOGLE TO PREVENT ACCOUNT CORRUPTION
-              if (user.providerData.some(p => p.providerId === GoogleAuthProvider.PROVIDER_ID)) {
-                  try {
-                      await unlink(user, GoogleAuthProvider.PROVIDER_ID);
-                  } catch (e) {
-                      console.error("Unlink failed", e);
-                  }
-              }
-
-              // Simplified Error Message
+              // SAFE FIX: Just Sign Out. Do NOT Unlink.
+              // Unlinking causes provider issues. Just blocking access is enough.
               sessionStorage.setItem('auth_error', "Please log in using your Email & Password.");
               await signOut(auth);
               return;
           }
           
-          // Only update if no authMethod is set (Legacy migration)
+          // Only update if no authMethod is set
           if (!val.authMethod) {
               await set(ref(db, 'users/' + user.uid + '/authMethod'), 'google');
           }
@@ -174,8 +160,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       setSuccess(true);
     } catch (error: any) {
       setLoading(false);
+      // Catch merge conflict errors specifically
       if (error.code === 'auth/account-exists-with-different-credential' || error.code === 'auth/credential-already-in-use') {
-          // Simplified Error Message
           setError("Please log in using your Email & Password.");
       } else {
           setError("Google Login Failed");
@@ -187,7 +173,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const handleAuth = async (e: FormEvent) => {
     e.preventDefault();
     
-    // Safety check
     if (!isFormValid) {
         if (!isLogin && !validateNameRule(name)) setNameFieldError("Invalid Name");
         if (!validateEmailRule(email)) setEmailFieldError("Invalid Email");
@@ -212,8 +197,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             if (snapshot.exists()) {
                 const val = snapshot.val();
                 // STRICT CHECK: If user registered via Google, BLOCK Password Login.
+                // NOTE: If they registered via password, then mistakenly clicked Google (merged),
+                // val.authMethod will still be 'password', so this block won't trigger, allowing them to login.
                 if (val.authMethod === 'google') {
-                    // Simplified Error Message
                     sessionStorage.setItem('auth_error', "Please log in using Google.");
                     await signOut(auth);
                     return;
@@ -222,15 +208,11 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             setSuccess(true);
         } catch (err: any) {
             setLoading(false);
-            if (err.code === 'auth/invalid-email') {
-                setEmailFieldError("Invalid Email");
-            } else if (err.code === 'auth/wrong-password') {
-                setError("Invalid Email or Password");
-            } else if (err.code === 'auth/invalid-credential') {
-                // Simplified generic error
+            // Unified Error Message
+            if (err.code === 'auth/invalid-email' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') {
                 setError("Invalid Email or Password");
             } else {
-                setError("Login Failed: " + (err.message || "Unknown Error"));
+                setError("Login Failed. Try again.");
             }
         }
     } else {
@@ -242,7 +224,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             
             await updateProfile(user, { displayName: name });
 
-            // Explicitly set authMethod: 'password'
             await set(ref(db, 'users/' + user.uid), {
                 name: name,
                 email: email,
