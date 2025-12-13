@@ -1,6 +1,6 @@
 
 import React, { useState, FC, FormEvent, useEffect } from 'react';
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence, signOut } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence, linkWithCredential, AuthCredential, fetchSignInMethodsForEmail } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { ref, set, get, update } from 'firebase/database';
 
@@ -18,6 +18,7 @@ const UserIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://
 const EyeIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>);
 const EyeOffIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x="1" y1="1" x2="23" y2="23"/></svg>);
 const CheckIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12" /></svg>);
+const LinkIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>);
 
 const Spinner: FC = () => (<div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>);
 
@@ -37,6 +38,11 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // --- ACCOUNT LINKING STATE ---
+  const [isLinking, setIsLinking] = useState(false);
+  const [pendingCred, setPendingCred] = useState<AuthCredential | null>(null);
+  const [linkingEmail, setLinkingEmail] = useState('');
 
   // --- INITIALIZATION & SESSION CLEANUP ---
   useEffect(() => {
@@ -71,7 +77,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const isConfirmValid = isLogin ? true : password === confirmPassword;
   const isFormValid = isNameValid && isEmailValid && isPasswordValid && isConfirmValid;
 
-  // --- GOOGLE LOGIN (FIXED: NO BLOCKING) ---
+  // --- 1. GOOGLE LOGIN ATTEMPT ---
   const handleGoogleLogin = async () => {
     onLoginAttempt(); 
     setLoading(true);
@@ -82,18 +88,55 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       provider.setCustomParameters({ prompt: 'select_account' });
       
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+      
+      // SUCCESS: Regular Google Login
+      await handleLoginSuccess(result.user);
 
-      // Logic: Allow login, just update DB if needed. No more blocking.
+    } catch (error: any) {
+      setLoading(false);
+      
+      // CRITICAL: Handle Account Linking when email exists with different credential (Password)
+      // This error code means "You are trying to sign in with Google, but this email already exists as Password user."
+      if (error.code === 'auth/account-exists-with-different-credential') {
+          const credential = GoogleAuthProvider.credentialFromError(error);
+          const email = error.customData?.email;
+          
+          if (credential && email) {
+              // Switch UI to Linking Mode
+              setPendingCred(credential);
+              setLinkingEmail(email);
+              setIsLinking(true);
+              setPassword(''); // Clear for user input
+              setError("Account exists. Enter password to link Google.");
+          } else {
+              setError("An error occurred during account linking.");
+          }
+      } else {
+          setError("Google Login Failed. Please try again.");
+      }
+    }
+  };
+
+  // --- 2. HANDLE SUCCESSFUL LOGIN (Common) ---
+  const handleLoginSuccess = async (user: any) => {
       const userRef = ref(db, 'users/' + user.uid);
       const snapshot = await get(userRef);
 
       if (snapshot.exists()) {
-          // USER EXISTS: Update authMethod to 'hybrid' to indicate both methods are valid
-          // This prevents any future logic from getting confused
-          await update(userRef, { authMethod: 'hybrid' });
+          // USER EXISTS: Non-destructive Update
+          const val = snapshot.val();
+          const updates: any = {};
+          
+          // Ensure 'authMethod' reflects hybrid if they have linked accounts
+          if (val.authMethod !== 'hybrid') {
+              updates['authMethod'] = 'hybrid';
+          }
+          
+          if (Object.keys(updates).length > 0) {
+              await update(userRef, updates);
+          }
       } else {
-          // NEW USER: Create record
+          // NEW USER: Create record safely
           await set(userRef, {
             name: user.displayName || 'User',
             email: user.email || '',
@@ -103,24 +146,51 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             totalEarned: 0,
             totalAdsWatched: 0,
             isBanned: false,
-            authMethod: 'google'
+            // If creation via Google, method is Google. If via Password, Password.
+            authMethod: user.providerData.some((p: any) => p.providerId === 'password') ? 'password' : 'google'
         });
       }
       setSuccess(true);
-    } catch (error: any) {
       setLoading(false);
-      // Even if account exists, we try to fail gracefully or prompt password
-      if (error.code === 'auth/account-exists-with-different-credential') {
-          setError("This email is already registered with a password. Please log in with password.");
-      } else {
-          setError("Google Login Failed. Please try again.");
-      }
-    }
   };
 
-  // --- PASSWORD AUTH (FIXED: NO BLOCKING) ---
+  // --- 3. CONFIRM LINKING (Password + Pending Cred) ---
+  const handleConfirmLinking = async (e: FormEvent) => {
+      e.preventDefault();
+      if (!password || !pendingCred) return;
+      
+      setLoading(true);
+      setError('');
+
+      try {
+          // A. Sign in with the ORIGINAL Password Account
+          // This verifies the user owns the existing account and keeps the password active
+          const result = await signInWithEmailAndPassword(auth, linkingEmail, password);
+          
+          // B. Link the Pending Google Credential to this User
+          // This simply adds Google as a 2nd way to login. It DOES NOT remove the password.
+          await linkWithCredential(result.user, pendingCred);
+          
+          // C. Success
+          await handleLoginSuccess(result.user);
+          
+      } catch (err: any) {
+          setLoading(false);
+          if (err.code === 'auth/wrong-password') {
+              setError("Incorrect password. Cannot link account.");
+          } else if (err.code === 'auth/credential-already-in-use') {
+              // Edge case: User clicked link, then cancelled, then tried again
+              setError("This Google account is already linked to another user.");
+          } else {
+              setError("Linking failed. Please try again.");
+          }
+      }
+  };
+
+  // --- 4. PASSWORD AUTH (Standard) ---
   const handleAuth = async (e: FormEvent) => {
     e.preventDefault();
+    if (isLinking) return handleConfirmLinking(e); // Redirect if in linking mode
     
     if (!isFormValid) {
         if (!isLogin && !validateNameRule(name)) setNameFieldError("Invalid Name");
@@ -132,27 +202,14 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
     onLoginAttempt();
     setError('');
+    setLoading(true);
     
     if (isLogin) {
-        // --- LOGIN LOGIC ---
-        setLoading(true);
+        // Login Logic
         try {
+            // Simply sign in. If password matches, it works.
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-
-            // FIX: If login successful, ensure DB allows it.
-            const userRef = ref(db, 'users/' + user.uid);
-            const snapshot = await get(userRef);
-            
-            if (snapshot.exists()) {
-                const val = snapshot.val();
-                // If it was marked as google-only before, update to hybrid/password
-                // This breaks the loop where DB says 'google' and kicks user out.
-                if (val.authMethod === 'google') {
-                    await update(userRef, { authMethod: 'hybrid' });
-                }
-            }
-            setSuccess(true);
+            await handleLoginSuccess(userCredential.user);
         } catch (err: any) {
             setLoading(false);
             if (err.code === 'auth/invalid-email' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') {
@@ -162,27 +219,11 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             }
         }
     } else {
-        // --- REGISTRATION LOGIC ---
-        setLoading(true);
+        // Registration Logic
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-            
-            await updateProfile(user, { displayName: name });
-
-            await set(ref(db, 'users/' + user.uid), {
-                name: name,
-                email: email,
-                balance: 0,
-                role: 'user',
-                uid: user.uid,
-                totalEarned: 0,
-                totalAdsWatched: 0,
-                isBanned: false,
-                authMethod: 'password'
-            });
-            
-            setSuccess(true);
+            await updateProfile(userCredential.user, { displayName: name });
+            await handleLoginSuccess(userCredential.user);
         } catch (err: any) {
             setLoading(false);
             if (err.code === 'auth/email-already-in-use') setError("Email already in use");
@@ -195,6 +236,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
   const switchMode = () => {
       setIsLogin(!isLogin); 
+      setIsLinking(false); // Reset linking state
       setError(''); 
       setPassword(''); 
       setConfirmPassword(''); 
@@ -214,17 +256,26 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                   <div className="w-[5.5rem] h-[5.5rem] rounded-full bg-white dark:bg-dark-card p-1 shadow-md ring-1 ring-gray-200 dark:ring-gray-700">
                       <img src={logoUrl} alt={appName} className="w-full h-full object-cover rounded-full" />
                   </div>
+                  {isLinking && (
+                      <div className="absolute -bottom-1 -right-1 bg-primary text-white p-1.5 rounded-full shadow-lg border-2 border-white dark:border-dark-card animate-bounce">
+                          <LinkIcon className="w-4 h-4" />
+                      </div>
+                  )}
               </div>
               <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mt-2">
                 {appName}
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">
-                  {isLogin ? texts.loginTitle : texts.registerTitle}
+                  {isLinking 
+                    ? "Verify Password to Link Google" 
+                    : (isLogin ? texts.loginTitle : texts.registerTitle)
+                  }
               </p>
           </div>
 
           <form onSubmit={handleAuth} className="w-full space-y-4">
-            {!isLogin && (
+            {/* Name Field - Only for Register */}
+            {!isLogin && !isLinking && (
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.name}</label>
                     <div className="relative group">
@@ -249,6 +300,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                 </div>
             )}
 
+            {/* Email Field - Disabled in Linking Mode */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.email}</label>
                 <div className="relative group">
@@ -257,22 +309,25 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                     </div>
                     <input
                         type="email"
-                        value={email}
+                        value={isLinking ? linkingEmail : email}
                         onChange={handleEmailChange}
                         onBlur={handleEmailBlur}
                         placeholder="Email"
+                        disabled={isLinking}
                         className={`w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
                             ${emailFieldError 
                                 ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
                                 : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
                             }
+                            ${isLinking ? 'opacity-70 cursor-not-allowed bg-gray-100 dark:bg-gray-800' : ''}
                         `}
                         required
                     />
                 </div>
-                {emailFieldError && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{emailFieldError}</p>}
+                {emailFieldError && !isLinking && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{emailFieldError}</p>}
             </div>
 
+            {/* Password Field */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.password}</label>
                 <div className="relative group">
@@ -284,7 +339,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                         value={password}
                         onChange={handlePasswordChange}
                         onBlur={handlePasswordBlur}
-                        placeholder="Password"
+                        placeholder={isLinking ? "Enter Existing Password" : "Password"}
                         className={`w-full pl-10 pr-10 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
                             ${passFieldError 
                                 ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
@@ -301,10 +356,11 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                         {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                     </button>
                 </div>
-                {passFieldError && isLogin && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{passFieldError}</p>}
+                {passFieldError && isLogin && !isLinking && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{passFieldError}</p>}
             </div>
 
-            {!isLogin && (
+            {/* Confirm Password - Only for Register */}
+            {!isLogin && !isLinking && (
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.confirmPassword}</label>
                     <div className="relative group">
@@ -338,12 +394,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
             <button
                 type="submit"
-                disabled={!isFormValid || loading || success}
+                disabled={loading || success || (!isLinking && !isFormValid)}
                 className={`w-full h-14 font-bold rounded-xl flex justify-center items-center transition-all duration-200
                     bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30
-                    ${(!isFormValid || loading || success)
-                        ? 'opacity-50 cursor-not-allowed' // 50% opacity when invalid
-                        : 'opacity-100 hover:opacity-90 active:scale-[0.98]' // 100% when valid
+                    ${(loading || success || (!isLinking && !isFormValid))
+                        ? 'opacity-50 cursor-not-allowed' 
+                        : 'opacity-100 hover:opacity-90 active:scale-[0.98]'
                     }
                 `}
             >
@@ -351,6 +407,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                     <Spinner />
                 ) : success ? (
                     <CheckIcon className="w-8 h-8 text-white drop-shadow-md animate-smart-pop-in" />
+                ) : isLinking ? (
+                    "Link & Login"
                 ) : (
                     isLogin ? texts.login : texts.register
                 )}
@@ -365,34 +423,49 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
           </form>
 
-          <div className="relative flex py-4 items-center w-full"> 
-                <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
-                <span className="flex-shrink-0 mx-4 text-gray-400 dark:text-gray-500 text-xs font-medium">Or</span>
-                <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
-          </div>
+          {!isLinking && (
+              <>
+                <div className="relative flex py-4 items-center w-full"> 
+                        <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
+                        <span className="flex-shrink-0 mx-4 text-gray-400 dark:text-gray-500 text-xs font-medium">Or</span>
+                        <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
+                </div>
 
-          <div className="w-full space-y-3 mb-6">
-             <button
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="w-full py-3 bg-white dark:bg-dark-card text-gray-700 dark:text-gray-200 font-bold rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 flex items-center justify-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all active:scale-[0.98] disabled:opacity-50"
-            >
-              <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
-              <span>Google</span>
-            </button>
-          </div>
+                <div className="w-full space-y-3 mb-6">
+                    <button
+                    onClick={handleGoogleLogin}
+                    disabled={loading}
+                    className="w-full py-3 bg-white dark:bg-dark-card text-gray-700 dark:text-gray-200 font-bold rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 flex items-center justify-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all active:scale-[0.98] disabled:opacity-50"
+                    >
+                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+                    <span>Google</span>
+                    </button>
+                </div>
 
-          <div className="text-center pb-8">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {isLogin ? texts.noAccount : texts.haveAccount}{" "}
+                <div className="text-center pb-8">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {isLogin ? texts.noAccount : texts.haveAccount}{" "}
+                        <button 
+                            onClick={switchMode}
+                            className="text-primary font-bold hover:underline transition-colors ml-1"
+                        >
+                            {isLogin ? texts.register : texts.login}
+                        </button>
+                    </p>
+                </div>
+              </>
+          )}
+          
+          {isLinking && (
+              <div className="text-center mt-4 pb-8">
                   <button 
                     onClick={switchMode}
-                    className="text-primary font-bold hover:underline transition-colors ml-1"
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm font-medium hover:underline"
                   >
-                      {isLogin ? texts.register : texts.login}
+                      Cancel Linking
                   </button>
-              </p>
-          </div>
+              </div>
+          )}
       </div>
     </div>
   );
