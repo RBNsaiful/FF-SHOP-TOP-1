@@ -1,3 +1,4 @@
+
 import React, { useState, FC, FormEvent, useRef, useEffect } from 'react';
 import type { User, Screen } from '../types';
 import { DEFAULT_AVATAR_URL } from '../constants';
@@ -32,8 +33,9 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   
+  // New: Field Level Error
   const [nameError, setNameError] = useState('');
-  const [uidError, setUidError] = useState('');
+  const [error, setError] = useState('');
   
   const [showCropper, setShowCropper] = useState(false);
   const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
@@ -52,55 +54,40 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
     };
   }, [showSuccess, onNavigate]);
 
-  const validateName = (val: string) => {
-      if (val.length < 6 || val.length > 15) return "Invalid name";
-      return "";
+  const validateNameRule = (val: string) => {
+      if (val.length < 6 || val.length > 15) return false;
+      if (/(.)\1\1/.test(val)) return false;
+      return true;
   };
-
-  const validateUid = (val: string) => {
-      if (!val) return ""; 
-      if (!/^\d+$/.test(val)) return "Invalid UID";
-      if (val.length < 8 || val.length > 12) return "Invalid UID";
-      return "";
-  };
-
-  const isDirty = name !== user.name || playerUid !== (user.playerUid || '') || avatarUrl !== user.avatarUrl;
-  const isFormValid = !nameError && !uidError && name.length > 0;
-  const canSave = isFormValid && isDirty && !isSaving;
 
   const handleNameChange = (val: string) => {
-      const sanitized = val.replace(/[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/g, '');
-      setName(sanitized);
-      if (nameError) setNameError('');
+      // STRICT MASK: Only Letters and Spaces
+      if (/^[a-zA-Z\s]*$/.test(val)) {
+          setName(val);
+          setNameError(''); // Clear error on type
+      }
   };
 
   const handleNameBlur = () => {
-      setNameError(validateName(name));
+      if (!validateNameRule(name)) {
+          setNameError("Invalid Name");
+      }
   };
 
   const handleUidChange = (val: string) => {
       if (val && !/^\d*$/.test(val)) return;
       setPlayerUid(val);
-      if (uidError) setUidError(''); // Clear error while typing
   };
 
-  // Validate UID on blur
-  const handleUidBlur = () => {
-      setUidError(validateUid(playerUid));
-  };
+  // Logic to enable button
+  const isNameValid = validateNameRule(name);
+  const isDirty = name !== user.name || playerUid !== (user.playerUid || '') || avatarUrl !== user.avatarUrl;
+  const canSave = isDirty && isNameValid;
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
-    if (!canSave || !user.uid) return;
-
-    const finalNameError = validateName(name);
-    const finalUidError = validateUid(playerUid);
-    
-    if (finalNameError || finalUidError) {
-        setNameError(finalNameError);
-        setUidError(finalUidError);
-        return;
-    }
+    if (isSaving || !user.uid || !canSave) return;
+    setError('');
 
     setIsSaving(true);
     
@@ -129,7 +116,7 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
         setShowSuccess(true); 
 
     } catch (error) {
-        alert("Failed to update profile. Please try again.");
+        setError("Failed to update profile");
         setIsSaving(false);
     }
   };
@@ -164,12 +151,10 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
           />
       )}
 
-      {/* Main Card Container matching the screenshot style */}
       <div className="max-w-md mx-auto bg-white dark:bg-dark-card rounded-2xl shadow-lg p-6">
          
          <form onSubmit={handleSave} className="space-y-6">
             
-            {/* Avatar Section */}
             <div className="flex flex-col items-center">
                 <div className="relative group">
                     <div 
@@ -183,7 +168,6 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
                             onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR_URL; }}
                         />
                     </div>
-                    {/* Pencil Icon Button */}
                     <button 
                         type="button" 
                         onClick={() => fileInputRef.current?.click()}
@@ -205,9 +189,8 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
                 </button>
             </div>
 
-            {/* Inputs */}
             <div className="space-y-4">
-                {/* Name */}
+                {/* Name Input */}
                 <div>
                     <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 ml-1">
                         {texts.name}
@@ -221,19 +204,19 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
                             value={name}
                             onChange={(e) => handleNameChange(e.target.value)}
                             onBlur={handleNameBlur}
-                            className={`w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border rounded-xl outline-none transition-all
-                                ${nameError 
-                                    ? 'border-red-500 focus:border-red-500' 
+                            placeholder="Name"
+                            className={`w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border rounded-xl outline-none transition-all text-gray-700 dark:text-gray-200
+                                ${nameError
+                                    ? 'border-red-500 focus:border-red-500'
                                     : 'border-gray-200 dark:border-gray-700 focus:border-primary'
                                 }
-                                text-gray-700 dark:text-gray-200
                             `}
                         />
                     </div>
-                    {nameError && <p className="text-red-500 text-xs mt-1 ml-1">{nameError}</p>}
+                    {nameError && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{nameError}</p>}
                 </div>
 
-                {/* Email */}
+                {/* Email (Read Only) */}
                 <div>
                     <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 ml-1">
                         {texts.email}
@@ -251,7 +234,7 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
                     </div>
                 </div>
 
-                {/* Player UID - Label "Save UID" */}
+                {/* Player UID */}
                 <div>
                     <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 ml-1">
                         Save UID
@@ -265,22 +248,13 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
                             inputMode="numeric"
                             value={playerUid}
                             onChange={(e) => handleUidChange(e.target.value)}
-                            onBlur={handleUidBlur}
                             placeholder="Save UID"
-                            className={`w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border rounded-xl outline-none transition-all
-                                ${uidError 
-                                    ? 'border-red-500 focus:border-red-500' 
-                                    : 'border-gray-200 dark:border-gray-700 focus:border-primary'
-                                }
-                                text-gray-700 dark:text-gray-200
-                            `}
+                            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none transition-all focus:border-primary text-gray-700 dark:text-gray-200"
                         />
                     </div>
-                    {uidError && <p className="text-red-500 text-xs mt-1 ml-1">{uidError}</p>}
                 </div>
             </div>
 
-            {/* Save Button - 50% Opacity when inactive */}
             <div className="pt-2">
                 <button 
                     type="submit" 
@@ -288,11 +262,9 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
                     className={`w-full py-3 rounded-xl font-bold text-white shadow-lg transition-all bg-gradient-to-r from-primary to-secondary flex items-center justify-center
                         ${showSuccess 
                             ? 'bg-green-500 shadow-green-500/30' 
-                            : isSaving 
-                                ? 'opacity-70 cursor-wait'
-                                : !canSave 
-                                    ? 'opacity-50 cursor-not-allowed shadow-none' // 50% opacity, disabled
-                                    : 'opacity-100 hover:opacity-95 shadow-primary/30' // 100% opacity, active
+                            : (isSaving || !canSave)
+                                ? 'opacity-50 cursor-not-allowed shadow-none' // 50% Opacity when disabled
+                                : 'opacity-100 hover:opacity-95 shadow-primary/30' // 100% when active
                         }`}
                 >
                     {isSaving ? (
@@ -304,6 +276,13 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
                     )}
                 </button>
             </div>
+            
+            {/* Simple Error Display */}
+            {error && (
+                <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center border border-red-100 dark:border-red-800 animate-fade-in font-medium">
+                    {error}
+                </div>
+            )}
          </form>
       </div>
 

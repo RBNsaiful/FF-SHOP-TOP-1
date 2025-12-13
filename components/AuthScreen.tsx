@@ -1,8 +1,8 @@
 
 import React, { useState, FC, FormEvent } from 'react';
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut, fetchSignInMethodsForEmail } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { ref, set, get, query, orderByChild, equalTo } from 'firebase/database';
+import { ref, set, get } from 'firebase/database';
 
 interface AuthScreenProps {
   texts: any;
@@ -28,33 +28,87 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   
+  // Field-level errors
+  const [nameFieldError, setNameFieldError] = useState('');
+  const [emailFieldError, setEmailFieldError] = useState('');
+  const [passFieldError, setPassFieldError] = useState('');
+  
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // --- HELPER: CHECK DATABASE FOR EMAIL CONFLICTS ---
-  const checkEmailConflict = async (emailToCheck: string, intendedMethod: 'google' | 'password') => {
-      const usersRef = ref(db, 'users');
-      const emailQuery = query(usersRef, orderByChild('email'), equalTo(emailToCheck));
-      const snapshot = await get(emailQuery);
-
-      if (snapshot.exists()) {
-          let conflictFound = false;
-          snapshot.forEach((child) => {
-              const val = child.val();
-              // STRICT CHECK: If authMethod exists and DOES NOT MATCH intended method
-              if (val.authMethod && val.authMethod !== intendedMethod) {
-                  conflictFound = true;
-              }
-          });
-          return conflictFound;
-      }
-      return false;
+  // --- VALIDATION HELPERS ---
+  const validateNameRule = (val: string): boolean => {
+      if (val.length < 6 || val.length > 15) return false;
+      if (/(.)\1\1/.test(val)) return false; // No 3 consecutive chars
+      return true;
   };
 
-  // --- GOOGLE LOGIN (QUICK LOGIN) ---
+  const validateEmailRule = (val: string): boolean => {
+      return /\S+@\S+\.\S+/.test(val);
+  };
+
+  const validatePasswordRule = (val: string): boolean => {
+      return val.length >= 6;
+  };
+
+  // --- INPUT HANDLERS (Masking & Clear Error) ---
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = e.target.value;
+      // STRICT MASK: Only Letters and Spaces
+      if (/^[a-zA-Z\s]*$/.test(val)) {
+          setName(val);
+          setNameFieldError(''); // Clear error on type
+      }
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setEmail(e.target.value);
+      setEmailFieldError('');
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setPassword(e.target.value);
+      setPassFieldError('');
+  };
+
+  const handleConfirmPassChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setConfirmPassword(e.target.value);
+      setPassFieldError('');
+  };
+
+  // --- BLUR HANDLERS (Show Error) ---
+  const handleNameBlur = () => {
+      if (!isLogin && !validateNameRule(name)) {
+          setNameFieldError("Invalid Name");
+      }
+  };
+
+  const handleEmailBlur = () => {
+      if (email.length > 0 && !validateEmailRule(email)) {
+          setEmailFieldError("Invalid Email");
+      }
+  };
+
+  const handlePasswordBlur = () => {
+      if (password.length > 0 && !validatePasswordRule(password)) {
+          setPassFieldError("Invalid Password");
+      } else if (!isLogin && confirmPassword.length > 0 && password !== confirmPassword) {
+          setPassFieldError("Passwords do not match");
+      }
+  };
+
+  // --- FORM STATE ---
+  const isNameValid = isLogin ? true : validateNameRule(name);
+  const isEmailValid = validateEmailRule(email);
+  const isPasswordValid = validatePasswordRule(password);
+  const isConfirmValid = isLogin ? true : password === confirmPassword;
+
+  const isFormValid = isNameValid && isEmailValid && isPasswordValid && isConfirmValid;
+
+  // --- GOOGLE LOGIN ---
   const handleGoogleLogin = async () => {
     onLoginAttempt();
     setLoading(true);
@@ -62,29 +116,24 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
     try {
       const provider = new GoogleAuthProvider();
-      // Force account selection to avoid auto-login loops if multiple accounts exist
-      provider.setCustomParameters({ prompt: 'select_account' });
-      
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // 1. DATABASE CONFLICT CHECK
-      const isConflict = await checkEmailConflict(user.email || '', 'google');
-      
-      if (isConflict) {
-          // CRITICAL: Force Logout immediately if this email belongs to a Password account
-          await signOut(auth);
-          setError("এই ইমেইল দিয়ে পাসওয়ার্ড এর মাধ্যমে অ্যাকাউন্ট খোলা আছে। দয়া করে পাসওয়ার্ড দিয়ে লগইন করুন।");
-          setLoading(false);
-          return;
-      }
-
-      // 2. Setup/Update User in DB
       const userRef = ref(db, 'users/' + user.uid);
       const snapshot = await get(userRef);
 
-      if (!snapshot.exists()) {
-          // Create new Google User
+      if (snapshot.exists()) {
+          const val = snapshot.val();
+          if (val.authMethod === 'password') {
+              await signOut(auth);
+              setError("Wrong Email or Password"); 
+              setLoading(false);
+              return;
+          }
+          if (!val.authMethod) {
+              await set(ref(db, 'users/' + user.uid + '/authMethod'), 'google');
+          }
+      } else {
           await set(userRef, {
             name: user.displayName || 'User',
             email: user.email || '',
@@ -94,115 +143,111 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             totalEarned: 0,
             totalAdsWatched: 0,
             isBanned: false,
-            authMethod: 'google' // MARKER
+            authMethod: 'google'
         });
-      } else {
-          // Ensure marker is set for legacy accounts
-          if (!snapshot.val().authMethod) {
-              await set(ref(db, 'users/' + user.uid + '/authMethod'), 'google');
-          }
       }
-      
       setSuccess(true);
     } catch (error: any) {
       setLoading(false);
-      // Handle Firebase Merge Error specifically
-      if (error.code === 'auth/account-exists-with-different-credential') {
-          setError("এই ইমেইল দিয়ে পাসওয়ার্ড অ্যাকাউন্ট আছে। দয়া করে পাসওয়ার্ড ব্যবহার করুন।");
-      } else {
-          setError("Google Login canceled or failed.");
-      }
+      setError("Google Login Failed");
     }
   };
 
-  // --- PASSWORD LOGIN / REGISTER ---
+  // --- PASSWORD AUTH ---
   const handleAuth = async (e: FormEvent) => {
     e.preventDefault();
+    
+    // Safety check
+    if (!isFormValid) {
+        if (!isLogin && !validateNameRule(name)) setNameFieldError("Invalid Name");
+        if (!validateEmailRule(email)) setEmailFieldError("Invalid Email");
+        if (!validatePasswordRule(password)) setPassFieldError("Invalid Password");
+        setError("Please fix errors above");
+        return;
+    }
+
     onLoginAttempt();
     setError('');
-    setLoading(true);
+    
+    if (isLogin) {
+        // Login Logic
+        setLoading(true);
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
 
-    try {
-      if (isLogin) {
-        // --- LOGIN FLOW ---
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        // 1. DATABASE CONFLICT CHECK
-        // If user logged in successfully via password, we MUST ensure the DB doesn't say it's a Google account
-        const isConflict = await checkEmailConflict(user.email || '', 'password');
-        
-        if (isConflict) {
-            await signOut(auth);
-            setError("এই ইমেইল দিয়ে Google (Quick Login) এর মাধ্যমে অ্যাকাউন্ট খোলা আছে। দয়া করে Google দিয়ে লগইন করুন।");
+            const userRef = ref(db, 'users/' + user.uid);
+            const snapshot = await get(userRef);
+            
+            if (snapshot.exists()) {
+                const val = snapshot.val();
+                if (val.authMethod === 'google') {
+                    await signOut(auth);
+                    setError("Wrong Email or Password");
+                    setLoading(false);
+                    return;
+                }
+            }
+            setSuccess(true);
+        } catch (err: any) {
             setLoading(false);
-            return;
+            if (err.code === 'auth/invalid-email') {
+                setEmailFieldError("Invalid Email");
+            } else {
+                setError("Wrong Email or Password");
+            }
         }
+    } else {
+        // Registration Logic
+        setLoading(true);
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+            
+            await updateProfile(user, { displayName: name });
 
-        // Update authMethod if missing (Migration path)
-        const userRef = ref(db, 'users/' + user.uid);
-        const snapshot = await get(userRef);
-        if (snapshot.exists() && !snapshot.val().authMethod) {
-             await set(ref(db, 'users/' + user.uid + '/authMethod'), 'password');
+            await set(ref(db, 'users/' + user.uid), {
+                name: name,
+                email: email,
+                balance: 0,
+                role: 'user',
+                uid: user.uid,
+                totalEarned: 0,
+                totalAdsWatched: 0,
+                isBanned: false,
+                authMethod: 'password'
+            });
+            
+            setSuccess(true);
+        } catch (err: any) {
+            setLoading(false);
+            if (err.code === 'auth/email-already-in-use') setError("Email already in use");
+            else if (err.code === 'auth/invalid-email') setEmailFieldError("Invalid Email");
+            else if (err.code === 'auth/weak-password') setPassFieldError("Invalid Password");
+            else setError("Registration Failed");
         }
-
-        setSuccess(true);
-
-      } else {
-        // --- REGISTER FLOW ---
-        
-        // 1. PRE-CHECK: Does this email exist in our DB with 'google'?
-        // We do this BEFORE firebase create to avoid creating a "ghost" auth record that conflicts
-        const isConflict = await checkEmailConflict(email, 'password');
-        if (isConflict) {
-            throw new Error("এই ইমেইল দিয়ে Google অ্যাকাউন্ট খোলা আছে। দয়া করে Google Login ব্যবহার করুন।");
-        }
-
-        if (password !== confirmPassword) {
-            throw new Error(texts.passwordsDoNotMatch);
-        }
-        
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        
-        await updateProfile(user, { displayName: name });
-
-        // 2. Create User Record with STRICT 'password' marker
-        await set(ref(db, 'users/' + user.uid), {
-            name: name,
-            email: email,
-            balance: 0,
-            role: 'user',
-            uid: user.uid,
-            totalEarned: 0,
-            totalAdsWatched: 0,
-            isBanned: false,
-            authMethod: 'password' // MARKER
-        });
-        
-        setSuccess(true);
-      }
-    } catch (err: any) {
-      setLoading(false);
-      let msg = "Authentication failed.";
-      if (err.code === 'auth/email-already-in-use') msg = "এই ইমেইল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট খোলা আছে।";
-      else if (err.code === 'auth/wrong-password') msg = "ভুল পাসওয়ার্ড। আবার চেষ্টা করুন।";
-      else if (err.code === 'auth/user-not-found') msg = "এই ইমেইলে কোনো অ্যাকাউন্ট পাওয়া যায়নি।";
-      else if (err.code === 'auth/invalid-email') msg = "ইমেইল অ্যাড্রেসটি সঠিক নয়।";
-      else if (err.message) msg = err.message;
-      setError(msg);
     }
+  };
+
+  const switchMode = () => {
+      setIsLogin(!isLogin); 
+      setError(''); 
+      setPassword(''); 
+      setConfirmPassword(''); 
+      setSuccess(false); 
+      setName('');
+      setNameFieldError('');
+      setEmailFieldError('');
+      setPassFieldError('');
   };
 
   return (
     <div className="min-h-screen w-full flex flex-col justify-center px-6 bg-light-bg dark:bg-dark-bg transition-colors duration-300">
-      
       <div className="w-full max-w-md mx-auto z-10">
           
-          {/* App Header */}
           <div className="flex flex-col items-center mb-6 mt-20">
               <div className="relative mb-2">
-                  <div className="w-24 h-24 rounded-full bg-white dark:bg-dark-card p-1 shadow-md ring-1 ring-gray-200 dark:ring-gray-700">
+                  <div className="w-[5.5rem] h-[5.5rem] rounded-full bg-white dark:bg-dark-card p-1 shadow-md ring-1 ring-gray-200 dark:ring-gray-700">
                       <img src={logoUrl} alt={appName} className="w-full h-full object-cover rounded-full" />
                   </div>
               </div>
@@ -214,9 +259,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
               </p>
           </div>
 
-          {/* Main Form */}
           <form onSubmit={handleAuth} className="w-full space-y-4">
-            
             {!isLogin && (
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.name}</label>
@@ -227,12 +270,18 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                         <input
                             type="text"
                             value={name}
-                            onChange={(e) => setName(e.target.value)}
+                            onChange={handleNameChange}
+                            onBlur={handleNameBlur}
                             placeholder="Name"
-                            className="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium text-gray-800 dark:text-white"
-                            required={!isLogin}
+                            className={`w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
+                                ${nameFieldError 
+                                    ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                                    : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
+                                }
+                            `}
                         />
                     </div>
+                    {nameFieldError && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{nameFieldError}</p>}
                 </div>
             )}
 
@@ -245,12 +294,19 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                     <input
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={handleEmailChange}
+                        onBlur={handleEmailBlur}
                         placeholder="Email"
-                        className="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium text-gray-800 dark:text-white"
+                        className={`w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
+                            ${emailFieldError 
+                                ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                                : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
+                            }
+                        `}
                         required
                     />
                 </div>
+                {emailFieldError && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{emailFieldError}</p>}
             </div>
 
             <div>
@@ -262,9 +318,15 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                     <input
                         type={showPassword ? "text" : "password"}
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={handlePasswordChange}
+                        onBlur={handlePasswordBlur}
                         placeholder="Password"
-                        className="w-full pl-10 pr-10 py-3.5 bg-gray-50 dark:bg-dark-card border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium text-gray-800 dark:text-white"
+                        className={`w-full pl-10 pr-10 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
+                            ${passFieldError 
+                                ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                                : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
+                            }
+                        `}
                         required
                     />
                     <button
@@ -275,6 +337,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                         {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                     </button>
                 </div>
+                {passFieldError && isLogin && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{passFieldError}</p>}
             </div>
 
             {!isLogin && (
@@ -287,10 +350,15 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                         <input
                             type={showConfirmPassword ? "text" : "password"}
                             value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            onChange={handleConfirmPassChange}
+                            onBlur={handlePasswordBlur}
                             placeholder="Confirm Password"
-                            className="w-full pl-10 pr-10 py-3.5 bg-gray-50 dark:bg-dark-card border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium text-gray-800 dark:text-white"
-                            required={!isLogin}
+                            className={`w-full pl-10 pr-10 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
+                                ${passFieldError && confirmPassword 
+                                    ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                                    : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
+                                }
+                            `}
                         />
                         <button
                             type="button"
@@ -300,17 +368,18 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                             {showConfirmPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                         </button>
                     </div>
+                    {passFieldError && !isLogin && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{passFieldError}</p>}
                 </div>
             )}
 
             <button
                 type="submit"
-                disabled={loading || success}
+                disabled={!isFormValid || loading || success}
                 className={`w-full h-14 font-bold rounded-xl flex justify-center items-center transition-all duration-200
                     bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30
-                    ${loading || success
-                        ? 'opacity-70 cursor-wait'
-                        : 'opacity-100 hover:opacity-90 active:scale-[0.98]'
+                    ${(!isFormValid || loading || success)
+                        ? 'opacity-50 cursor-not-allowed' // 50% opacity when invalid
+                        : 'opacity-100 hover:opacity-90 active:scale-[0.98]' // 100% when valid
                     }
                 `}
             >
@@ -323,7 +392,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                 )}
             </button>
             
-            {/* Error Message */}
+            {/* General Error Message on Submit */}
             {error && (
                 <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center border border-red-100 dark:border-red-800 animate-fade-in font-medium">
                     {error}
@@ -332,14 +401,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
           </form>
 
-          {/* Divider */}
           <div className="relative flex py-4 items-center w-full"> 
                 <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
                 <span className="flex-shrink-0 mx-4 text-gray-400 dark:text-gray-500 text-xs font-medium">Or</span>
                 <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
           </div>
 
-          {/* Social / Guest Login */}
           <div className="w-full space-y-3 mb-6">
              <button
               onClick={handleGoogleLogin}
@@ -351,12 +418,11 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             </button>
           </div>
 
-          {/* Toggle Login/Register */}
           <div className="text-center pb-8">
               <p className="text-sm text-gray-600 dark:text-gray-400">
                   {isLogin ? texts.noAccount : texts.haveAccount}{" "}
                   <button 
-                    onClick={() => { setIsLogin(!isLogin); setError(''); setPassword(''); setConfirmPassword(''); setSuccess(false); }}
+                    onClick={switchMode}
                     className="text-primary font-bold hover:underline transition-colors ml-1"
                   >
                       {isLogin ? texts.register : texts.login}

@@ -12,15 +12,15 @@ import WatchAdsScreen from './components/WatchAdsScreen';
 import EditProfileScreen from './components/EditProfileScreen';
 import NotificationScreen from './components/NotificationScreen';
 import AdminScreen from './components/AdminScreen'; 
-import RankingScreen from './components/RankingScreen'; // Import Ranking Screen
+import RankingScreen from './components/RankingScreen'; 
 import BottomNav from './components/BottomNav';
 import RewardAnimation from './components/RewardAnimation';
-import AiSupportBot from './components/AiSupportBot'; // Import AI Bot
+import AiSupportBot from './components/AiSupportBot'; 
 import { TEXTS, DIAMOND_OFFERS as initialDiamondOffers, LEVEL_UP_PACKAGES as initialLevelUpPackages, MEMBERSHIPS as initialMemberships, PREMIUM_APPS as initialPremiumApps, APP_LOGO_URL, DEFAULT_APP_SETTINGS, PAYMENT_METHODS as initialPaymentMethods, BANNER_IMAGES as initialBanners, SUPPORT_CONTACTS as initialContacts } from './constants';
 import type { User, Language, Theme, Screen, DiamondOffer, LevelUpPackage, Membership, PremiumApp, Notification, AppSettings, PaymentMethod, SupportContact, Banner, SpecialOffer } from './types';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { ref, onValue, get } from 'firebase/database';
+import { ref, onValue } from 'firebase/database';
 
 const ArrowLeftIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>);
 const WalletHeaderIcon: FC<{ className?: string }> = ({ className }) => (
@@ -60,13 +60,11 @@ const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavig
         watchAds: texts.watchAdsScreenTitle,
         editProfile: texts.editProfileTitle,
         notifications: texts.notifications, 
-        ranking: texts.ranking, // Add Ranking Title
+        ranking: texts.ranking, 
     };
 
-    // Hide Header on Admin, Profile, AI Chat, and Ranking screens
     if (screen === 'admin' || screen === 'profile' || screen === 'aiChat' || screen === 'ranking') return null;
 
-    // Desktop Nav Link Component
     const DesktopNavLink = ({ target, label }: { target: Screen, label: string }) => (
         <button 
             onClick={() => onNavigate(target)}
@@ -108,7 +106,6 @@ const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavig
                     <button onClick={onBack} className="text-gray-500 dark:text-gray-400 p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-dark-card transition-colors">
                         <ArrowLeftIcon className="w-6 h-6"/>
                     </button>
-                    {/* Desktop Breadcrumbs */}
                     <div className="hidden md:flex items-center text-sm font-medium text-gray-500 dark:text-gray-400">
                         <span onClick={() => onNavigate('home')} className="hover:text-primary cursor-pointer">Home</span>
                         <span className="mx-2">/</span>
@@ -143,8 +140,6 @@ const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavig
                 <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary drop-shadow-[0_2px_2px_rgba(0,0,0,0.2)] dark:drop-shadow-[0_2px_5px_rgba(124,58,237,0.3)] cursor-pointer" onClick={() => onNavigate('home')}>
                     {appName}
                 </h1>
-
-                {/* Desktop Navigation */}
                 {user && (
                     <div className="hidden md:flex items-center space-x-2">
                         <DesktopNavLink target="home" label={texts.navHome} />
@@ -165,8 +160,6 @@ const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavig
                         <WalletHeaderIcon className="w-6 h-6" />
                         <span onAnimationEnd={onBalancePulseEnd} className={isBalancePulsing ? 'animate-balance-pulse' : ''}>{Math.floor(user.balance)}{texts.currency}</span>
                     </button>
-
-                    {/* Desktop Mini Profile */}
                     <div onClick={() => onNavigate('profile')} className="hidden md:block w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-700 cursor-pointer hover:border-primary transition-colors">
                         <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
                     </div>
@@ -184,15 +177,12 @@ const App: FC = () => {
   const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('language') as Language | null) || 'en');
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
   
-  // LOGOUT LOCK REF (Critical for stopping auto-relogin loops)
   const isLoggingOutRef = useRef(false);
 
-  // Function to release lock (Passed to AuthScreen)
   const resetLogoutLock = () => {
       isLoggingOutRef.current = false;
   };
 
-  // Dynamic Data States
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
       const saved = localStorage.getItem('cachedAppSettings');
       return saved ? { ...DEFAULT_APP_SETTINGS, ...JSON.parse(saved) } : DEFAULT_APP_SETTINGS;
@@ -214,19 +204,19 @@ const App: FC = () => {
   const [showRewardAnim, setShowRewardAnim] = useState(false);
   const [earnedAmount, setEarnedAmount] = useState(0);
   
-  // Login Popup State
   const [showLoginPopup, setShowLoginPopup] = useState(false);
-
   const prevBalanceRef = useRef<number | null>(null);
 
-  // --- NAVIGATION FIX: Scroll to Top on Screen Change ---
   useLayoutEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
+    const timer = setTimeout(() => {
+        window.scrollTo(0, 0);
+    }, 10);
+    return () => clearTimeout(timer);
   }, [activeScreen]);
 
-  // Fetch App Config & Content (Same as before)
   useEffect(() => {
       const configRef = ref(db, 'config');
       const unsubscribeConfig = onValue(configRef, (snapshot) => {
@@ -285,10 +275,8 @@ const App: FC = () => {
       return () => unsubscribeConfig();
   }, []);
 
-  // --- STRICT AUTH & DATA LISTENER ---
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
-        // BLOCKER: If we are intentionally logging out, ignore any 'user found' events
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
         if (isLoggingOutRef.current) {
             if (firebaseUser) {
                 signOut(auth).catch(err => {}); 
@@ -297,35 +285,10 @@ const App: FC = () => {
         }
 
         if (firebaseUser) {
-            // --- SECURITY CHECK: AUTO-LOGIN VALIDATION ---
-            // If the user logs in automatically (e.g. from local storage/persistence),
-            // we MUST verify their 'authMethod' in DB to prevent method mismatch conflicts.
             const userRef = ref(db, 'users/' + firebaseUser.uid);
-            
-            try {
-                const snapshot = await get(userRef);
+            const unsubscribeData = onValue(userRef, (snapshot) => {
                 const data = snapshot.val();
-
                 if (data) {
-                    // Check logic: 
-                    // If auth provider is password, but DB says 'google', force logout
-                    // If auth provider is google, but DB says 'password', force logout
-                    const providerId = firebaseUser.providerData[0]?.providerId;
-                    const dbMethod = data.authMethod;
-
-                    let mismatch = false;
-                    if (providerId === 'password' && dbMethod === 'google') mismatch = true;
-                    if (providerId === 'google.com' && dbMethod === 'password') mismatch = true;
-
-                    if (mismatch) {
-                        console.warn("Security Mismatch Detected. Forcing Logout.");
-                        await signOut(auth);
-                        setUser(null);
-                        setLoading(false);
-                        return; // STOP HERE
-                    }
-
-                    // Proceed if valid
                     const userData = { ...data, uid: firebaseUser.uid, playerUid: data.playerUid || '', role: data.role || 'user', isBanned: data.isBanned || false };
                     
                     if (userData.role === 'admin') {
@@ -334,17 +297,17 @@ const App: FC = () => {
 
                     setUser(userData);
                 } else {
-                    // New user or data missing - Allow basic creation flow (handled by AuthScreen usually, but here for safety)
                     setUser({ name: firebaseUser.displayName || 'User', email: firebaseUser.email || '', balance: 0, uid: firebaseUser.uid, playerUid: '', avatarUrl: firebaseUser.photoURL || undefined, totalAdsWatched: 0, totalEarned: 0, role: 'user', isBanned: false });
                 }
-            } catch (error) {
-                // If data fetch fails (e.g. permission denied), force logout
+                setLoading(false);
+            }, (error) => {
+                // If permission denied, likely deleted user or security rule block
                 setUser(null);
-                signOut(auth).catch(() => {});
-            }
-            setLoading(false);
+                setLoading(false);
+                signOut(auth).catch(() => {}); 
+            });
+            return () => unsubscribeData();
         } else {
-            // Logged Out
             setUser(null);
             setNotifications([]); 
             setLoading(false);
@@ -353,7 +316,6 @@ const App: FC = () => {
     return () => unsubscribeAuth();
   }, []);
 
-  // Notifications Listener
   useEffect(() => {
       const notifRef = ref(db, 'notifications');
       const unsubscribeNotifs = onValue(notifRef, (snapshot) => {
@@ -373,7 +335,6 @@ const App: FC = () => {
       return () => unsubscribeNotifs();
   }, [user?.uid]);
 
-  // LOGIN POPUP LOGIC
   useEffect(() => {
       if (user && appSettings.popupNotification?.active && activeScreen !== 'admin') {
           const hasSeen = sessionStorage.getItem('hasSeenLoginPopup');
@@ -393,7 +354,6 @@ const App: FC = () => {
       }
   }, [activeScreen, appSettings.visibility]);
 
-  // Balance Change Detection
   useEffect(() => {
       if (user) {
           if (prevBalanceRef.current !== null && user.balance > prevBalanceRef.current) {
@@ -430,9 +390,7 @@ const App: FC = () => {
   }, []);
 
   const handleLogout = async () => {
-    // CRITICAL: Secure Logout - Wipe all user data immediately
     isLoggingOutRef.current = true;
-
     try { 
         setUser(null); 
         setNotifications([]);
@@ -441,12 +399,9 @@ const App: FC = () => {
         setEarnedAmount(0);
         setShowRewardAnim(false);
         setActiveScreen('home'); 
-
         localStorage.removeItem('lastReadTimestamp'); 
         sessionStorage.clear(); 
-
         await signOut(auth); 
-
     } catch (error) { 
         setUser(null);
     }
@@ -479,7 +434,7 @@ const App: FC = () => {
                 texts={texts} 
                 appName={appSettings.appName} 
                 logoUrl={appSettings.logoUrl || APP_LOGO_URL} 
-                onLoginAttempt={resetLogoutLock} // Unlock only when user explicitly tries to login
+                onLoginAttempt={resetLogoutLock} 
             />
         </div>
       </div>
