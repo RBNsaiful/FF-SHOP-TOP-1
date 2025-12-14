@@ -261,19 +261,15 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
 
     // Helper for micro-animations
     const animateAndAction = async (id: string, action: () => Promise<void>) => {
-        // Trigger Exit Animation
         setExitingItems(prev => new Set(prev).add(id));
-        
-        // Wait for visual effect, then execute logic
         setTimeout(async () => {
             await action();
-            // Cleanup ID after logic (though item usually disappears from list)
             setExitingItems(prev => {
                 const next = new Set(prev);
                 next.delete(id);
                 return next;
             });
-        }, 400); // 400ms delay matches CSS transition
+        }, 400); 
     };
 
     const requestConfirmation = (action: () => void, messageOverride?: string) => {
@@ -289,7 +285,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         requestConfirmation(onLogout, "Are you sure you want to logout?");
     };
 
-    // Header Tap
     const handleHeaderTap = () => {
         const newCount = headerTapCount + 1;
         setHeaderTapCount(newCount);
@@ -302,7 +297,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         }
     };
 
-    // --- DATA FETCHING (PRESERVED LOGIC) ---
     useEffect(() => {
         const fetchDashboardStats = () => {
             onValue(ref(db, 'users'), (snap) => {
@@ -445,11 +439,8 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
 
     const isSettingsChanged = JSON.stringify(settings) !== JSON.stringify(originalSettings);
     
-    // --- HANDLERS (PRESERVED LOGIC) ---
     const handleSettingsSave = async (e: FormEvent) => {
         e.preventDefault();
-        
-        // SAFE KEY VALIDATION & TRIMMING
         const currentKey = settings.aiApiKey ? settings.aiApiKey.trim() : '';
         if (currentKey.length > 0 && !/^AIza[0-9A-Za-z\-_]{35}$/.test(currentKey)) {
             setApiKeyError("Invalid API Key format."); 
@@ -458,7 +449,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         }
         setApiKeyError(''); 
         
-        // TRIM ALL KEY FIELDS
         let finalSettings = { 
             ...settings,
             aiApiKey: currentKey,
@@ -470,7 +460,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                     rewardId: settings.earnSettings?.adMob?.rewardId?.trim() || ''
                 }
             }
-        } as AppSettings; // Use type assertion to help TS if needed
+        } as AppSettings;
 
         const { developerSettings, ...safeSettings } = finalSettings;
         await update(ref(db, 'config/appSettings'), safeSettings);
@@ -483,6 +473,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const handleVerifySecurityKey = (e: FormEvent) => { e.preventDefault(); if (securityKeyInput === PROTECTION_KEY) { setIsDevUnlocked(true); setIsSecurityModalOpen(false); } else { alert("ACCESS DENIED: Incorrect Secret Key."); } };
     const handleSaveDeveloperInfo = async () => { try { await update(ref(db, 'config/appSettings/developerSettings'), devSettings); alert("Success: Developer Info Updated."); setIsDevUnlocked(false); } catch (error) { alert("Error updating database."); } };
 
+    // --- REJECTION REFUND FIX (Decrements totalSpent) ---
     const handleOrderAction = (order: Purchase, action: 'Completed' | 'Failed') => {
         requestConfirmation(() => animateAndAction(order.key!, async () => {
             if (order.key && order.userId) {
@@ -490,9 +481,21 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 const snapshot = await get(orderRef);
                 if (snapshot.exists() && snapshot.val().status === 'Pending') {
                     await update(orderRef, { status: action });
+                    
                     if (action === 'Failed') {
                         const userRef = ref(db, `users/${order.userId}`);
-                        await runTransaction(userRef, (userData) => { if (userData) userData.balance = (Number(userData.balance) || 0) + Number(order.offer?.price || 0); return userData; });
+                        await runTransaction(userRef, (userData) => { 
+                            if (userData) {
+                                // Refund Balance
+                                userData.balance = (Number(userData.balance) || 0) + Number(order.offer?.price || 0);
+                                // FIX: Revert totalSpent for Leaderboard Accuracy
+                                const price = Number(order.offer?.price || 0);
+                                if (userData.totalSpent && userData.totalSpent >= price) {
+                                    userData.totalSpent -= price;
+                                }
+                            } 
+                            return userData; 
+                        });
                     }
                 }
             }
@@ -505,6 +508,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         }), "Delete this order?");
     };
 
+    // --- DEPOSIT APPROVAL FIX (Increments totalDeposit) ---
     const handleTxnAction = (txn: Transaction, action: 'Completed' | 'Failed') => {
         requestConfirmation(() => animateAndAction(txn.key!, async () => {
             if (txn.key && txn.userId) {
@@ -514,7 +518,15 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                     await update(txnRef, { status: action });
                     if (action === 'Completed') {
                         const userRef = ref(db, `users/${txn.userId}`);
-                        await runTransaction(userRef, (userData) => { if (userData) userData.balance = (Number(userData.balance) || 0) + Number(txn.amount); return userData; });
+                        await runTransaction(userRef, (userData) => { 
+                            if (userData) {
+                                // Add Balance
+                                userData.balance = (Number(userData.balance) || 0) + Number(txn.amount);
+                                // FIX: Increment totalDeposit for Leaderboard
+                                userData.totalDeposit = (Number(userData.totalDeposit) || 0) + Number(txn.amount);
+                            } 
+                            return userData; 
+                        });
                     }
                 }
             }
@@ -533,7 +545,13 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         if (isNaN(amount) || amount <= 0) return;
         requestConfirmation(async () => {
             const userRef = ref(db, `users/${balanceModalUser.uid}`);
-            await runTransaction(userRef, (userData) => { if(userData) userData.balance = balanceAction === 'add' ? (userData.balance||0) + amount : (userData.balance||0) - amount; return userData; });
+            await runTransaction(userRef, (userData) => { 
+                if(userData) {
+                    userData.balance = balanceAction === 'add' ? (userData.balance||0) + amount : (userData.balance||0) - amount; 
+                    // Optional: Manual balance adjustments usually don't count towards 'Total Deposit' unless explicitly desired, keeping simple for now.
+                }
+                return userData; 
+            });
             setBalanceModalUser(null); setBalanceAmount('');
         }, `${balanceAction === 'add' ? 'Add' : 'Deduct'} ${amount}?`);
     };
@@ -541,7 +559,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const handleSaveOffer = async (e: FormEvent) => { e.preventDefault(); const path = `config/offers/${offerType}`; let newOffer = { ...editingOffer }; if (!newOffer.id) newOffer.id = Date.now(); if (newOffer.price) newOffer.price = Number(newOffer.price); if (newOffer.diamonds) newOffer.diamonds = Number(newOffer.diamonds); if (offerType === 'special' && newOffer.isActive === undefined) newOffer.isActive = true; let updatedList = [...offersData[offerType]]; if (editingOffer.id && offersData[offerType].find((o: any) => o.id === editingOffer.id)) { updatedList = updatedList.map((o: any) => o.id === editingOffer.id ? newOffer : o); } else { updatedList.push(newOffer); } await set(ref(db, path), updatedList); setIsOfferModalOpen(false); setEditingOffer(null); };
     const handleDeleteOffer = (id: number) => requestConfirmation(async () => { const path = `config/offers/${offerType}`; const updatedList = offersData[offerType].filter((o: any) => o.id !== id); await set(ref(db, path), updatedList); });
     
-    // RE-ENABLED RE-ORDER FUNCTION
     const handleReorderOffer = async (index: number, direction: 'up' | 'down') => { 
         const currentList = [...offersData[offerType]]; 
         if (direction === 'up' && index > 0) {
@@ -549,12 +566,10 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         } else if (direction === 'down' && index < currentList.length - 1) {
             [currentList[index], currentList[index + 1]] = [currentList[index + 1], currentList[index]]; 
         }
-        // Optimistic UI Update
         setOffersData({ ...offersData, [offerType]: currentList });
         await set(ref(db, `config/offers/${offerType}`), currentList); 
     };
     
-    // Other simple handlers
     const openAddOfferModal = () => { setEditingOffer({}); setIsOfferModalOpen(true); };
     const handleSaveMethod = async (e: FormEvent) => { e.preventDefault(); if (!editingMethod) return; const updatedMethods = [...paymentMethods]; if (editingMethodIndex !== null) updatedMethods[editingMethodIndex] = editingMethod; else updatedMethods.push(editingMethod); await set(ref(db, 'config/paymentMethods'), updatedMethods); setIsMethodModalOpen(false); setEditingMethod(null); };
     const handleDeleteMethod = (index: number) => requestConfirmation(async () => { const updatedMethods = paymentMethods.filter((_, i) => i !== index); await set(ref(db, 'config/paymentMethods'), updatedMethods); });
@@ -578,7 +593,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
 
     const inputClass = "w-full p-3.5 border rounded-2xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary/50 outline-none transition-all text-sm";
     
-    // Validations (UPDATED FOR DIAMOND & LEVELUP FIXES)
     const isOfferValid = 
         (offerType === 'diamond' ? Number(editingOffer?.price) > 0 && Number(editingOffer?.diamonds) > 0 :
         offerType === 'levelUp' ? editingOffer?.name?.trim() && Number(editingOffer?.price) > 0 :
@@ -587,16 +601,14 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const isMethodValid = editingMethod?.name?.trim() && editingMethod?.accountNumber?.trim() && editingMethod?.logo?.trim();
     const isContactValid = editingContact?.title?.trim() && editingContact?.link?.trim();
     const isBannerValid = tempBannerUrl?.trim();
-    const isNotifValid = newNotif.message.trim().length > 0; // Title Optional
+    const isNotifValid = newNotif.message.trim().length > 0;
 
-    // Pages that show Back Button
     const showBackButton = ['orders', 'deposits', 'offers', 'tools'].includes(activeTab);
 
     return (
         <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans overflow-hidden">
             {isSidebarOpen && (<div className="fixed inset-0 z-40 bg-black/50 md:hidden backdrop-blur-sm transition-opacity" onClick={() => setIsSidebarOpen(false)}></div>)}
 
-            {/* --- SIDEBAR --- */}
             <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-dark-card border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="h-20 flex items-center px-6 border-b border-gray-100 dark:border-gray-800">
                     <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Admin Panel</span>
@@ -608,11 +620,9 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 </nav>
             </aside>
 
-            {/* --- MAIN CONTENT --- */}
             <div className="flex-1 flex flex-col min-w-0 bg-gray-50 dark:bg-gray-900">
                 <header className="h-16 bg-white dark:bg-dark-card border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 sticky top-0 z-30 shadow-sm/50">
                     <div className="flex items-center gap-4">
-                        {/* Mobile Menu OR Back Button Logic */}
                         <div className="md:hidden">
                             {showBackButton ? (
                                 <button onClick={() => setActiveTab('dashboard')} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors active:scale-90 transform">
@@ -624,7 +634,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 </button>
                             )}
                         </div>
-                        
                         <h2 className="text-lg font-bold select-none cursor-pointer text-gray-800 dark:text-white" onClick={handleHeaderTap}>
                             {activeTab === 'dashboard' ? 'Dashboard' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                         </h2>
@@ -633,10 +642,8 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 </header>
 
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-32">
-                    {/* --- DASHBOARD TAB --- */}
                     {activeTab === 'dashboard' && (
                         <div className="animate-smart-fade-in space-y-8">
-                            {/* QUICK ACTIONS */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-smart-slide-up">
                                 <QuickActionCard label="Orders" icon={OrdersIcon} color="orange" onClick={() => setActiveTab('orders')} count={dashboardStats.pendingOrders} />
                                 <QuickActionCard label="Deposits" icon={WalletIcon} color="purple" onClick={() => setActiveTab('deposits')} count={dashboardStats.pendingDeposits} />
@@ -644,53 +651,23 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 <QuickActionCard label="Tools" icon={GridIcon} color="blue" onClick={() => setActiveTab('tools')} />
                             </div>
                             
-                            {/* Stats Cards - Redesigned */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-smart-slide-up" style={{ animationDelay: '100ms' }}>
-                                
                                 <div className="p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-dark-card">
-                                    <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-125 transition-transform duration-500">
-                                        <UsersIcon className="w-24 h-24 text-blue-600" />
-                                    </div>
-                                    <div className="relative z-10">
-                                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-blue-50 text-blue-600 dark:bg-blue-900/20">
-                                            <UsersIcon className="w-6 h-6" />
-                                        </div>
-                                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Users</p>
-                                        <h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{dashboardStats.totalUsers}</h3>
-                                    </div>
+                                    <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-125 transition-transform duration-500"><UsersIcon className="w-24 h-24 text-blue-600" /></div>
+                                    <div className="relative z-10"><div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-blue-50 text-blue-600 dark:bg-blue-900/20"><UsersIcon className="w-6 h-6" /></div><p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Users</p><h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{dashboardStats.totalUsers}</h3></div>
                                 </div>
-
                                 <div className="p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-dark-card">
-                                    <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-125 transition-transform duration-500">
-                                        <MoneyIcon className="w-24 h-24 text-green-600" />
-                                    </div>
-                                    <div className="relative z-10">
-                                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-green-50 text-green-600 dark:bg-green-900/20">
-                                            <MoneyIcon className="w-6 h-6" />
-                                        </div>
-                                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Deposit</p>
-                                        <h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">৳{dashboardStats.totalDeposit}</h3>
-                                    </div>
+                                    <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-125 transition-transform duration-500"><MoneyIcon className="w-24 h-24 text-green-600" /></div>
+                                    <div className="relative z-10"><div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-green-50 text-green-600 dark:bg-green-900/20"><MoneyIcon className="w-6 h-6" /></div><p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Deposit</p><h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">৳{dashboardStats.totalDeposit}</h3></div>
                                 </div>
-
                                 <div className="p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-dark-card">
-                                    <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-125 transition-transform duration-500">
-                                        <DollarIcon className="w-24 h-24 text-yellow-600" />
-                                    </div>
-                                    <div className="relative z-10">
-                                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20">
-                                            <DollarIcon className="w-6 h-6" />
-                                        </div>
-                                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Ad Rev</p>
-                                        <h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">৳{dashboardStats.totalAdRevenue}</h3>
-                                    </div>
+                                    <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-125 transition-transform duration-500"><DollarIcon className="w-24 h-24 text-yellow-600" /></div>
+                                    <div className="relative z-10"><div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20"><DollarIcon className="w-6 h-6" /></div><p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Ad Rev</p><h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">৳{dashboardStats.totalAdRevenue}</h3></div>
                                 </div>
-
                             </div>
                         </div>
                     )}
 
-                    {/* ... Other tabs ... */}
                     {activeTab === 'users' && (
                         <div className="space-y-4 animate-smart-fade-in">
                             <div className="flex justify-between items-center mb-2">{selectedUserIds.size > 0 && (<button onClick={() => setIsNotifModalOpen(true)} className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-full shadow-lg animate-pulse ml-auto transform active:scale-95 transition-transform">Message {selectedUserIds.size}</button>)}</div>
@@ -707,7 +684,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                         </div>
                     )}
 
-                    {/* REDESIGNED OFFERS UI WITH SORTING */}
                     {activeTab === 'offers' && (
                         <div className="animate-smart-fade-in">
                             <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
@@ -716,73 +692,21 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 ))}
                             </div>
                             <button onClick={openAddOfferModal} className="w-full py-4 mb-6 border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-500 rounded-3xl font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm active:scale-95 transform">+ Add New {offerType} Offer</button>
-                            
-                            {/* Cards Grid */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-smart-slide-up">
                                 {offersData[offerType]?.map((offer: any, index: number) => (
                                     <div key={offer.id} className="group bg-white dark:bg-dark-card rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 relative">
-                                        
-                                        {/* Status Badge */}
-                                        {offerType === 'special' && (
-                                            <div className={`absolute top-4 right-4 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide z-10 ${offer.isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                                                {offer.isActive ? 'Active' : 'Inactive'}
-                                            </div>
-                                        )}
-                                        
-                                        {/* Header Area */}
+                                        {offerType === 'special' && (<div className={`absolute top-4 right-4 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide z-10 ${offer.isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>{offer.isActive ? 'Active' : 'Inactive'}</div>)}
                                         <div className="p-5 pb-0 flex items-start justify-between">
                                             <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-2xl">
-                                                {offerType === 'diamond' ? <DiamondIcon className="w-6 h-6 text-blue-500" /> : 
-                                                 offerType === 'levelUp' ? <StarIcon className="w-6 h-6 text-purple-500" /> :
-                                                 offerType === 'membership' ? <IdCardIcon className="w-6 h-6 text-orange-500" /> :
-                                                 offerType === 'special' ? <TagIcon className="w-6 h-6 text-red-500" /> :
-                                                 <CrownIcon className="w-6 h-6 text-yellow-500" />}
+                                                {offerType === 'diamond' ? <DiamondIcon className="w-6 h-6 text-blue-500" /> : offerType === 'levelUp' ? <StarIcon className="w-6 h-6 text-purple-500" /> : offerType === 'membership' ? <IdCardIcon className="w-6 h-6 text-orange-500" /> : offerType === 'special' ? <TagIcon className="w-6 h-6 text-red-500" /> : <CrownIcon className="w-6 h-6 text-yellow-500" />}
                                             </div>
-                                            
-                                            {/* Sorting Controls */}
-                                            <div className="flex flex-col gap-1">
-                                                <button 
-                                                    onClick={() => handleReorderOffer(index, 'up')}
-                                                    disabled={index === 0}
-                                                    className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                                                >
-                                                    <ArrowUpIcon className="w-4 h-4" />
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleReorderOffer(index, 'down')}
-                                                    disabled={index === offersData[offerType].length - 1}
-                                                    className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                                                >
-                                                    <ArrowDownIcon className="w-4 h-4" />
-                                                </button>
-                                            </div>
+                                            <div className="flex flex-col gap-1"><button onClick={() => handleReorderOffer(index, 'up')} disabled={index === 0} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"><ArrowUpIcon className="w-4 h-4" /></button><button onClick={() => handleReorderOffer(index, 'down')} disabled={index === offersData[offerType].length - 1} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"><ArrowDownIcon className="w-4 h-4" /></button></div>
                                         </div>
-
-                                        {/* Content */}
                                         <div className="p-5">
-                                            <h3 className="font-extrabold text-gray-900 dark:text-white text-lg leading-tight mb-1 truncate">
-                                                {offer.name || `${offer.diamonds} Diamonds`}
-                                            </h3>
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
-                                                {offerType === 'diamond' ? `${offer.diamonds} DM` : 
-                                                 offerType === 'levelUp' ? 'Level Up Pass' :
-                                                 offerType === 'special' ? offer.title : 'Package'}
-                                            </p>
-                                            
-                                            <div className="flex items-baseline gap-1 mb-4">
-                                                <span className="text-sm font-bold text-gray-500">৳</span>
-                                                <span className="text-2xl font-black text-gray-900 dark:text-white">{offer.price}</span>
-                                            </div>
-
-                                            {/* Actions */}
-                                            <div className="grid grid-cols-2 gap-2 border-t border-gray-100 dark:border-gray-800 pt-4">
-                                                <button onClick={() => { setEditingOffer(offer); setIsOfferModalOpen(true); }} className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-blue-600 font-bold text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors active:scale-95">
-                                                    <EditIcon className="w-4 h-4" /> Edit
-                                                </button>
-                                                <button onClick={() => handleDeleteOffer(offer.id)} className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-red-600 font-bold text-xs hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors active:scale-95">
-                                                    <TrashIcon className="w-4 h-4" /> Delete
-                                                </button>
-                                            </div>
+                                            <h3 className="font-extrabold text-gray-900 dark:text-white text-lg leading-tight mb-1 truncate">{offer.name || `${offer.diamonds} Diamonds`}</h3>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">{offerType === 'diamond' ? `${offer.diamonds} DM` : offerType === 'levelUp' ? 'Level Up Pass' : offerType === 'special' ? offer.title : 'Package'}</p>
+                                            <div className="flex items-baseline gap-1 mb-4"><span className="text-sm font-bold text-gray-500">৳</span><span className="text-2xl font-black text-gray-900 dark:text-white">{offer.price}</span></div>
+                                            <div className="grid grid-cols-2 gap-2 border-t border-gray-100 dark:border-gray-800 pt-4"><button onClick={() => { setEditingOffer(offer); setIsOfferModalOpen(true); }} className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-blue-600 font-bold text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors active:scale-95"><EditIcon className="w-4 h-4" /> Edit</button><button onClick={() => handleDeleteOffer(offer.id)} className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-red-600 font-bold text-xs hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors active:scale-95"><TrashIcon className="w-4 h-4" /> Delete</button></div>
                                         </div>
                                     </div>
                                 ))}
@@ -790,43 +714,19 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                         </div>
                     )}
 
-                    {/* REDESIGNED ORDERS UI WITH MICRO ANIMATION */}
                     {activeTab === 'orders' && (
                         <div className="space-y-5 animate-smart-fade-in">
                             <SearchInput value={orderSearch} onChange={setOrderSearch} placeholder="Search Order ID..." />
-                            <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-2xl">
-                                {(['Pending', 'Completed', 'Failed'] as const).map(status => (
-                                    <button key={status} onClick={() => setOrderFilter(status)} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${orderFilter === status ? 'bg-white dark:bg-dark-card shadow-sm text-primary' : 'text-gray-500'}`}>{status}</button>
-                                ))}
-                            </div>
+                            <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-2xl">{(['Pending', 'Completed', 'Failed'] as const).map(status => (<button key={status} onClick={() => setOrderFilter(status)} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${orderFilter === status ? 'bg-white dark:bg-dark-card shadow-sm text-primary' : 'text-gray-500'}`}>{status}</button>))}</div>
                             <div className="space-y-3 animate-smart-slide-up">
                                 {filteredOrders.length === 0 ? <div className="text-center py-20 text-gray-400 text-sm">No orders found</div> : filteredOrders.map(order => {
                                     const isExiting = exitingItems.has(order.key!);
                                     return (
-                                        <div 
-                                            key={order.key} 
-                                            className={`bg-white dark:bg-dark-card p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-all duration-500 ease-in-out transform ${
-                                                isExiting ? 'opacity-0 translate-x-full scale-95 pointer-events-none' : 'opacity-100'
-                                            }`}
-                                        >
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div>
-                                                    <span className="font-bold text-sm block text-gray-900 dark:text-white">{order.offer?.diamonds || order.offer?.name}</span>
-                                                    <span className="text-[10px] text-gray-400 font-mono">{new Date(order.date).toLocaleString()}</span>
-                                                </div>
-                                                <span className="font-black text-primary text-base">৳{order.offer?.price || 0}</span>
-                                            </div>
-                                            <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl space-y-2 mb-4 border border-gray-100 dark:border-gray-700">
-                                                <div><p className="text-[10px] text-gray-400 mb-0.5">Player Info</p><SmartCopy text={order.uid} /></div>
-                                                <div><p className="text-[10px] text-gray-400 mb-0.5">Order ID</p><SmartCopy text={order.id} /></div>
-                                            </div>
+                                        <div key={order.key} className={`bg-white dark:bg-dark-card p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-all duration-500 ease-in-out transform ${isExiting ? 'opacity-0 translate-x-full scale-95 pointer-events-none' : 'opacity-100'}`}>
+                                            <div className="flex justify-between items-start mb-3"><div><span className="font-bold text-sm block text-gray-900 dark:text-white">{order.offer?.diamonds || order.offer?.name}</span><span className="text-[10px] text-gray-400 font-mono">{new Date(order.date).toLocaleString()}</span></div><span className="font-black text-primary text-base">৳{order.offer?.price || 0}</span></div>
+                                            <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl space-y-2 mb-4 border border-gray-100 dark:border-gray-700"><div><p className="text-[10px] text-gray-400 mb-0.5">Player Info</p><SmartCopy text={order.uid} /></div><div><p className="text-[10px] text-gray-400 mb-0.5">Order ID</p><SmartCopy text={order.id} /></div></div>
                                             <div className="flex gap-3">
-                                                {order.status === 'Pending' && (
-                                                    <>
-                                                        <button onClick={() => handleOrderAction(order, 'Completed')} className="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform hover:bg-green-600">Approve</button>
-                                                        <button onClick={() => handleOrderAction(order, 'Failed')} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform hover:bg-red-600">Reject</button>
-                                                    </>
-                                                )}
+                                                {order.status === 'Pending' && (<><button onClick={() => handleOrderAction(order, 'Completed')} className="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform hover:bg-green-600">Approve</button><button onClick={() => handleOrderAction(order, 'Failed')} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform hover:bg-red-600">Reject</button></>)}
                                                 <button onClick={() => handleDeleteOrder(order.key!, order.userId)} className="px-4 py-3 bg-gray-100 dark:bg-gray-800 text-red-500 rounded-xl hover:bg-red-50 active:scale-95 transition-transform"><TrashIcon className="w-4 h-4" /></button>
                                             </div>
                                         </div>
@@ -836,37 +736,19 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                         </div>
                     )}
 
-                    {/* REDESIGNED DEPOSITS UI WITH MICRO ANIMATION */}
                     {activeTab === 'deposits' && (
                         <div className="space-y-5 animate-smart-fade-in">
                             <SearchInput value={depositSearch} onChange={setDepositSearch} placeholder="Search TrxID..." />
-                            <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-2xl">
-                                {(['Pending', 'Completed', 'Failed'] as const).map(status => (
-                                    <button key={status} onClick={() => setDepositFilter(status)} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${depositFilter === status ? 'bg-white dark:bg-dark-card shadow-sm text-primary' : 'text-gray-500'}`}>{status}</button>
-                                ))}
-                            </div>
+                            <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-2xl">{(['Pending', 'Completed', 'Failed'] as const).map(status => (<button key={status} onClick={() => setDepositFilter(status)} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${depositFilter === status ? 'bg-white dark:bg-dark-card shadow-sm text-primary' : 'text-gray-500'}`}>{status}</button>))}</div>
                             <div className="space-y-3 animate-smart-slide-up">
                                 {filteredTransactions.length === 0 ? <div className="text-center py-20 text-gray-400 text-sm">No deposits found</div> : filteredTransactions.map(txn => {
                                     const isExiting = exitingItems.has(txn.key!);
                                     return (
-                                        <div 
-                                            key={txn.key} 
-                                            className={`bg-white dark:bg-dark-card p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-all duration-500 ease-in-out transform ${
-                                                isExiting ? 'opacity-0 translate-x-full scale-95 pointer-events-none' : 'opacity-100'
-                                            }`}
-                                        >
-                                            <div className="flex justify-between mb-3">
-                                                <div><span className="font-bold text-sm block text-gray-900 dark:text-white">{txn.method}</span><span className="text-[10px] text-gray-400">{new Date(txn.date).toLocaleString()}</span></div>
-                                                <span className="font-black text-green-600 text-base">+৳{txn.amount}</span>
-                                            </div>
+                                        <div key={txn.key} className={`bg-white dark:bg-dark-card p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-all duration-500 ease-in-out transform ${isExiting ? 'opacity-0 translate-x-full scale-95 pointer-events-none' : 'opacity-100'}`}>
+                                            <div className="flex justify-between mb-3"><div><span className="font-bold text-sm block text-gray-900 dark:text-white">{txn.method}</span><span className="text-[10px] text-gray-400">{new Date(txn.date).toLocaleString()}</span></div><span className="font-black text-green-600 text-base">+৳{txn.amount}</span></div>
                                             <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl mb-4 flex justify-between items-center border border-gray-100 dark:border-gray-700"><span className="text-gray-500 text-xs">TrxID:</span><SmartCopy text={txn.transactionId} label={txn.transactionId} /></div>
                                             <div className="flex gap-3">
-                                                {txn.status === 'Pending' && (
-                                                    <>
-                                                        <button onClick={() => handleTxnAction(txn, 'Completed')} className="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform hover:bg-green-600">Approve</button>
-                                                        <button onClick={() => handleTxnAction(txn, 'Failed')} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform hover:bg-red-600">Reject</button>
-                                                    </>
-                                                )}
+                                                {txn.status === 'Pending' && (<><button onClick={() => handleTxnAction(txn, 'Completed')} className="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform hover:bg-green-600">Approve</button><button onClick={() => handleTxnAction(txn, 'Failed')} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform hover:bg-red-600">Reject</button></>)}
                                                 <button onClick={() => handleDeleteTransaction(txn.key!, txn.userId)} className="px-4 py-3 bg-gray-100 dark:bg-gray-800 text-red-500 rounded-xl hover:bg-red-50 active:scale-95 transition-transform"><TrashIcon className="w-4 h-4" /></button>
                                             </div>
                                         </div>
@@ -893,33 +775,13 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
 
                             <div className="bg-white dark:bg-dark-card p-6 rounded-3xl shadow-sm min-h-[300px] border border-gray-100 dark:border-gray-800 animate-smart-slide-up">
                                 {activeTool === 'wallet' && (
-                                    <div>
-                                        <button onClick={openAddMethodModal} className="w-full py-4 mb-6 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl text-gray-500 font-bold hover:bg-gray-50 dark:hover:bg-gray-800 text-sm active:scale-95 transform">+ Add Wallet</button>
-                                        <div className="space-y-3">
-                                            {paymentMethods.map((method, index) => (
-                                                <div key={index} className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
-                                                    <div className="flex items-center gap-4"><img src={method.logo} className="w-10 h-10 object-contain bg-white rounded-lg p-1" /><div><p className="font-bold text-sm text-gray-900 dark:text-white">{method.name}</p><SmartCopy text={method.accountNumber} /></div></div>
-                                                    <div className="flex gap-2"><button onClick={() => openEditMethodModal(method, index)} className="p-2 bg-blue-100 text-blue-600 rounded-lg active:scale-90 transition-transform"><EditIcon className="w-4 h-4"/></button><button onClick={() => handleDeleteMethod(index)} className="p-2 bg-red-100 text-red-600 rounded-lg active:scale-90 transition-transform"><TrashIcon className="w-4 h-4"/></button></div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
+                                    <div><button onClick={openAddMethodModal} className="w-full py-4 mb-6 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl text-gray-500 font-bold hover:bg-gray-50 dark:hover:bg-gray-800 text-sm active:scale-95 transform">+ Add Wallet</button><div className="space-y-3">{paymentMethods.map((method, index) => (<div key={index} className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700"><div className="flex items-center gap-4"><img src={method.logo} className="w-10 h-10 object-contain bg-white rounded-lg p-1" /><div><p className="font-bold text-sm text-gray-900 dark:text-white">{method.name}</p><SmartCopy text={method.accountNumber} /></div></div><div className="flex gap-2"><button onClick={() => openEditMethodModal(method, index)} className="p-2 bg-blue-100 text-blue-600 rounded-lg active:scale-90 transition-transform"><EditIcon className="w-4 h-4"/></button><button onClick={() => handleDeleteMethod(index)} className="p-2 bg-red-100 text-red-600 rounded-lg active:scale-90 transition-transform"><TrashIcon className="w-4 h-4"/></button></div></div>))}</div></div>
                                 )}
-                                {/* Other tool sections remain unchanged in logic, just container styling */}
                                 {activeTool === 'ai' && (
                                     <div className="space-y-6">
-                                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-5 rounded-3xl text-white shadow-lg">
-                                            <div className="flex items-center gap-3 mb-4"><RobotIcon className="w-8 h-8 text-white/90" /><h3 className="font-bold text-base">AI Manager</h3></div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl border border-white/10"><p className="text-2xl font-black mb-1">{aiStats.totalInteractions}</p><p className="text-[10px] font-bold text-white/80 uppercase">Total Interactions</p></div>
-                                                <div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl border border-white/10"><p className="text-2xl font-black mb-1">{aiStats.activeAiUsers}</p><p className="text-[10px] font-bold text-white/80 uppercase">Active Users</p></div>
-                                            </div>
-                                        </div>
+                                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-5 rounded-3xl text-white shadow-lg"><div className="flex items-center gap-3 mb-4"><RobotIcon className="w-8 h-8 text-white/90" /><h3 className="font-bold text-base">AI Manager</h3></div><div className="grid grid-cols-2 gap-4"><div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl border border-white/10"><p className="text-2xl font-black mb-1">{aiStats.totalInteractions}</p><p className="text-[10px] font-bold text-white/80 uppercase">Total Interactions</p></div><div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl border border-white/10"><p className="text-2xl font-black mb-1">{aiStats.activeAiUsers}</p><p className="text-[10px] font-bold text-white/80 uppercase">Active Users</p></div></div></div>
                                         <div className="bg-gray-50 dark:bg-gray-800 p-5 rounded-3xl border border-gray-200 dark:border-gray-700 space-y-4">
-                                            <div className="flex justify-between items-center p-4 bg-white dark:bg-dark-card rounded-2xl border border-gray-100 dark:border-gray-700">
-                                                <div className="flex items-center gap-3"><span className="font-bold text-sm">Enable AI Support</span></div>
-                                                <div onClick={() => setSettings({...settings, aiSupportActive: !settings.aiSupportActive})} className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${settings.aiSupportActive ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${settings.aiSupportActive ? 'translate-x-6' : 'translate-x-0'}`}></div></div>
-                                            </div>
+                                            <div className="flex justify-between items-center p-4 bg-white dark:bg-dark-card rounded-2xl border border-gray-100 dark:border-gray-700"><div className="flex items-center gap-3"><span className="font-bold text-sm">Enable AI Support</span></div><div onClick={() => setSettings({...settings, aiSupportActive: !settings.aiSupportActive})} className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${settings.aiSupportActive ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${settings.aiSupportActive ? 'translate-x-6' : 'translate-x-0'}`}></div></div></div>
                                             <div><label className="block text-xs font-bold text-gray-500 mb-2">Bot Name</label><input type="text" value={settings.aiName || ''} onChange={(e) => setSettings({...settings, aiName: e.target.value})} className={inputClass} placeholder="AI Tuktuki" /></div>
                                             <div><label className="block text-xs font-bold text-gray-500 mb-2">Gemini API Key</label><input type="password" value={settings.aiApiKey || ''} onChange={(e) => { setSettings({...settings, aiApiKey: e.target.value}); if (apiKeyError) setApiKeyError(''); }} className={`${inputClass} ${apiKeyError ? 'border-red-500' : ''}`} placeholder="AIzaSy..." /></div>
                                             <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full py-3.5 font-bold text-sm rounded-2xl shadow-md transition-all active:scale-95 transform ${isSettingsChanged ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Save Settings</button>
@@ -936,65 +798,14 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                     <div className="space-y-6">
                                         <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-200 dark:border-gray-700"><div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-3"><MegaphoneIcon className="w-5 h-5 text-orange-500"/><h4 className="font-bold text-sm">Video Ads</h4></div><div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-2xl"><div className="flex justify-between items-center mb-3"><span className="font-bold text-xs text-blue-600">Web Ads</span><div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, active: !settings.earnSettings!.webAds.active } }})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.webAds?.active ? 'bg-blue-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.webAds?.active ? 'translate-x-5' : 'translate-x-0'}`}></div></div></div><div className="space-y-3"><input type="text" value={settings.earnSettings?.webAds?.url || ''} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, url: e.target.value } }})} className={inputClass} placeholder="URL (YouTube/MP4)" /><div className="flex items-center gap-3"><label className="text-xs text-gray-500 font-bold whitespace-nowrap">Duration (s)</label><input type="number" value={settings.earnSettings?.webAds?.duration || 15} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, webAds: { ...settings.earnSettings!.webAds, duration: Number(e.target.value) } }})} className={inputClass} /></div></div></div></div>
                                         <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-200 dark:border-gray-700"><div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-3"><AdMobIcon className="w-5 h-5 text-blue-600"/><h4 className="font-bold text-sm">AdMob (APK)</h4></div><div className="flex justify-between items-center mb-4"><span className="font-bold text-xs text-gray-500">Enable AdMob</span><div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, active: !settings.earnSettings!.adMob.active } }})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.adMob?.active ? 'bg-blue-600' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.adMob?.active ? 'translate-x-5' : 'translate-x-0'}`}></div></div></div><div className="space-y-3"><div><label className="block text-xs font-bold text-gray-500 mb-1">App ID</label><input type="text" value={settings.earnSettings?.adMob?.appId || ''} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, appId: e.target.value } }})} className={inputClass} /></div><div><label className="block text-xs font-bold text-gray-500 mb-1">Reward ID</label><input type="text" value={settings.earnSettings?.adMob?.rewardId || ''} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adMob: { ...settings.earnSettings!.adMob, rewardId: e.target.value } }})} className={inputClass} /></div></div></div>
-                                        
-                                        {/* BANNER ADS RESTORED */}
-                                        <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-200 dark:border-gray-700">
-                                            <div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-3">
-                                                <LayoutIcon className="w-5 h-5 text-teal-500"/>
-                                                <h4 className="font-bold text-sm">Banner Ads</h4>
-                                            </div>
-                                            
-                                            {/* Home Banner */}
-                                            <div className="mb-4">
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-xs font-bold text-gray-500">Home Screen Banner</span>
-                                                    <div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, homeAdActive: !settings.earnSettings!.homeAdActive }})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.homeAdActive ? 'bg-teal-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.homeAdActive ? 'translate-x-5' : 'translate-x-0'}`}></div></div>
-                                                </div>
-                                                <textarea value={settings.earnSettings?.homeAdCode || ''} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, homeAdCode: e.target.value }})} className={inputClass} rows={2} placeholder="HTML/JS Code" />
-                                            </div>
-
-                                            {/* Earn Banner */}
-                                            <div className="mb-4">
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-xs font-bold text-gray-500">Earn Screen Banner</span>
-                                                    <div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, earnAdActive: !settings.earnSettings!.earnAdActive }})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.earnAdActive ? 'bg-teal-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.earnAdActive ? 'translate-x-5' : 'translate-x-0'}`}></div></div>
-                                                </div>
-                                                <textarea value={settings.earnSettings?.earnAdCode || ''} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, earnAdCode: e.target.value }})} className={inputClass} rows={2} placeholder="HTML/JS Code" />
-                                            </div>
-
-                                            {/* Profile Banner */}
-                                            <div>
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-xs font-bold text-gray-500">Profile Screen Banner</span>
-                                                    <div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, profileAdActive: !settings.earnSettings!.profileAdActive }})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.profileAdActive ? 'bg-teal-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.profileAdActive ? 'translate-x-5' : 'translate-x-0'}`}></div></div>
-                                                </div>
-                                                <textarea value={settings.earnSettings?.profileAdCode || ''} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, profileAdCode: e.target.value }})} className={inputClass} rows={2} placeholder="HTML/JS Code" />
-                                            </div>
-                                        </div>
-
+                                        <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-200 dark:border-gray-700"><div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-3"><LayoutIcon className="w-5 h-5 text-teal-500"/><h4 className="font-bold text-sm">Banner Ads</h4></div><div className="mb-4"><div className="flex justify-between items-center mb-2"><span className="text-xs font-bold text-gray-500">Home Screen Banner</span><div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, homeAdActive: !settings.earnSettings!.homeAdActive }})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.homeAdActive ? 'bg-teal-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.homeAdActive ? 'translate-x-5' : 'translate-x-0'}`}></div></div></div><textarea value={settings.earnSettings?.homeAdCode || ''} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, homeAdCode: e.target.value }})} className={inputClass} rows={2} placeholder="HTML/JS Code" /></div><div className="mb-4"><div className="flex justify-between items-center mb-2"><span className="text-xs font-bold text-gray-500">Earn Screen Banner</span><div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, earnAdActive: !settings.earnSettings!.earnAdActive }})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.earnAdActive ? 'bg-teal-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.earnAdActive ? 'translate-x-5' : 'translate-x-0'}`}></div></div></div><textarea value={settings.earnSettings?.earnAdCode || ''} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, earnAdCode: e.target.value }})} className={inputClass} rows={2} placeholder="HTML/JS Code" /></div><div><div className="flex justify-between items-center mb-2"><span className="text-xs font-bold text-gray-500">Profile Screen Banner</span><div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, profileAdActive: !settings.earnSettings!.profileAdActive }})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.earnSettings?.profileAdActive ? 'bg-teal-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.profileAdActive ? 'translate-x-5' : 'translate-x-0'}`}></div></div></div><textarea value={settings.earnSettings?.profileAdCode || ''} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, profileAdCode: e.target.value }})} className={inputClass} rows={2} placeholder="HTML/JS Code" /></div></div>
                                         <button onClick={handleSettingsSave} disabled={!isSettingsChanged} className={`w-full py-3.5 font-bold text-sm rounded-2xl shadow-md transition-all active:scale-95 transform ${isSettingsChanged ? 'bg-primary text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Save Settings</button>
                                     </div>
                                 )}
                                 {activeTool === 'notifications' && (
                                     <div className="space-y-6">
                                         <div className="bg-purple-50 dark:bg-purple-900/10 p-5 rounded-3xl border border-purple-100 dark:border-purple-900/20"><h3 className="text-sm font-bold text-purple-600 dark:text-purple-400 mb-4">Quick Send</h3><button onClick={() => setIsNotifModalOpen(true)} className="w-full py-3.5 bg-purple-600 text-white rounded-2xl font-bold shadow-md hover:bg-purple-700 transition-colors text-sm active:scale-95 transform">+ Create Message</button></div>
-                                        
-                                        {/* LOGIN POPUP SETTINGS - VIDEO URL REMOVED */}
-                                        <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-200 dark:border-gray-700">
-                                            <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-100">
-                                                <h4 className="font-bold text-sm text-indigo-600">Login Popup</h4>
-                                                <div onClick={() => setPopupConfig({...popupConfig, active: !popupConfig.active})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${popupConfig.active ? 'bg-green-500' : 'bg-gray-300'}`}>
-                                                    <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${popupConfig.active ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-3">
-                                                <input type="text" placeholder="Title" value={popupConfig.title} onChange={(e) => setPopupConfig({...popupConfig, title: e.target.value})} className={inputClass} />
-                                                <textarea placeholder="Message..." value={popupConfig.message} onChange={(e) => setPopupConfig({...popupConfig, message: e.target.value})} className={inputClass} rows={2} />
-                                                <input type="text" placeholder="Image URL (Optional)" value={popupConfig.imageUrl || ''} onChange={(e) => setPopupConfig({...popupConfig, imageUrl: e.target.value})} className={inputClass} />
-                                                
-                                                <button onClick={handleSavePopupConfig} className="w-full py-3 bg-indigo-600 text-white rounded-2xl font-bold text-xs mt-2 hover:bg-indigo-700 active:scale-95 transform">Save Popup</button>
-                                            </div>
-                                        </div>
+                                        <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-200 dark:border-gray-700"><div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-100"><h4 className="font-bold text-sm text-indigo-600">Login Popup</h4><div onClick={() => setPopupConfig({...popupConfig, active: !popupConfig.active})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${popupConfig.active ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${popupConfig.active ? 'translate-x-5' : 'translate-x-0'}`}></div></div></div><div className="space-y-3"><input type="text" placeholder="Title" value={popupConfig.title} onChange={(e) => setPopupConfig({...popupConfig, title: e.target.value})} className={inputClass} /><textarea placeholder="Message..." value={popupConfig.message} onChange={(e) => setPopupConfig({...popupConfig, message: e.target.value})} className={inputClass} rows={2} /><input type="text" placeholder="Image URL (Optional)" value={popupConfig.imageUrl || ''} onChange={(e) => setPopupConfig({...popupConfig, imageUrl: e.target.value})} className={inputClass} /><button onClick={handleSavePopupConfig} className="w-full py-3 bg-indigo-600 text-white rounded-2xl font-bold text-xs mt-2 hover:bg-indigo-700 active:scale-95 transform">Save Popup</button></div></div>
                                         <div><h3 className="text-xs font-bold text-gray-500 mb-3">History</h3><div className="space-y-3">{notifications.map(n => (<div key={n.id} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl flex justify-between items-start border border-gray-100 dark:border-gray-700"><div><p className="font-bold text-sm text-gray-900 dark:text-white">{n.title}</p><p className="text-xs text-gray-500 line-clamp-1">{n.message}</p></div><button onClick={() => handleDeleteNotification(n.id)} className="text-red-500 p-2 active:scale-90 transform"><TrashIcon className="w-4 h-4"/></button></div>))}</div></div>
                                     </div>
                                 )}
@@ -1014,21 +825,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                         <div className="flex justify-between items-center p-3 bg-gray-50 rounded-2xl"><span className="font-bold text-xs text-red-500">Maintenance</span><div onClick={() => setSettings({...settings, maintenanceMode: !settings.maintenanceMode})} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.maintenanceMode ? 'bg-red-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.maintenanceMode ? 'translate-x-5' : ''}`}></div></div></div>
                                         <div className="grid grid-cols-2 gap-3">{Object.keys(settings.visibility || {}).map((key) => (<div key={key} className="flex justify-between items-center p-3 bg-gray-50 rounded-2xl"><span className="capitalize text-[10px] font-bold">{key}</span><div onClick={() => setSettings({...settings, visibility: {...settings.visibility!, [key]: !settings.visibility![key as keyof AppVisibility]}})} className={`flex-shrink-0 w-8 h-4 rounded-full p-0.5 cursor-pointer transition-colors ${settings.visibility![key as keyof AppVisibility] ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.visibility![key as keyof AppVisibility] ? 'translate-x-4' : ''}`}></div></div></div>))}</div>
                                         <div className="flex justify-between items-center p-3 bg-gray-50 rounded-2xl mt-2"><span className="font-bold text-xs text-gray-600">Animations</span><div onClick={() => setSettings({ ...settings, uiSettings: { ...settings.uiSettings!, animationsEnabled: !settings.uiSettings?.animationsEnabled } })} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${settings.uiSettings?.animationsEnabled ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full transition-transform ${settings.uiSettings?.animationsEnabled ? 'translate-x-5' : ''}`}></div></div></div>
-                                        
-                                        {/* OFFER CARD SIZE CONTROL - ONLY SMALLER OPTIONS */}
-                                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded-2xl mt-2">
-                                            <span className="font-bold text-xs text-gray-600">Offer Card Size</span>
-                                            <select 
-                                                value={settings.uiSettings?.cardSize || 'normal'} 
-                                                onChange={(e) => setSettings({ ...settings, uiSettings: { ...settings.uiSettings!, cardSize: e.target.value as any } })} 
-                                                className="bg-white dark:bg-dark-card border border-gray-200 dark:border-gray-700 text-xs rounded-lg p-1.5 outline-none font-bold text-gray-700 dark:text-gray-300"
-                                            >
-                                                <option value="normal">Normal</option>
-                                                <option value="small">Small</option>
-                                                <option value="smaller">Smaller</option>
-                                                <option value="extra-small">Extra Small</option>
-                                            </select>
-                                        </div>
+                                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded-2xl mt-2"><span className="font-bold text-xs text-gray-600">Offer Card Size</span><select value={settings.uiSettings?.cardSize || 'normal'} onChange={(e) => setSettings({ ...settings, uiSettings: { ...settings.uiSettings!, cardSize: e.target.value as any } })} className="bg-white dark:bg-dark-card border border-gray-200 dark:border-gray-700 text-xs rounded-lg p-1.5 outline-none font-bold text-gray-700 dark:text-gray-300"><option value="normal">Normal</option><option value="small">Small</option><option value="smaller">Smaller</option><option value="extra-small">Extra Small</option></select></div>
                                     </div>
                                 </div>
                                 <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700"><div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-3"><DollarIcon className="w-5 h-5 text-yellow-500" /><h4 className="font-bold text-sm">Earning Rules</h4></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-[10px] text-gray-500 font-bold mb-1">Daily Limit</label><input type="number" value={settings.earnSettings?.dailyLimit} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, dailyLimit: Number(e.target.value) }})} className={inputClass} /></div><div><label className="block text-[10px] text-gray-500 font-bold mb-1">Reward (৳)</label><input type="number" value={settings.earnSettings?.rewardPerAd} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, rewardPerAd: Number(e.target.value) }})} className={inputClass} /></div><div><label className="block text-[10px] text-gray-500 font-bold mb-1">Cooldown (s)</label><input type="number" value={settings.earnSettings?.adCooldownSeconds} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, adCooldownSeconds: Number(e.target.value) }})} className={inputClass} /></div><div><label className="block text-[10px] text-gray-500 font-bold mb-1">Reset (h)</label><input type="number" value={settings.earnSettings?.resetHours} onChange={(e) => setSettings({...settings, earnSettings: { ...settings.earnSettings!, resetHours: Number(e.target.value) }})} className={inputClass} /></div></div><div className="mt-4 pt-3 border-t border-gray-100"><div className="flex justify-between items-center mb-3"><span className="text-[10px] font-bold text-gray-500">VPN Notice (Web)</span><div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, vpnNoticeActive: !settings.earnSettings?.vpnNoticeActive }})} className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.vpnNoticeActive ? 'bg-yellow-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.vpnNoticeActive ? 'translate-x-4' : 'translate-x-0'}`}></div></div></div><div className="flex justify-between items-center"><span className="text-[10px] font-bold text-gray-500">VPN Force (APK)</span><div onClick={() => setSettings({...settings, earnSettings: { ...settings.earnSettings!, vpnRequired: !settings.earnSettings?.vpnRequired }})} className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${settings.earnSettings?.vpnRequired ? 'bg-red-500' : 'bg-gray-300'}`}><div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${settings.earnSettings?.vpnRequired ? 'translate-x-4' : 'translate-x-0'}`}></div></div></div></div></div>
@@ -1040,7 +837,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 </main>
             </div>
 
-            {/* --- MODALS (PRESERVED LOGIC) --- */}
             {confirmDialog && (<ConfirmationDialog title={confirmDialog.title} message={confirmDialog.message} onConfirm={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }} onCancel={() => setConfirmDialog(null)} confirmText="Yes" cancelText="No" />)}
             
             {isOfferModalOpen && (
@@ -1048,9 +844,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                     <div className="bg-white dark:bg-dark-card p-6 rounded-3xl w-full max-w-sm shadow-2xl">
                          <h3 className="text-xl font-bold mb-6 text-center">{editingOffer?.id ? 'Edit' : 'Add'} {offerType}</h3>
                          <form onSubmit={handleSaveOffer} className="space-y-4">
-                            {offerType !== 'diamond' && (
-                                <input type="text" placeholder="Name" value={editingOffer?.name || ''} onChange={e => setEditingOffer({...editingOffer, name: e.target.value})} className={inputClass} />
-                            )}
+                            {offerType !== 'diamond' && (<input type="text" placeholder="Name" value={editingOffer?.name || ''} onChange={e => setEditingOffer({...editingOffer, name: e.target.value})} className={inputClass} />)}
                             {(offerType === 'diamond' || offerType === 'special') && (<input type="number" placeholder="Diamonds" value={editingOffer?.diamonds || ''} onChange={e => setEditingOffer({...editingOffer, diamonds: e.target.value})} className={inputClass} />)}
                             {offerType === 'special' && (<input type="text" placeholder="Title (e.g. Hot Deal)" value={editingOffer?.title || ''} onChange={e => setEditingOffer({...editingOffer, title: e.target.value})} className={inputClass} />)}
                             {offerType === 'special' && (<div className="flex items-center gap-2"><input type="checkbox" checked={editingOffer?.isActive || false} onChange={e => setEditingOffer({...editingOffer, isActive: e.target.checked})} /><label>Active</label></div>)}
