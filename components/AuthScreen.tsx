@@ -1,6 +1,6 @@
 
 import React, { useState, FC, FormEvent, useEffect } from 'react';
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence, linkWithCredential, AuthCredential } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence, linkWithCredential, AuthCredential, fetchSignInMethodsForEmail } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { ref, set, get, update } from 'firebase/database';
 
@@ -89,26 +89,41 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       
       const result = await signInWithPopup(auth, provider);
       
-      // SUCCESS: Regular Google Login (New User OR Existing User with Google already linked)
+      // SUCCESS: Regular Google Login
       await handleLoginSuccess(result.user);
 
     } catch (error: any) {
       setLoading(false);
       
-      // CRITICAL FIX: Handle Account Linking
-      // If the email is already in use by a Password account, Firebase (with "One account per email") throws this error.
-      // We catch it and force the user to sign in with password to link the new Google cred.
+      // CRITICAL: Handle Account Linking when account already exists
       if (error.code === 'auth/account-exists-with-different-credential') {
           const credential = GoogleAuthProvider.credentialFromError(error);
           const email = error.customData?.email;
           
-          if (credential && email) {
-              // Switch UI to Linking Mode
+          if (email && credential) {
+              // STEP 1: Check sign-in methods for this email as requested
+              try {
+                  const methods = await fetchSignInMethodsForEmail(auth, email);
+                  // If password provider exists, we MUST link
+                  if (methods.includes('password')) {
+                      setPendingCred(credential);
+                      setLinkingEmail(email);
+                      setIsLinking(true);
+                      setPassword(''); 
+                      setError("This email already has an account. Enter password to link Google.");
+                      return;
+                  }
+              } catch (e) {
+                  console.error("Method fetch failed, falling back to prompt", e);
+              }
+
+              // Fallback: If methods fetch failed or returned empty (security rules), 
+              // but we are in this error block, we assume account exists and try to link.
               setPendingCred(credential);
               setLinkingEmail(email);
               setIsLinking(true);
               setPassword(''); 
-              setError("This email already has an account. Enter your password to connect Google.");
+              setError("Account exists. Please verify password to connect Google.");
           } else {
               setError("Account linking required but credentials missing. Please try again.");
           }
@@ -157,16 +172,14 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       setError('');
 
       try {
-          // A. Sign in with the EXISTING Password Account
-          // This verifies the user owns the existing account.
+          // STEP 2: Login with existing Password Credential first
           const result = await signInWithEmailAndPassword(auth, linkingEmail, password);
           
-          // B. Link the Pending Google Credential to this User
-          // CRITICAL: This adds Google as a 2nd provider. It DOES NOT delete the password.
-          // Both Password and Google will now work for this UID.
+          // STEP 3: Link the pending Google Credential to the logged-in user
+          // This ensures one account has multiple providers (Password + Google)
           await linkWithCredential(result.user, pendingCred);
           
-          // C. Success
+          // Success
           await handleLoginSuccess(result.user);
           
       } catch (err: any) {
