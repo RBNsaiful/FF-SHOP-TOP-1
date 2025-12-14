@@ -1,19 +1,19 @@
 
 import React, { useState, FC, FormEvent, useEffect } from 'react';
-import { 
-    GoogleAuthProvider, 
-    signInWithPopup, 
-    createUserWithEmailAndPassword, 
-    signInWithEmailAndPassword, 
-    updateProfile, 
-    setPersistence, 
-    browserLocalPersistence, 
-    fetchSignInMethodsForEmail,
-    sendPasswordResetEmail,
-    signOut
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+  fetchSignInMethodsForEmail,
+  sendPasswordResetEmail,
+  setPersistence,
+  browserLocalPersistence,
+  signOut
 } from 'firebase/auth';
-import { auth, db } from '../firebase';
 import { ref, set, get } from 'firebase/database';
+import { auth, db } from '../firebase';
 
 interface AuthScreenProps {
   texts: any;
@@ -22,276 +22,157 @@ interface AuthScreenProps {
   onLoginAttempt: () => void;
 }
 
-// Icons
+// ---------------- ICONS ----------------
 const MailIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>);
 const LockIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>);
 const UserIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>);
-const EyeIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>);
-const EyeOffIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x="1" y1="1" x2="23" y2="23"/></svg>);
 const CheckIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12" /></svg>);
 const AlertIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>);
-
 const Spinner: FC = () => (<div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>);
 
+// ---------------- MAIN COMPONENT ----------------
 const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLoginAttempt }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotMode, setIsForgotMode] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
-  
-  const [nameFieldError, setNameFieldError] = useState('');
-  const [emailFieldError, setEmailFieldError] = useState('');
-  const [passFieldError, setPassFieldError] = useState('');
-  
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-      setError('');
-      setMessage('');
-      setLoading(false);
-      setPersistence(auth, browserLocalPersistence).catch(console.error);
+    setPersistence(auth, browserLocalPersistence).catch(console.error);
   }, []);
 
-  // --- ENGLISH ERROR HANDLING HELPER ---
-  const getErrorMessage = (code: string, message: string) => {
-      console.log("Auth Error:", code, message);
-      switch (code) {
-          case 'auth/user-not-found':
-              return "No account found with this email. Please register first.";
-          case 'auth/wrong-password':
-          case 'auth/invalid-credential':
-          case 'auth/invalid-login-credentials':
-              return "Incorrect email or password."; 
-          case 'auth/too-many-requests':
-              return "Too many failed attempts. Please try again later."; 
-          case 'auth/user-disabled':
-              return "This account has been disabled.";
-          case 'auth/email-already-in-use':
-              return "This email is already in use. Please login.";
-          case 'auth/network-request-failed':
-              return "Network error. Please check your internet connection.";
-          default:
-              return message || "Authentication failed.";
-      }
+  // ---------- SAVE USER HELPER ----------
+  const saveUser = async (user: any, method: 'google' | 'password') => {
+    const userRef = ref(db, 'users/' + user.uid);
+    const snap = await get(userRef);
+
+    if (!snap.exists()) {
+      await set(userRef, {
+        uid: user.uid,
+        name: user.displayName || name || 'User',
+        email: user.email,
+        balance: 0,
+        role: 'user',
+        totalEarned: 0,
+        totalAdsWatched: 0,
+        isBanned: false,
+        loginProvider: method // REQUIRED FIELD
+      });
+    } else {
+        // Enforce provider consistency if needed, but primary check happens before login
+        const data = snap.val();
+        if (!data.loginProvider) {
+             await set(ref(db, 'users/' + user.uid + '/loginProvider'), method);
+        }
+    }
   };
 
-  // Validation
-  const validateNameRule = (val: string): boolean => { return val.length >= 3 && val.length <= 20; };
-  const validateEmailRule = (val: string): boolean => { return /\S+@\S+\.\S+/.test(val); };
-  const validatePasswordRule = (val: string): boolean => { return val.length >= 6; };
-
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => { setName(e.target.value); setNameFieldError(''); };
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => { setEmail(e.target.value); setEmailFieldError(''); };
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => { setPassword(e.target.value); setPassFieldError(''); };
-  const handleConfirmPassChange = (e: React.ChangeEvent<HTMLInputElement>) => { setConfirmPassword(e.target.value); setPassFieldError(''); };
-
-  const isNameValid = isLogin ? true : validateNameRule(name);
-  const isEmailValid = validateEmailRule(email);
-  const isPasswordValid = validatePasswordRule(password);
-  const isConfirmValid = isLogin ? true : password === confirmPassword;
-  const isFormValid = isForgotMode ? isEmailValid : (isNameValid && isEmailValid && isPasswordValid && isConfirmValid);
-
-  // --- 1. GOOGLE LOGIN (STRICT FIX) ---
-  const handleGoogleLogin = async () => {
-    onLoginAttempt(); 
-    setLoading(true);
+  // ---------- GOOGLE LOGIN ----------
+  const loginWithGoogle = async () => {
+    onLoginAttempt();
     setError('');
     setMessage('');
+    setLoading(true);
 
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      
-      // 1. Get Google User first
+
+      // 1. Popup
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      
-      // 2. Validate Email Presence
+
+      // 2. Check Email
       if (!user.email) {
-          await signOut(auth); // Safety cleanup
-          throw new Error("Google login failed: Email not found.");
+        await signOut(auth);
+        throw new Error('Google login failed: No email provided.');
       }
 
-      // 3. CHECK PROVIDER AFTER LOGIN
+      // 3. Fetch Methods
       const methods = await fetchSignInMethodsForEmail(auth, user.email);
 
-      // 4. BLOCK PASSWORD USERS
+      // 4. Check Password method
       if (methods.includes('password')) {
-          await signOut(auth);
-          throw new Error("This email is registered with Password. Please use Email & Password Login.");
+        await signOut(auth);
+        throw new Error('This email is registered with Password. Please login using Email & Password.');
       }
 
-      // 5. Success
-      await handleLoginSuccess(user, 'google');
+      // 5. Save
+      await saveUser(user, 'google');
 
-    } catch (error: any) {
-      setLoading(false);
-      
-      if (error.message && error.message.includes("registered with Password")) {
-          setError(error.message);
-      } else if (error.message && error.message.includes("Email not found")) {
-          setError(error.message);
-      } else if (error.code === 'auth/account-exists-with-different-credential') {
-          setError("This email is registered with Password. Please use Email & Password Login.");
-      } else if (error.code !== 'auth/popup-closed-by-user') {
-          setError(getErrorMessage(error.code, error.message));
+    } catch (err: any) {
+      setError(err.message || 'Google login failed');
+      // If error occurred (e.g. strict check failed), ensure we are signed out
+      if (auth.currentUser) {
+          await signOut(auth);
       }
     }
+
+    setLoading(false);
   };
 
-  // --- 2. EMAIL/PASSWORD LOGIN (STRICT FIX) ---
+  // ---------- EMAIL LOGIN / REGISTER ----------
   const handleEmailAuth = async (e: FormEvent) => {
     e.preventDefault();
+    onLoginAttempt();
     setError('');
     setMessage('');
-    
-    if (isForgotMode) {
-        if (!validateEmailRule(email)) {
-            setEmailFieldError("Invalid Email");
-            return;
-        }
-        setLoading(true);
-        try {
-            await sendPasswordResetEmail(auth, email);
-            setLoading(false);
-            setMessage("Password reset email sent! Check your inbox.");
-            setTimeout(() => {
-                setIsForgotMode(false);
-                setMessage('');
-            }, 3000);
-        } catch (err: any) {
-            setLoading(false);
-            setError(getErrorMessage(err.code, err.message));
-        }
-        return;
-    }
-
-    if (!isFormValid) {
-        if (!isLogin && !validateNameRule(name)) setNameFieldError("Name must be 3-20 characters");
-        if (!validateEmailRule(email)) setEmailFieldError("Invalid Email");
-        if (!validatePasswordRule(password)) setPassFieldError("Password must be at least 6 characters");
-        setError("Please fix the errors above.");
-        return;
-    }
-
-    onLoginAttempt();
     setLoading(true);
 
     try {
-        // 1. PRE-CHECK PROVIDER
-        // Note: If Firebase "Email Enumeration Protection" is ON, this returns [] for existing users.
-        // But per instruction, we strictly assume we can read it or will handle the fallout.
-        const methods = await fetchSignInMethodsForEmail(auth, email);
-        
-        // 2. BLOCK GOOGLE USERS
+      // Forgot Password
+      if (isForgotMode) {
+        await sendPasswordResetEmail(auth, email);
+        setMessage('Password reset email sent! Check your inbox.');
+        setLoading(false);
+        setTimeout(() => { setIsForgotMode(false); setMessage(''); }, 3000);
+        return;
+      }
+
+      // 1. Fetch Methods
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+
+      if (isLogin) {
+        // Login Flow
+        // 2. Check Google
         if (methods.includes('google.com')) {
-            setLoading(false);
-            setError("This account was created using Google. Please login with Google.");
-            return;
+          throw new Error('This account was created using Google. Please login with Google.');
+        }
+        
+        // 3. SignIn
+        await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        // Register Flow
+        // 2. Check Exists
+        if (methods.length > 0) {
+          throw new Error('Email already in use. Please login.');
         }
 
-        if (isLogin) {
-            // LOGIN FLOW
-            if (methods.length === 0) {
-                // If "Email Enumeration Protection" is OFF, this means user not found.
-                // If ON, we can't distinguish, so we proceed to signInWithEmailAndPassword to get the real error.
-                // However, user specifically requested "No account found" logic here.
-                // We will try to sign in if empty, to be safe against Enumeration Protection, 
-                // BUT if it fails, we assume "No account found" or "Wrong password".
-                
-                // STRICT INSTRUCTION FOLLOW-UP: The user said: 
-                // "Google দিয়ে আগে account create করা ইমেইল... সেই একই ইমেইল দিয়ে Email/Password login করলে বলে “No account found”"
-                // This means the methods array WAS empty or handled wrong. 
-                // Since I checked 'google.com' above, if it was there, it would have returned.
-                // If it is NOT there, it might be empty.
-                
-                // Let's rely on signInWithEmailAndPassword to be the final judge if methods is empty.
-                // But if methods explicitly has 'password', we are good.
-            }
-
-            // Proceed with Password Login
-            // We do this even if methods is empty to handle Enumeration Protection correctly,
-            // unless we are 100% sure the user doesn't exist.
-            await signInWithEmailAndPassword(auth, email, password);
-            setSuccess(true);
-        } else {
-            // REGISTER FLOW
-            if (methods.length > 0) {
-                setLoading(false);
-                setError(getErrorMessage('auth/email-already-in-use', ''));
-                return;
-            }
-
-            // Create new Password User
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            await updateProfile(userCredential.user, { displayName: name });
-            await handleLoginSuccess(userCredential.user, 'password');
-        }
+        // 3. Create
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(cred.user, { displayName: name });
+        await saveUser(cred.user, 'password');
+      }
 
     } catch (err: any) {
-        setLoading(false);
-        // Custom handling for when we try to login but the user actually uses Google (and methods returned empty due to security settings)
-        if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-             // In a strict environment, we can't easily tell if it was Google-only without methods.
-             // But we display standard error.
-             setError(getErrorMessage(err.code, err.message));
-        } else {
-             setError(getErrorMessage(err.code, err.message));
-        }
+        let msg = err.message || 'Authentication failed';
+        if (err.code === 'auth/user-not-found') msg = 'No account found with this email.';
+        if (err.code === 'auth/wrong-password') msg = 'Incorrect password.';
+        if (err.code === 'auth/invalid-credential') msg = 'Invalid credentials.';
+        setError(msg);
     }
-  };
 
-  const handleLoginSuccess = async (user: any, method: 'google' | 'password') => {
-      try {
-        const userRef = ref(db, 'users/' + user.uid);
-        const snapshot = await get(userRef);
-
-        if (snapshot.exists()) {
-            const userData = snapshot.val();
-            // Ensure loginProvider matches if needed
-            if (!userData.loginProvider || userData.loginProvider !== method) {
-                 await set(ref(db, 'users/' + user.uid + '/loginProvider'), method);
-            }
-        } else {
-            // New User Creation
-            await set(userRef, {
-                name: user.displayName || name || 'User',
-                email: user.email || '',
-                balance: 0,
-                role: 'user',
-                uid: user.uid,
-                totalEarned: 0,
-                totalAdsWatched: 0,
-                isBanned: false,
-                authMethod: method, 
-                loginProvider: method // REQUIRED
-            });
-        }
-        setSuccess(true);
-      } catch (err) {
-          console.error("DB Error", err);
-          setLoading(false);
-          setSuccess(true);
-      }
+    setLoading(false);
   };
 
   const switchMode = () => {
-      if (isForgotMode) {
-          setIsForgotMode(false);
-          setIsLogin(true);
-      } else {
-          setIsLogin(!isLogin);
-      }
+      setIsLogin(!isLogin);
       setError('');
       setMessage('');
-      setLoading(false);
   };
 
   const toggleForgot = () => {
@@ -304,15 +185,14 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
     <div className="min-h-screen w-full flex flex-col justify-center px-6 bg-light-bg dark:bg-dark-bg transition-colors duration-300">
       <div className="w-full max-w-md mx-auto z-10">
           
+          {/* LOGO AREA */}
           <div className="flex flex-col items-center mb-6 mt-20">
               <div className="relative mb-2">
                   <div className={`w-[5.5rem] h-[5.5rem] rounded-full p-1 shadow-md ring-1 bg-white dark:bg-dark-card ring-gray-200 dark:ring-gray-700`}>
                       <img src={logoUrl} alt={appName} className="w-full h-full object-cover rounded-full" />
                   </div>
               </div>
-              <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mt-2">
-                {appName}
-              </h1>
+              <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mt-2">{appName}</h1>
               <p className="text-sm font-medium mt-1 text-gray-500 dark:text-gray-400">
                   {isForgotMode ? "Reset Password" : (isLogin ? texts.loginTitle : texts.registerTitle)}
               </p>
@@ -324,154 +204,73 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.name}</label>
                     <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <UserIcon className="h-5 w-5 text-primary" />
-                        </div>
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><UserIcon className="h-5 w-5 text-primary" /></div>
                         <input
                             type="text"
                             value={name}
-                            onChange={handleNameChange}
+                            onChange={e => setName(e.target.value)}
                             placeholder="Name"
-                            className={`w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
-                                ${nameFieldError 
-                                    ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
-                                    : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
-                                }
-                            `}
+                            className="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-gray-800 dark:text-white"
                         />
                     </div>
-                    {nameFieldError && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{nameFieldError}</p>}
                 </div>
             )}
 
             <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.email}</label>
                 <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <MailIcon className="h-5 w-5 text-primary" />
-                    </div>
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><MailIcon className="h-5 w-5 text-primary" /></div>
                     <input
                         type="email"
                         value={email}
-                        onChange={handleEmailChange}
+                        onChange={e => setEmail(e.target.value)}
                         placeholder="Email"
-                        className={`w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
-                            ${emailFieldError 
-                                ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
-                                : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
-                            }
-                        `}
                         required
+                        className="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-gray-800 dark:text-white"
                     />
                 </div>
-                {emailFieldError && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{emailFieldError}</p>}
             </div>
 
             {!isForgotMode && (
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.password}</label>
                     <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <LockIcon className="h-5 w-5 text-primary" />
-                        </div>
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><LockIcon className="h-5 w-5 text-primary" /></div>
                         <input
-                            type={showPassword ? "text" : "password"}
+                            type="password"
                             value={password}
-                            onChange={handlePasswordChange}
+                            onChange={e => setPassword(e.target.value)}
                             placeholder="Password"
-                            className={`w-full pl-10 pr-10 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
-                                ${passFieldError 
-                                    ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
-                                    : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
-                                }
-                            `}
                             required
+                            className="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-gray-800 dark:text-white"
                         />
-                        <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-primary transition-colors"
-                        >
-                            {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-                        </button>
                     </div>
-                    {passFieldError && isLogin && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{passFieldError}</p>}
-                </div>
-            )}
-
-            {!isLogin && !isForgotMode && (
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.confirmPassword}</label>
-                    <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <LockIcon className="h-5 w-5 text-primary" />
-                        </div>
-                        <input
-                            type={showConfirmPassword ? "text" : "password"}
-                            value={confirmPassword}
-                            onChange={handleConfirmPassChange}
-                            placeholder="Confirm Password"
-                            className={`w-full pl-10 pr-10 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
-                                ${passFieldError && confirmPassword 
-                                    ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
-                                    : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
-                                }
-                            `}
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-primary transition-colors"
-                        >
-                            {showConfirmPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-                        </button>
-                    </div>
-                    {passFieldError && !isLogin && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{passFieldError}</p>}
                 </div>
             )}
 
             {isLogin && !isForgotMode && (
                 <div className="flex justify-end">
-                    <button 
-                        type="button" 
-                        onClick={toggleForgot} 
-                        className="text-xs font-bold text-primary hover:text-secondary transition-colors"
-                    >
-                        Forgot Password?
-                    </button>
+                    <button type="button" onClick={toggleForgot} className="text-xs font-bold text-primary hover:text-secondary transition-colors">Forgot Password?</button>
                 </div>
             )}
 
             <button
                 type="submit"
-                disabled={loading || success || !isFormValid}
-                className={`w-full h-14 font-bold rounded-xl flex justify-center items-center transition-all duration-200 text-white shadow-lg bg-gradient-to-r from-primary to-secondary shadow-primary/30
-                    ${(loading || success || !isFormValid)
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : 'opacity-100 hover:opacity-90 active:scale-[0.98]'
-                    }
-                `}
+                disabled={loading}
+                className="w-full h-14 font-bold rounded-xl flex justify-center items-center transition-all duration-200 text-white shadow-lg bg-gradient-to-r from-primary to-secondary shadow-primary/30 hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
             >
-                {loading ? (
-                    <Spinner />
-                ) : success ? (
-                    <CheckIcon className="w-8 h-8 text-white drop-shadow-md animate-smart-pop-in" />
-                ) : (
-                    isForgotMode ? "Reset Password" : (isLogin ? texts.login : texts.register)
-                )}
+                {loading ? <Spinner /> : (isForgotMode ? "Reset Password" : (isLogin ? texts.login : texts.register))}
             </button>
             
             {error && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center border border-red-100 dark:border-red-800 animate-fade-in font-medium flex gap-2 items-center justify-center">
-                    <AlertIcon className="w-5 h-5 flex-shrink-0" />
-                    <span>{error}</span>
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center border border-red-100 dark:border-red-800 flex gap-2 items-center justify-center">
+                    <AlertIcon className="w-5 h-5 flex-shrink-0" /><span>{error}</span>
                 </div>
             )}
 
             {message && (
-                <div className="p-3 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-sm rounded-lg text-center border border-green-100 dark:border-green-800 animate-fade-in font-medium flex gap-2 items-center justify-center">
-                    <CheckIcon className="w-5 h-5 flex-shrink-0" />
-                    <span>{message}</span>
+                <div className="p-3 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-sm rounded-lg text-center border border-green-100 dark:border-green-800 flex gap-2 items-center justify-center">
+                    <CheckIcon className="w-5 h-5 flex-shrink-0" /><span>{message}</span>
                 </div>
             )}
 
@@ -487,7 +286,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
                 <div className="w-full space-y-3 mb-6">
                     <button
-                        onClick={handleGoogleLogin}
+                        onClick={loginWithGoogle}
                         disabled={loading}
                         className="w-full py-3 bg-white dark:bg-dark-card text-gray-700 dark:text-gray-200 font-bold rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 flex items-center justify-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all active:scale-[0.98] disabled:opacity-50"
                     >
@@ -500,21 +299,11 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
           <div className="text-center pb-8 pt-4">
             {isForgotMode ? (
-                <button 
-                    onClick={toggleForgot}
-                    className="text-primary font-bold hover:underline transition-colors ml-1"
-                >
-                    Back to Login
-                </button>
+                <button onClick={toggleForgot} className="text-primary font-bold hover:underline transition-colors ml-1">Back to Login</button>
             ) : (
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                     {isLogin ? texts.noAccount : texts.haveAccount}{" "}
-                    <button 
-                        onClick={switchMode}
-                        className="text-primary font-bold hover:underline transition-colors ml-1"
-                    >
-                        {isLogin ? texts.register : texts.login}
-                    </button>
+                    <button onClick={switchMode} className="text-primary font-bold hover:underline transition-colors ml-1">{isLogin ? texts.register : texts.login}</button>
                 </p>
             )}
           </div>
@@ -522,4 +311,5 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
     </div>
   );
 };
+
 export default AuthScreen;
