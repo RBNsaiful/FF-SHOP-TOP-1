@@ -1,6 +1,6 @@
 
 import React, { useState, FC, FormEvent, useEffect } from 'react';
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence, linkWithCredential, AuthCredential, fetchSignInMethodsForEmail } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence, linkWithCredential, AuthCredential } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { ref, set, get, update } from 'firebase/database';
 
@@ -77,7 +77,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const isConfirmValid = isLogin ? true : password === confirmPassword;
   const isFormValid = isNameValid && isEmailValid && isPasswordValid && isConfirmValid;
 
-  // --- 1. GOOGLE LOGIN ATTEMPT ---
+  // --- 1. GOOGLE LOGIN ATTEMPT WITH LINKING LOGIC ---
   const handleGoogleLogin = async () => {
     onLoginAttempt(); 
     setLoading(true);
@@ -89,14 +89,15 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       
       const result = await signInWithPopup(auth, provider);
       
-      // SUCCESS: Regular Google Login
+      // SUCCESS: Regular Google Login (New User OR Existing User with Google already linked)
       await handleLoginSuccess(result.user);
 
     } catch (error: any) {
       setLoading(false);
       
-      // CRITICAL: Handle Account Linking when email exists with different credential (Password)
-      // This error code means "You are trying to sign in with Google, but this email already exists as Password user."
+      // CRITICAL FIX: Handle Account Linking
+      // If the email is already in use by a Password account, Firebase (with "One account per email") throws this error.
+      // We catch it and force the user to sign in with password to link the new Google cred.
       if (error.code === 'auth/account-exists-with-different-credential') {
           const credential = GoogleAuthProvider.credentialFromError(error);
           const email = error.customData?.email;
@@ -106,13 +107,13 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
               setPendingCred(credential);
               setLinkingEmail(email);
               setIsLinking(true);
-              setPassword(''); // Clear for user input
-              setError("Account exists. Enter password to link Google.");
+              setPassword(''); 
+              setError("This email already has an account. Enter your password to connect Google.");
           } else {
-              setError("An error occurred during account linking.");
+              setError("Account linking required but credentials missing. Please try again.");
           }
-      } else {
-          setError("Google Login Failed. Please try again.");
+      } else if (error.code !== 'auth/popup-closed-by-user') {
+          setError("Google Login Failed. " + error.message);
       }
     }
   };
@@ -125,15 +126,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       if (snapshot.exists()) {
           // USER EXISTS: Non-destructive Update
           const val = snapshot.val();
-          const updates: any = {};
-          
-          // Ensure 'authMethod' reflects hybrid if they have linked accounts
-          if (val.authMethod !== 'hybrid') {
-              updates['authMethod'] = 'hybrid';
-          }
-          
-          if (Object.keys(updates).length > 0) {
-              await update(userRef, updates);
+          // If logged in, we ensure the 'authMethod' tracks they have used hybrid if applicable
+          if (val.authMethod !== 'hybrid' && user.providerData.length > 1) {
+              await update(userRef, { authMethod: 'hybrid' });
           }
       } else {
           // NEW USER: Create record safely
@@ -146,7 +141,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             totalEarned: 0,
             totalAdsWatched: 0,
             isBanned: false,
-            // If creation via Google, method is Google. If via Password, Password.
             authMethod: user.providerData.some((p: any) => p.providerId === 'password') ? 'password' : 'google'
         });
       }
@@ -163,12 +157,13 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       setError('');
 
       try {
-          // A. Sign in with the ORIGINAL Password Account
-          // This verifies the user owns the existing account and keeps the password active
+          // A. Sign in with the EXISTING Password Account
+          // This verifies the user owns the existing account.
           const result = await signInWithEmailAndPassword(auth, linkingEmail, password);
           
           // B. Link the Pending Google Credential to this User
-          // This simply adds Google as a 2nd way to login. It DOES NOT remove the password.
+          // CRITICAL: This adds Google as a 2nd provider. It DOES NOT delete the password.
+          // Both Password and Google will now work for this UID.
           await linkWithCredential(result.user, pendingCred);
           
           // C. Success
@@ -179,10 +174,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           if (err.code === 'auth/wrong-password') {
               setError("Incorrect password. Cannot link account.");
           } else if (err.code === 'auth/credential-already-in-use') {
-              // Edge case: User clicked link, then cancelled, then tried again
               setError("This Google account is already linked to another user.");
           } else {
-              setError("Linking failed. Please try again.");
+              setError("Linking failed: " + err.message);
           }
       }
   };
@@ -190,9 +184,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   // --- 4. PASSWORD AUTH (Standard) ---
   const handleAuth = async (e: FormEvent) => {
     e.preventDefault();
-    if (isLinking) return handleConfirmLinking(e); // Redirect if in linking mode
+    if (isLinking) return handleConfirmLinking(e); 
     
     if (!isFormValid) {
+        // Validation messages...
         if (!isLogin && !validateNameRule(name)) setNameFieldError("Invalid Name");
         if (!validateEmailRule(email)) setEmailFieldError("Invalid Email");
         if (!validatePasswordRule(password)) setPassFieldError("Invalid Password");
@@ -205,21 +200,14 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
     setLoading(true);
     
     if (isLogin) {
-        // Login Logic
         try {
-            // Simply sign in. If password matches, it works.
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             await handleLoginSuccess(userCredential.user);
         } catch (err: any) {
             setLoading(false);
-            if (err.code === 'auth/invalid-email' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') {
-                setError("Invalid Email or Password");
-            } else {
-                setError("Login Failed. Try again.");
-            }
+            setError("Login Failed: Invalid Email or Password.");
         }
     } else {
-        // Registration Logic
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             await updateProfile(userCredential.user, { displayName: name });
@@ -227,16 +215,14 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
         } catch (err: any) {
             setLoading(false);
             if (err.code === 'auth/email-already-in-use') setError("Email already in use");
-            else if (err.code === 'auth/invalid-email') setEmailFieldError("Invalid Email");
-            else if (err.code === 'auth/weak-password') setPassFieldError("Invalid Password");
-            else setError("Registration Failed");
+            else setError("Registration Failed.");
         }
     }
   };
 
   const switchMode = () => {
       setIsLogin(!isLogin); 
-      setIsLinking(false); // Reset linking state
+      setIsLinking(false); 
       setError(''); 
       setPassword(''); 
       setConfirmPassword(''); 
@@ -267,7 +253,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">
                   {isLinking 
-                    ? "Verify Password to Link Google" 
+                    ? "Link Google to Existing Account" 
                     : (isLogin ? texts.loginTitle : texts.registerTitle)
                   }
               </p>
@@ -339,7 +325,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                         value={password}
                         onChange={handlePasswordChange}
                         onBlur={handlePasswordBlur}
-                        placeholder={isLinking ? "Enter Existing Password" : "Password"}
+                        placeholder={isLinking ? "Enter Password to Link" : "Password"}
                         className={`w-full pl-10 pr-10 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
                             ${passFieldError 
                                 ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
@@ -408,7 +394,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                 ) : success ? (
                     <CheckIcon className="w-8 h-8 text-white drop-shadow-md animate-smart-pop-in" />
                 ) : isLinking ? (
-                    "Link & Login"
+                    "Verify & Link Account"
                 ) : (
                     isLogin ? texts.login : texts.register
                 )}
@@ -438,7 +424,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                     className="w-full py-3 bg-white dark:bg-dark-card text-gray-700 dark:text-gray-200 font-bold rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 flex items-center justify-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all active:scale-[0.98] disabled:opacity-50"
                     >
                     <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
-                    <span>Google</span>
+                    <span>Google (Quick Login)</span>
                     </button>
                 </div>
 
