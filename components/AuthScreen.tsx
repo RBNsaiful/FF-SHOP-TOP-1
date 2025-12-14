@@ -8,8 +8,6 @@ import {
     updateProfile, 
     setPersistence, 
     browserLocalPersistence, 
-    linkWithCredential, 
-    AuthCredential,
     fetchSignInMethodsForEmail 
 } from 'firebase/auth';
 import { auth, db } from '../firebase';
@@ -29,7 +27,6 @@ const UserIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://
 const EyeIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>);
 const EyeOffIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x="1" y1="1" x2="23" y2="23"/></svg>);
 const CheckIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12" /></svg>);
-const LinkIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>);
 const AlertIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>);
 
 const Spinner: FC = () => (<div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>);
@@ -51,18 +48,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // --- ACCOUNT LINKING STATE ---
-  const [isLinking, setIsLinking] = useState(false);
-  const [pendingCred, setPendingCred] = useState<AuthCredential | null>(null);
-  const [linkingEmail, setLinkingEmail] = useState('');
-
   useEffect(() => {
-      const storedError = sessionStorage.getItem('auth_error');
-      if (storedError) {
-          setError(storedError);
-          sessionStorage.removeItem('auth_error'); 
-          setLoading(false); 
-      }
+      // Clear persistent errors on mount
+      setError('');
+      setLoading(false);
       setPersistence(auth, browserLocalPersistence).catch(console.error);
   }, []);
 
@@ -71,6 +60,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       console.log("Auth Error:", code, message);
       switch (code) {
           case 'auth/user-not-found':
+              return "এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি। দয়া করে নিবন্ধন করুন।";
           case 'auth/wrong-password':
           case 'auth/invalid-credential':
           case 'auth/invalid-login-credentials':
@@ -79,12 +69,14 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
               return "অতিরিক্ত ভুল চেষ্টার কারণে এই অ্যাকাউন্টটি সাময়িকভাবে ব্লক করা হয়েছে। দয়া করে কিছুক্ষণ পর আবার চেষ্টা করুন।"; 
           case 'auth/user-disabled':
               return "এই অ্যাকাউন্টটি নিষ্ক্রিয় করা হয়েছে।";
-          case 'auth/credential-already-in-use':
-              return "এই Google অ্যাকাউন্টটি অন্য একটি অ্যাকাউন্টের সাথে যুক্ত।";
           case 'auth/email-already-in-use':
               return "এই ইমেইল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট খোলা আছে। লগইন করুন।";
           case 'auth/network-request-failed':
               return "নেটওয়ার্ক সমস্যা। ইন্টারনেট সংযোগ চেক করুন।";
+          case 'custom/google-only':
+              return "এই ইমেইলটি Google Quick Login দিয়ে রেজিস্টার করা আছে। অনুগ্রহ করে Google দিয়ে লগইন করুন।";
+          case 'custom/password-only':
+              return "এই ইমেইলটি Email ও Password দিয়ে রেজিস্টার করা আছে। অনুগ্রহ করে Email ও Password দিয়ে লগইন করুন।";
           default:
               return message || "লগইন ব্যর্থ হয়েছে।";
       }
@@ -100,17 +92,13 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => { setPassword(e.target.value); setPassFieldError(''); };
   const handleConfirmPassChange = (e: React.ChangeEvent<HTMLInputElement>) => { setConfirmPassword(e.target.value); setPassFieldError(''); };
 
-  const handleNameBlur = () => { if (!isLogin && !validateNameRule(name)) setNameFieldError("Name must be 3-20 characters"); };
-  const handleEmailBlur = () => { if (email.length > 0 && !validateEmailRule(email)) setEmailFieldError("Invalid Email"); };
-  const handlePasswordBlur = () => { if (password.length > 0 && !validatePasswordRule(password)) setPassFieldError("Password must be at least 6 chars"); else if (!isLogin && confirmPassword.length > 0 && password !== confirmPassword) setPassFieldError("Passwords do not match"); };
-
   const isNameValid = isLogin ? true : validateNameRule(name);
   const isEmailValid = validateEmailRule(email);
   const isPasswordValid = validatePasswordRule(password);
   const isConfirmValid = isLogin ? true : password === confirmPassword;
   const isFormValid = isNameValid && isEmailValid && isPasswordValid && isConfirmValid;
 
-  // --- 1. GOOGLE LOGIN (THE CRITICAL PART) ---
+  // --- 1. GOOGLE LOGIN (STRICT SEPARATION) ---
   const handleGoogleLogin = async () => {
     onLoginAttempt(); 
     setLoading(true);
@@ -120,111 +108,24 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       
-      // We try to sign in. 
-      // If "One account per email" is ON (as required), this will FAIL if email exists with password
-      // throwing 'auth/account-exists-with-different-credential'.
       const result = await signInWithPopup(auth, provider);
-      await handleLoginSuccess(result.user);
+      await handleLoginSuccess(result.user, 'google');
 
     } catch (error: any) {
       setLoading(false);
       
-      // 👉 THIS IS THE ACCOUNT LINKING LOGIC
+      // ✅ SCENARIO: User tries Google, but account exists as Password User
       if (error.code === 'auth/account-exists-with-different-credential') {
-          // 1. Get the pending credential from the error
-          const credential = GoogleAuthProvider.credentialFromError(error);
-          // 2. Get the email associated with the error
-          const email = error.customData?.email;
-          
-          if (email && credential) {
-              // 3. Set state to LINKING mode
-              setPendingCred(credential);
-              setLinkingEmail(email);
-              setIsLinking(true); 
-              setPassword(''); 
-              
-              // 4. Inform User
-              setError("এই ইমেইলটি আগে থেকেই পাসওয়ার্ড দিয়ে খোলা আছে। দয়া করে পাসওয়ার্ড দিয়ে Google অ্যাকাউন্টটি লিঙ্ক করুন।");
-          } else {
-              setError("লিঙ্কিং এরর: ইমেইল পাওয়া যায়নি।");
-          }
+          setError(getErrorMessage('custom/password-only', ''));
       } else if (error.code !== 'auth/popup-closed-by-user') {
           setError(getErrorMessage(error.code, error.message));
       }
     }
   };
 
-  const handleLoginSuccess = async (user: any) => {
-      try {
-        const userRef = ref(db, 'users/' + user.uid);
-        const snapshot = await get(userRef);
-
-        if (snapshot.exists()) {
-            // Existing user - Update metadata if needed
-            // We DO NOT overwrite the entire object to prevent data loss
-            const val = snapshot.val();
-            // Optional: Mark as linked if both providers exist
-            if (user.providerData.length > 1) {
-                await update(userRef, { authMethod: 'hybrid' });
-            }
-        } else {
-            // New User Creation
-            await set(userRef, {
-                name: user.displayName || name || 'User',
-                email: user.email || '',
-                balance: 0,
-                role: 'user',
-                uid: user.uid,
-                totalEarned: 0,
-                totalAdsWatched: 0,
-                isBanned: false,
-                authMethod: user.providerData.some((p: any) => p.providerId === 'password') ? 'password' : 'google'
-            });
-        }
-        setSuccess(true);
-        // Loading stays true until App.tsx redirects via onAuthStateChanged
-      } catch (err) {
-          console.error("DB Error", err);
-          setLoading(false);
-          setSuccess(true);
-      }
-  };
-
-  // --- 2. CONFIRM LINKING (MERGE GOOGLE INTO PASSWORD ACCOUNT) ---
-  const handleConfirmLinking = async (e: FormEvent) => {
-      e.preventDefault();
-      if (!password || !pendingCred) {
-          setError("দয়া করে পাসওয়ার্ড দিন।");
-          return;
-      }
-      
-      setLoading(true);
-      setError('');
-
-      try {
-          // A. FIRST: Login with existing email/password
-          // This ensures we are logged in to the ORIGINAL account (Persistent UID)
-          const result = await signInWithEmailAndPassword(auth, linkingEmail, password);
-          
-          // B. SECOND: Link the pending Google credential to this user
-          // This is the Magic Step that merges them.
-          await linkWithCredential(result.user, pendingCred);
-          
-          // C. Success
-          await handleLoginSuccess(result.user);
-          
-      } catch (err: any) {
-          setLoading(false);
-          setError(getErrorMessage(err.code, err.message));
-      }
-  };
-
-  // --- 3. STANDARD LOGIN/REGISTER ---
-  const handleAuth = async (e: FormEvent) => {
+  // --- 2. EMAIL/PASSWORD LOGIN & REGISTER (STRICT SEPARATION) ---
+  const handleEmailAuth = async (e: FormEvent) => {
     e.preventDefault();
-    
-    // Redirect if in Linking Mode
-    if (isLinking) return handleConfirmLinking(e); 
     
     if (!isFormValid) {
         if (!isLogin && !validateNameRule(name)) setNameFieldError("নাম অবশ্যই ৩-২০ অক্ষরের হতে হবে");
@@ -237,39 +138,86 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
     onLoginAttempt();
     setError('');
     setLoading(true);
-    
-    if (isLogin) {
-        try {
-            await signInWithEmailAndPassword(auth, email, password);
-            // Success handled by onAuthStateChanged in App.tsx
-        } catch (err: any) {
+
+    try {
+        // 🔍 PRE-CHECK: Check provider methods BEFORE attempting auth
+        const methods = await fetchSignInMethodsForEmail(auth, email);
+        
+        // ✅ SCENARIO: Email exists as Google User -> DENY Password Access
+        if (methods.includes('google.com')) {
             setLoading(false);
-            setError(getErrorMessage(err.code, err.message));
+            setError(getErrorMessage('custom/google-only', ''));
+            return;
         }
-    } else {
-        try {
+
+        if (isLogin) {
+            // LOGIN FLOW
+            if (methods.length === 0) {
+                // No user found
+                setLoading(false);
+                setError(getErrorMessage('auth/user-not-found', ''));
+                return;
+            }
+            
+            // Proceed with Password Login
+            const result = await signInWithEmailAndPassword(auth, email, password);
+            // No DB update needed on simple login, App.tsx handles data fetch
+            // But we can trigger success to show animation
+            setSuccess(true);
+        } else {
+            // REGISTER FLOW
+            if (methods.includes('password')) {
+                setLoading(false);
+                setError(getErrorMessage('auth/email-already-in-use', ''));
+                return;
+            }
+
+            // Create new Password User
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             await updateProfile(userCredential.user, { displayName: name });
-            await handleLoginSuccess(userCredential.user);
-        } catch (err: any) {
-            setLoading(false);
-            setError(getErrorMessage(err.code, err.message));
+            await handleLoginSuccess(userCredential.user, 'password');
         }
+
+    } catch (err: any) {
+        setLoading(false);
+        setError(getErrorMessage(err.code, err.message));
     }
+  };
+
+  const handleLoginSuccess = async (user: any, method: 'google' | 'password') => {
+      try {
+        const userRef = ref(db, 'users/' + user.uid);
+        const snapshot = await get(userRef);
+
+        if (snapshot.exists()) {
+            // Existing User: Just ensure authMethod is tracked if missing (optional)
+            // We do NOT overwrite data here to be safe
+        } else {
+            // New User Creation
+            await set(userRef, {
+                name: user.displayName || name || 'User',
+                email: user.email || '',
+                balance: 0,
+                role: 'user',
+                uid: user.uid,
+                totalEarned: 0,
+                totalAdsWatched: 0,
+                isBanned: false,
+                authMethod: method // Explicitly track source
+            });
+        }
+        setSuccess(true);
+        // Loading stays true until App.tsx redirects via onAuthStateChanged
+      } catch (err) {
+          console.error("DB Error", err);
+          setLoading(false);
+          setSuccess(true);
+      }
   };
 
   const switchMode = () => {
       setIsLogin(!isLogin); 
-      // Ensure clean state when switching
-      cancelLinking();
-  };
-
-  const cancelLinking = () => {
-      setIsLinking(false);
-      setPendingCred(null);
-      setLinkingEmail('');
       setError('');
-      setPassword('');
       setLoading(false);
   };
 
@@ -279,37 +227,21 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           
           <div className="flex flex-col items-center mb-6 mt-20">
               <div className="relative mb-2">
-                  <div className={`w-[5.5rem] h-[5.5rem] rounded-full p-1 shadow-md ring-1 ${isLinking ? 'bg-yellow-50 ring-yellow-400' : 'bg-white dark:bg-dark-card ring-gray-200 dark:ring-gray-700'}`}>
+                  <div className={`w-[5.5rem] h-[5.5rem] rounded-full p-1 shadow-md ring-1 bg-white dark:bg-dark-card ring-gray-200 dark:ring-gray-700`}>
                       <img src={logoUrl} alt={appName} className="w-full h-full object-cover rounded-full" />
                   </div>
-                  {isLinking && (
-                      <div className="absolute -bottom-1 -right-1 bg-yellow-500 text-white p-1.5 rounded-full shadow-lg border-2 border-white dark:border-dark-card animate-bounce">
-                          <LinkIcon className="w-4 h-4" />
-                      </div>
-                  )}
               </div>
               <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mt-2">
                 {appName}
               </h1>
-              <p className={`text-sm font-medium mt-1 ${isLinking ? 'text-yellow-600 dark:text-yellow-400 font-bold' : 'text-gray-500 dark:text-gray-400'}`}>
-                  {isLinking 
-                    ? "Link to Existing Account" 
-                    : (isLogin ? texts.loginTitle : texts.registerTitle)
-                  }
+              <p className="text-sm font-medium mt-1 text-gray-500 dark:text-gray-400">
+                  {isLogin ? texts.loginTitle : texts.registerTitle}
               </p>
           </div>
 
-          <form onSubmit={handleAuth} className="w-full space-y-4">
+          <form onSubmit={handleEmailAuth} className="w-full space-y-4">
             
-            {/* Show error at top if linking for visibility */}
-            {isLinking && error && (
-                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-sm rounded-xl border border-yellow-200 dark:border-yellow-700 flex gap-3 items-start animate-fade-in">
-                    <AlertIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                    <span>{error}</span>
-                </div>
-            )}
-
-            {!isLogin && !isLinking && (
+            {!isLogin && (
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.name}</label>
                     <div className="relative group">
@@ -320,7 +252,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                             type="text"
                             value={name}
                             onChange={handleNameChange}
-                            onBlur={handleNameBlur}
                             placeholder="Name"
                             className={`w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
                                 ${nameFieldError 
@@ -338,48 +269,43 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.email}</label>
                 <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <MailIcon className={`h-5 w-5 ${isLinking ? 'text-gray-400' : 'text-primary'}`} />
+                        <MailIcon className="h-5 w-5 text-primary" />
                     </div>
                     <input
                         type="email"
-                        value={isLinking ? linkingEmail : email}
+                        value={email}
                         onChange={handleEmailChange}
-                        onBlur={handleEmailBlur}
                         placeholder="Email"
-                        disabled={isLinking}
                         className={`w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
                             ${emailFieldError 
                                 ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
                                 : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
                             }
-                            ${isLinking ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-800' : ''}
                         `}
                         required
                     />
                 </div>
-                {emailFieldError && !isLinking && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{emailFieldError}</p>}
+                {emailFieldError && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{emailFieldError}</p>}
             </div>
 
             <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.password}</label>
                 <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <LockIcon className={`h-5 w-5 ${isLinking ? 'text-yellow-500' : 'text-primary'}`} />
+                        <LockIcon className="h-5 w-5 text-primary" />
                     </div>
                     <input
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={handlePasswordChange}
-                        onBlur={handlePasswordBlur}
-                        placeholder={isLinking ? "পাসওয়ার্ড দিন লিঙ্ক করার জন্য" : "Password"}
+                        placeholder="Password"
                         className={`w-full pl-10 pr-10 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
                             ${passFieldError 
                                 ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
-                                : isLinking ? 'border-yellow-300 dark:border-yellow-700 focus:ring-yellow-500 focus:border-yellow-500' : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
+                                : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
                             }
                         `}
                         required
-                        autoFocus={isLinking} 
                     />
                     <button
                         type="button"
@@ -389,10 +315,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                         {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                     </button>
                 </div>
-                {passFieldError && isLogin && !isLinking && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{passFieldError}</p>}
+                {passFieldError && isLogin && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{passFieldError}</p>}
             </div>
 
-            {!isLogin && !isLinking && (
+            {!isLogin && (
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.confirmPassword}</label>
                     <div className="relative group">
@@ -403,7 +329,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                             type={showConfirmPassword ? "text" : "password"}
                             value={confirmPassword}
                             onChange={handleConfirmPassChange}
-                            onBlur={handlePasswordBlur}
                             placeholder="Confirm Password"
                             className={`w-full pl-10 pr-10 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
                                 ${passFieldError && confirmPassword 
@@ -426,13 +351,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
             <button
                 type="submit"
-                disabled={loading || success || (!isLinking && !isFormValid)}
-                className={`w-full h-14 font-bold rounded-xl flex justify-center items-center transition-all duration-200 text-white shadow-lg
-                    ${isLinking 
-                        ? 'bg-gradient-to-r from-yellow-500 to-orange-500 shadow-yellow-500/30' 
-                        : 'bg-gradient-to-r from-primary to-secondary shadow-primary/30'
-                    }
-                    ${(loading || success || (!isLinking && !isFormValid))
+                disabled={loading || success || !isFormValid}
+                className={`w-full h-14 font-bold rounded-xl flex justify-center items-center transition-all duration-200 text-white shadow-lg bg-gradient-to-r from-primary to-secondary shadow-primary/30
+                    ${(loading || success || !isFormValid)
                         ? 'opacity-50 cursor-not-allowed' 
                         : 'opacity-100 hover:opacity-90 active:scale-[0.98]'
                     }
@@ -442,65 +363,49 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                     <Spinner />
                 ) : success ? (
                     <CheckIcon className="w-8 h-8 text-white drop-shadow-md animate-smart-pop-in" />
-                ) : isLinking ? (
-                    "যাচাই করুন এবং লিঙ্ক করুন (Link Account)"
                 ) : (
                     isLogin ? texts.login : texts.register
                 )}
             </button>
             
-            {/* Show normal error here only if NOT linking */}
-            {error && !isLinking && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center border border-red-100 dark:border-red-800 animate-fade-in font-medium">
-                    {error}
+            {/* Standard Error Display */}
+            {error && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center border border-red-100 dark:border-red-800 animate-fade-in font-medium flex gap-2 items-center justify-center">
+                    <AlertIcon className="w-5 h-5 flex-shrink-0" />
+                    <span>{error}</span>
                 </div>
             )}
 
           </form>
 
-          {!isLinking && (
-              <>
-                <div className="relative flex py-4 items-center w-full"> 
-                        <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
-                        <span className="flex-shrink-0 mx-4 text-gray-400 dark:text-gray-500 text-xs font-medium">Or</span>
-                        <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
-                </div>
+          <div className="relative flex py-4 items-center w-full"> 
+                <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
+                <span className="flex-shrink-0 mx-4 text-gray-400 dark:text-gray-500 text-xs font-medium">Or</span>
+                <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
+          </div>
 
-                <div className="w-full space-y-3 mb-6">
-                    <button
-                    onClick={handleGoogleLogin}
-                    disabled={loading}
-                    className="w-full py-3 bg-white dark:bg-dark-card text-gray-700 dark:text-gray-200 font-bold rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 flex items-center justify-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all active:scale-[0.98] disabled:opacity-50"
-                    >
-                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
-                    <span>Google (Quick Login)</span>
-                    </button>
-                </div>
+          <div className="w-full space-y-3 mb-6">
+            <button
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className="w-full py-3 bg-white dark:bg-dark-card text-gray-700 dark:text-gray-200 font-bold rounded-xl shadow-sm border border-gray-300 dark:border-gray-700 flex items-center justify-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+                <span>Google (Quick Login)</span>
+            </button>
+          </div>
 
-                <div className="text-center pb-8">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {isLogin ? texts.noAccount : texts.haveAccount}{" "}
-                        <button 
-                            onClick={switchMode}
-                            className="text-primary font-bold hover:underline transition-colors ml-1"
-                        >
-                            {isLogin ? texts.register : texts.login}
-                        </button>
-                    </p>
-                </div>
-              </>
-          )}
-          
-          {isLinking && (
-              <div className="text-center mt-4 pb-8">
-                  <button 
-                    onClick={cancelLinking}
-                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm font-medium hover:underline flex items-center justify-center gap-1 mx-auto"
-                  >
-                      <span>বাতিল করুন (Cancel)</span>
-                  </button>
-              </div>
-          )}
+          <div className="text-center pb-8">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+                {isLogin ? texts.noAccount : texts.haveAccount}{" "}
+                <button 
+                    onClick={switchMode}
+                    className="text-primary font-bold hover:underline transition-colors ml-1"
+                >
+                    {isLogin ? texts.register : texts.login}
+                </button>
+            </p>
+          </div>
       </div>
     </div>
   );
