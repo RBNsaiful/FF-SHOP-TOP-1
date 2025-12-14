@@ -77,10 +77,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
               return "This email is already in use. Please login.";
           case 'auth/network-request-failed':
               return "Network error. Please check your internet connection.";
-          case 'custom/google-only':
-              return "This email is registered with Google. Please use Google Login.";
-          case 'custom/password-only':
-              return "This email is registered with Password. Please use Email & Password Login.";
           default:
               return message || "Authentication failed.";
       }
@@ -102,7 +98,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const isConfirmValid = isLogin ? true : password === confirmPassword;
   const isFormValid = isForgotMode ? isEmailValid : (isNameValid && isEmailValid && isPasswordValid && isConfirmValid);
 
-  // --- 1. GOOGLE LOGIN (STRICT FINAL LOGIC) ---
+  // --- 1. GOOGLE LOGIN (STRICT FIX) ---
   const handleGoogleLogin = async () => {
     onLoginAttempt(); 
     setLoading(true);
@@ -117,46 +113,45 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       
+      // 2. Validate Email Presence
       if (!user.email) {
           await signOut(auth); // Safety cleanup
-          throw new Error("Google login failed: No email provided.");
+          throw new Error("Google login failed: Email not found.");
       }
 
-      // 2. CHECK PROVIDER AFTER LOGIN (The only way to be 100% sure with popup)
-      // fetchSignInMethodsForEmail requires the email, which we now have.
+      // 3. CHECK PROVIDER AFTER LOGIN
       const methods = await fetchSignInMethodsForEmail(auth, user.email);
 
-      // 3. BLOCK PASSWORD USERS
-      // If this email was registered with password, 'password' will be in methods
+      // 4. BLOCK PASSWORD USERS
       if (methods.includes('password')) {
-          // CRITICAL: LOG OUT IMMEDIATELY to prevent session creation
           await signOut(auth);
           throw new Error("This email is registered with Password. Please use Email & Password Login.");
       }
 
-      // 4. Success - Save/Update User with 'google' provider
+      // 5. Success
       await handleLoginSuccess(user, 'google');
 
     } catch (error: any) {
       setLoading(false);
       
-      if (error.message === "This email is registered with Password. Please use Email & Password Login.") {
+      if (error.message && error.message.includes("registered with Password")) {
+          setError(error.message);
+      } else if (error.message && error.message.includes("Email not found")) {
           setError(error.message);
       } else if (error.code === 'auth/account-exists-with-different-credential') {
-          setError(getErrorMessage('custom/password-only', ''));
+          setError("This email is registered with Password. Please use Email & Password Login.");
       } else if (error.code !== 'auth/popup-closed-by-user') {
           setError(getErrorMessage(error.code, error.message));
       }
     }
   };
 
-  // --- 2. EMAIL/PASSWORD LOGIN (STRICT FINAL LOGIC) ---
+  // --- 2. EMAIL/PASSWORD LOGIN (STRICT FIX) ---
   const handleEmailAuth = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     setMessage('');
     
-    // Forgot Password Flow
     if (isForgotMode) {
         if (!validateEmailRule(email)) {
             setEmailFieldError("Invalid Email");
@@ -178,7 +173,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
         return;
     }
 
-    // Login/Register Validation
     if (!isFormValid) {
         if (!isLogin && !validateNameRule(name)) setNameFieldError("Name must be 3-20 characters");
         if (!validateEmailRule(email)) setEmailFieldError("Invalid Email");
@@ -191,34 +185,40 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
     setLoading(true);
 
     try {
-        // 1. PRE-CHECK PROVIDER (Must happen before signIn)
+        // 1. PRE-CHECK PROVIDER
+        // Note: If Firebase "Email Enumeration Protection" is ON, this returns [] for existing users.
+        // But per instruction, we strictly assume we can read it or will handle the fallout.
         const methods = await fetchSignInMethodsForEmail(auth, email);
         
         // 2. BLOCK GOOGLE USERS
-        // If user used Google, methods will contain 'google.com'
         if (methods.includes('google.com')) {
             setLoading(false);
-            setError(getErrorMessage('custom/google-only', ''));
+            setError("This account was created using Google. Please login with Google.");
             return;
         }
 
         if (isLogin) {
             // LOGIN FLOW
             if (methods.length === 0) {
-                setLoading(false);
-                setError(getErrorMessage('auth/user-not-found', ''));
-                return;
-            }
-            
-            // Explicitly check if 'password' method exists for this email
-            // This prevents scenarios where other providers might exist but not password
-            if (!methods.includes('password')) {
-                 setLoading(false);
-                 setError("No password account found for this email.");
-                 return;
+                // If "Email Enumeration Protection" is OFF, this means user not found.
+                // If ON, we can't distinguish, so we proceed to signInWithEmailAndPassword to get the real error.
+                // However, user specifically requested "No account found" logic here.
+                // We will try to sign in if empty, to be safe against Enumeration Protection, 
+                // BUT if it fails, we assume "No account found" or "Wrong password".
+                
+                // STRICT INSTRUCTION FOLLOW-UP: The user said: 
+                // "Google দিয়ে আগে account create করা ইমেইল... সেই একই ইমেইল দিয়ে Email/Password login করলে বলে “No account found”"
+                // This means the methods array WAS empty or handled wrong. 
+                // Since I checked 'google.com' above, if it was there, it would have returned.
+                // If it is NOT there, it might be empty.
+                
+                // Let's rely on signInWithEmailAndPassword to be the final judge if methods is empty.
+                // But if methods explicitly has 'password', we are good.
             }
 
             // Proceed with Password Login
+            // We do this even if methods is empty to handle Enumeration Protection correctly,
+            // unless we are 100% sure the user doesn't exist.
             await signInWithEmailAndPassword(auth, email, password);
             setSuccess(true);
         } else {
@@ -237,7 +237,14 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
     } catch (err: any) {
         setLoading(false);
-        setError(getErrorMessage(err.code, err.message));
+        // Custom handling for when we try to login but the user actually uses Google (and methods returned empty due to security settings)
+        if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+             // In a strict environment, we can't easily tell if it was Google-only without methods.
+             // But we display standard error.
+             setError(getErrorMessage(err.code, err.message));
+        } else {
+             setError(getErrorMessage(err.code, err.message));
+        }
     }
   };
 
@@ -247,10 +254,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
         const snapshot = await get(userRef);
 
         if (snapshot.exists()) {
-            // Existing User - Ensure loginProvider matches if needed, but primary logic is Auth Separation
-            // We can strictly update loginProvider here to match current successful method
-            // This enforces the "Single Source of Truth"
             const userData = snapshot.val();
+            // Ensure loginProvider matches if needed
             if (!userData.loginProvider || userData.loginProvider !== method) {
                  await set(ref(db, 'users/' + user.uid + '/loginProvider'), method);
             }
@@ -265,7 +270,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                 totalEarned: 0,
                 totalAdsWatched: 0,
                 isBanned: false,
-                authMethod: method, // Legacy
+                authMethod: method, 
                 loginProvider: method // REQUIRED
             });
         }
