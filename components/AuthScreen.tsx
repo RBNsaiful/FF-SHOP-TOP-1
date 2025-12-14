@@ -1,6 +1,17 @@
 
 import React, { useState, FC, FormEvent, useEffect } from 'react';
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence, linkWithCredential, AuthCredential } from 'firebase/auth';
+import { 
+    GoogleAuthProvider, 
+    signInWithPopup, 
+    createUserWithEmailAndPassword, 
+    signInWithEmailAndPassword, 
+    updateProfile, 
+    setPersistence, 
+    browserLocalPersistence, 
+    linkWithCredential, 
+    AuthCredential,
+    fetchSignInMethodsForEmail 
+} from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { ref, set, get, update } from 'firebase/database';
 
@@ -55,7 +66,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       setPersistence(auth, browserLocalPersistence).catch(console.error);
   }, []);
 
-  // Bengali Friendly Error Messages
+  // --- BENGALI ERROR HANDLING HELPER ---
   const getErrorMessage = (code: string, message: string) => {
       console.log("Auth Error:", code, message);
       switch (code) {
@@ -63,19 +74,19 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           case 'auth/wrong-password':
           case 'auth/invalid-credential':
           case 'auth/invalid-login-credentials':
-              return "ইমেইল বা পাসওয়ার্ড ভুল হয়েছে।";
+              return "ইমেইল বা পাসওয়ার্ড ভুল হয়েছে।"; 
           case 'auth/too-many-requests':
-              return "অতিরিক্ত ভুল চেষ্টার কারণে এই ডিভাইসটি সাময়িকভাবে ব্লক করা হয়েছে। দয়া করে কিছুক্ষণ পর আবার চেষ্টা করুন।";
+              return "অতিরিক্ত ভুল চেষ্টার কারণে এই অ্যাকাউন্টটি সাময়িকভাবে ব্লক করা হয়েছে। দয়া করে কিছুক্ষণ পর আবার চেষ্টা করুন।"; 
           case 'auth/user-disabled':
-              return "এই অ্যাকাউন্টটি নিষ্ক্রিয় করা হয়েছে। সাপোর্টে যোগাযোগ করুন।";
+              return "এই অ্যাকাউন্টটি নিষ্ক্রিয় করা হয়েছে।";
           case 'auth/credential-already-in-use':
-              return "এই Google অ্যাকাউন্টটি ইতিমধ্যে অন্য একটি ইউজারের সাথে যুক্ত আছে।";
+              return "এই Google অ্যাকাউন্টটি অন্য একটি অ্যাকাউন্টের সাথে যুক্ত।";
           case 'auth/email-already-in-use':
-              return "এই ইমেইল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট খোলা আছে। লগইন করার চেষ্টা করুন।";
+              return "এই ইমেইল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট খোলা আছে। লগইন করুন।";
           case 'auth/network-request-failed':
-              return "ইন্টারনেট সংযোগ চেক করুন।";
+              return "নেটওয়ার্ক সমস্যা। ইন্টারনেট সংযোগ চেক করুন।";
           default:
-              return message || "লগইন করা সম্ভব হয়নি। আবার চেষ্টা করুন।";
+              return message || "লগইন ব্যর্থ হয়েছে।";
       }
   };
 
@@ -99,7 +110,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const isConfirmValid = isLogin ? true : password === confirmPassword;
   const isFormValid = isNameValid && isEmailValid && isPasswordValid && isConfirmValid;
 
-  // --- 1. GOOGLE LOGIN (DETECTION & LINKING TRIGGER) ---
+  // --- 1. GOOGLE LOGIN (THE CRITICAL PART) ---
   const handleGoogleLogin = async () => {
     onLoginAttempt(); 
     setLoading(true);
@@ -109,28 +120,33 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       
+      // We try to sign in. 
+      // If "One account per email" is ON (as required), this will FAIL if email exists with password
+      // throwing 'auth/account-exists-with-different-credential'.
       const result = await signInWithPopup(auth, provider);
       await handleLoginSuccess(result.user);
 
     } catch (error: any) {
       setLoading(false);
       
-      // CRITICAL: Handle existing account collision
+      // 👉 THIS IS THE ACCOUNT LINKING LOGIC
       if (error.code === 'auth/account-exists-with-different-credential') {
+          // 1. Get the pending credential from the error
           const credential = GoogleAuthProvider.credentialFromError(error);
+          // 2. Get the email associated with the error
           const email = error.customData?.email;
           
           if (email && credential) {
-              // We found a conflict. 
+              // 3. Set state to LINKING mode
               setPendingCred(credential);
               setLinkingEmail(email);
-              setIsLinking(true); // SWITCH UI TO LINK MODE
+              setIsLinking(true); 
               setPassword(''); 
               
-              // Bengali Instructions
+              // 4. Inform User
               setError("এই ইমেইলটি আগে থেকেই পাসওয়ার্ড দিয়ে খোলা আছে। দয়া করে পাসওয়ার্ড দিয়ে Google অ্যাকাউন্টটি লিঙ্ক করুন।");
           } else {
-              setError("Account conflict detected but data missing. Please try regular login.");
+              setError("লিঙ্কিং এরর: ইমেইল পাওয়া যায়নি।");
           }
       } else if (error.code !== 'auth/popup-closed-by-user') {
           setError(getErrorMessage(error.code, error.message));
@@ -144,14 +160,17 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
         const snapshot = await get(userRef);
 
         if (snapshot.exists()) {
+            // Existing user - Update metadata if needed
+            // We DO NOT overwrite the entire object to prevent data loss
             const val = snapshot.val();
-            if (val.authMethod !== 'hybrid' && user.providerData.length > 1) {
+            // Optional: Mark as linked if both providers exist
+            if (user.providerData.length > 1) {
                 await update(userRef, { authMethod: 'hybrid' });
             }
         } else {
             // New User Creation
             await set(userRef, {
-                name: user.displayName || 'User',
+                name: user.displayName || name || 'User',
                 email: user.email || '',
                 balance: 0,
                 role: 'user',
@@ -166,7 +185,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
         // Loading stays true until App.tsx redirects via onAuthStateChanged
       } catch (err) {
           console.error("DB Error", err);
-          setLoading(false); // If DB fails, at least let them in locally, App.tsx will handle
+          setLoading(false);
           setSuccess(true);
       }
   };
@@ -184,21 +203,15 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
       try {
           // A. FIRST: Login with existing email/password
-          // This call alone is sufficient to log the user in.
+          // This ensures we are logged in to the ORIGINAL account (Persistent UID)
           const result = await signInWithEmailAndPassword(auth, linkingEmail, password);
           
-          // B. SECOND: Try to Link
-          try {
-              await linkWithCredential(result.user, pendingCred);
-          } catch (linkErr: any) {
-              console.warn("Linking failed, but user is logged in:", linkErr.code);
-              // Do NOT stop execution. The user successfully proved ownership of the account.
-              // We just failed to attach the Google credential for *future* logins.
-              // They are still logged in via Password now.
-          }
+          // B. SECOND: Link the pending Google credential to this user
+          // This is the Magic Step that merges them.
+          await linkWithCredential(result.user, pendingCred);
           
-          // C. Success - Proceed to App
-          // The onAuthStateChanged listener in App.tsx will pick this up automatically.
+          // C. Success
+          await handleLoginSuccess(result.user);
           
       } catch (err: any) {
           setLoading(false);
@@ -209,6 +222,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   // --- 3. STANDARD LOGIN/REGISTER ---
   const handleAuth = async (e: FormEvent) => {
     e.preventDefault();
+    
+    // Redirect if in Linking Mode
     if (isLinking) return handleConfirmLinking(e); 
     
     if (!isFormValid) {
@@ -226,7 +241,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
     if (isLogin) {
         try {
             await signInWithEmailAndPassword(auth, email, password);
-            // Success handled by onAuthStateChanged
+            // Success handled by onAuthStateChanged in App.tsx
         } catch (err: any) {
             setLoading(false);
             setError(getErrorMessage(err.code, err.message));
