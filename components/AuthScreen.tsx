@@ -55,30 +55,30 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       setPersistence(auth, browserLocalPersistence).catch(console.error);
   }, []);
 
-  // --- BENGALI ERROR HANDLING HELPER ---
+  // --- ENGLISH ERROR HANDLING HELPER ---
   const getErrorMessage = (code: string, message: string) => {
       console.log("Auth Error:", code, message);
       switch (code) {
           case 'auth/user-not-found':
-              return "এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি। দয়া করে নিবন্ধন করুন।";
+              return "No account found with this email. Please register first.";
           case 'auth/wrong-password':
           case 'auth/invalid-credential':
           case 'auth/invalid-login-credentials':
-              return "ইমেইল বা পাসওয়ার্ড ভুল হয়েছে।"; 
+              return "Incorrect email or password."; 
           case 'auth/too-many-requests':
-              return "অতিরিক্ত ভুল চেষ্টার কারণে এই অ্যাকাউন্টটি সাময়িকভাবে ব্লক করা হয়েছে। দয়া করে কিছুক্ষণ পর আবার চেষ্টা করুন।"; 
+              return "Too many failed attempts. Please try again later."; 
           case 'auth/user-disabled':
-              return "এই অ্যাকাউন্টটি নিষ্ক্রিয় করা হয়েছে।";
+              return "This account has been disabled.";
           case 'auth/email-already-in-use':
-              return "এই ইমেইল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট খোলা আছে। লগইন করুন।";
+              return "This email is already in use. Please login.";
           case 'auth/network-request-failed':
-              return "নেটওয়ার্ক সমস্যা। ইন্টারনেট সংযোগ চেক করুন।";
+              return "Network error. Please check your internet connection.";
           case 'custom/google-only':
-              return "এই ইমেইলটি Google Quick Login দিয়ে রেজিস্টার করা আছে। অনুগ্রহ করে Google দিয়ে লগইন করুন।";
+              return "This email is registered with Google. Please use Google Login.";
           case 'custom/password-only':
-              return "এই ইমেইলটি Email ও Password দিয়ে রেজিস্টার করা আছে। অনুগ্রহ করে Email ও Password দিয়ে লগইন করুন।";
+              return "This email is registered with Password. Please use Email & Password Login.";
           default:
-              return message || "লগইন ব্যর্থ হয়েছে।";
+              return message || "Authentication failed.";
       }
   };
 
@@ -128,10 +128,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
     e.preventDefault();
     
     if (!isFormValid) {
-        if (!isLogin && !validateNameRule(name)) setNameFieldError("নাম অবশ্যই ৩-২০ অক্ষরের হতে হবে");
-        if (!validateEmailRule(email)) setEmailFieldError("সঠিক ইমেইল দিন");
-        if (!validatePasswordRule(password)) setPassFieldError("পাসওয়ার্ড অন্তত ৬ অক্ষরের হতে হবে");
-        setError("অনুগ্রহ করে উপরের ভুলগুলো সংশোধন করুন");
+        if (!isLogin && !validateNameRule(name)) setNameFieldError("Name must be 3-20 characters");
+        if (!validateEmailRule(email)) setEmailFieldError("Invalid Email");
+        if (!validatePasswordRule(password)) setPassFieldError("Password must be at least 6 characters");
+        setError("Please fix the errors above.");
         return;
     }
 
@@ -144,6 +144,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
         const methods = await fetchSignInMethodsForEmail(auth, email);
         
         // ✅ SCENARIO: Email exists as Google User -> DENY Password Access
+        // Note: fetchSignInMethodsForEmail returns 'google.com' if user registered via Google
         if (methods.includes('google.com')) {
             setLoading(false);
             setError(getErrorMessage('custom/google-only', ''));
@@ -159,10 +160,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                 return;
             }
             
+            // If methods exist but NO 'google.com', assume password login is safe
             // Proceed with Password Login
             const result = await signInWithEmailAndPassword(auth, email, password);
-            // No DB update needed on simple login, App.tsx handles data fetch
-            // But we can trigger success to show animation
             setSuccess(true);
         } else {
             // REGISTER FLOW
@@ -190,8 +190,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
         const snapshot = await get(userRef);
 
         if (snapshot.exists()) {
-            // Existing User: Just ensure authMethod is tracked if missing (optional)
-            // We do NOT overwrite data here to be safe
+            // Existing User
+            // We can optionally update the method here to keep track, 
+            // but the main protection is in the Login Logic above.
         } else {
             // New User Creation
             await set(userRef, {
