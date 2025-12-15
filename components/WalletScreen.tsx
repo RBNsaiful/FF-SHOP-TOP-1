@@ -1,5 +1,5 @@
 
-import React, { useState, FC, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, FC, useEffect } from 'react';
 import type { User, PaymentMethod, Screen } from '../types';
 import { db } from '../firebase';
 import { ref, push } from 'firebase/database';
@@ -44,24 +44,8 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
   const [error, setError] = useState<string>('');
   const [isCopied, setIsCopied] = useState(false);
   
-  // FIX: Explicitly scroll this element into view on mount.
-  // Using scroll-mt-28 (112px) to ensure it doesn't hide behind the sticky header (h-16 = 64px).
-  const topRef = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    // 1. Force window scroll to 0 (General reset)
-    window.scrollTo(0, 0);
-
-    // 2. Force scroll into view for this component (Specific fix for stuck scroll)
-    // The delay ensures layout is painted
-    const timer = setTimeout(() => {
-        if (topRef.current) {
-            topRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
-        }
-    }, 10);
-
-    return () => clearTimeout(timer);
-  }, []);
+  // FIX: Removed useLayoutEffect that was causing jittery scrolling. 
+  // App.tsx handles global scroll reset.
 
   const MIN_AMOUNT = 20;
   const MAX_AMOUNT = 10000;
@@ -101,12 +85,8 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
       setError('');
       setStep(2);
       
-      // Scroll to top when step changes too
-      setTimeout(() => {
-          if (topRef.current) {
-              topRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
-          }
-      }, 50);
+      // Scroll to top gently when step changes
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -169,9 +149,6 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
 
   return (
     <div className="p-4 animate-smart-fade-in pb-24 relative">
-        {/* Scroll Anchor with Top Margin to avoid sticky header overlap */}
-        <div ref={topRef} className="absolute top-0 left-0 w-full h-0 scroll-mt-28" />
-
         <div className="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-violet-700 p-5 rounded-2xl text-white shadow-2xl shadow-primary/30 mb-4 overflow-hidden animate-smart-pop-in">
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
             <WavyPath />

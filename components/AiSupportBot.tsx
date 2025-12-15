@@ -156,7 +156,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
   const handlePointerUp = () => { isDragging.current = false; };
   const handleButtonClick = () => { if (!hasMoved.current) setActiveScreen('aiChat'); };
 
-  // --- THE LOGIC CORE (SESSION & LANGUAGE FIX) ---
+  // --- THE LOGIC CORE ---
   const systemInstruction = useMemo(() => {
     
     // 1. Live Features Check
@@ -225,7 +225,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
 
   // Rate Limiting
   const checkDailyLimit = async (): Promise<boolean> => {
-      if (isAdminMode) return true;
+      // Admin Mode Bypass removed for security in this version
       const today = new Date().toISOString().split('T')[0];
       const usageRef = ref(db, `users/${user.uid}/aiDailyUsage`);
       try {
@@ -244,18 +244,8 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
 
-    if (input.trim() === 'SAIFULISLAM+999') {
-        setIsAdminMode(true);
-        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: '******' }]); 
-        setTimeout(() => { setMessages(prev => [...prev, { id: 'admin-welcome', role: 'model', text: "🟢 ADMIN MODE ACTIVATED." }]); }, 500);
-        setInput(''); return;
-    }
-    if (isAdminMode && input.trim().toLowerCase() === 'exit') {
-        setIsAdminMode(false);
-        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: 'exit' }, { id: 'admin-exit', role: 'model', text: "🔴 Admin Mode Off." }]);
-        setInput(''); return;
-    }
-
+    // SECURITY FIX: Removed insecure plaintext admin trigger
+    
     const userMessageText = input;
     setInput('');
     
@@ -339,7 +329,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
                           <LiveRobotIcon className="w-5 h-5" />
                       </div>
                   </div>
-                  <div><h3 className="font-bold text-lg text-gray-900 dark:text-white leading-none">{botName}</h3>{isAdminMode && <span className="text-[10px] text-green-500 font-bold uppercase tracking-wider">Teaching Mode</span>}</div>
+                  <div><h3 className="font-bold text-lg text-gray-900 dark:text-white leading-none">{botName}</h3></div>
               </div>
             </div>
           </div>
@@ -372,7 +362,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
 
           <div className="p-3 bg-white dark:bg-dark-card border-t border-gray-100 dark:border-gray-800 flex items-end gap-2 sticky bottom-0 w-full shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-20">
             <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-2 border border-transparent focus-within:border-primary/50 transition-colors">
-                <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={isAdminMode ? "Type new rule..." : "এখানে লিখুন..."} rows={1} className="w-full bg-transparent text-gray-900 dark:text-white text-sm focus:outline-none resize-none max-h-32 overflow-y-auto leading-relaxed pt-1.5" style={{ minHeight: '24px' }} />
+                <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder="এখানে লিখুন..." rows={1} className="w-full bg-transparent text-gray-900 dark:text-white text-sm focus:outline-none resize-none max-h-32 overflow-y-auto leading-relaxed pt-1.5" style={{ minHeight: '24px' }} />
             </div>
             <button onClick={handleSend} disabled={!input.trim() || isTyping} className={`p-3 rounded-full transition-all shadow-md flex items-center justify-center mb-0.5 ${!input.trim() || isTyping ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' : isAdminMode ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-primary text-white hover:bg-primary-dark active:scale-95'}`}><SendIcon className="w-5 h-5 ml-0.5" /></button>
           </div>

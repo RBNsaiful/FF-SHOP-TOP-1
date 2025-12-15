@@ -1,19 +1,19 @@
 
 import type { DiamondOffer, PaymentMethod, SupportContact, LevelUpPackage, Membership, PremiumApp, Banner } from './types';
 
-export const APP_LOGO_URL = ''; // REMOVED HARDCODED DEFAULT LOGO
+export const APP_LOGO_URL = ''; 
 export const DEFAULT_AVATAR_URL = 'https://i.ibb.co/k2nGxqwY/1763225878291.jpg';
 
 // --- SECURITY KEY FOR DEVELOPER SETTINGS ---
+// Prioritize Vite env vars - NEVER HARDCODE SECRETS IN PRODUCTION
 export const PROTECTION_KEY = 
   (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_PROTECTION_KEY) || 
-  (typeof process !== 'undefined' && process.env && process.env.REACT_APP_PROTECTION_KEY) || 
-  "SAIFULISLAM+999";
+  ""; // Empty default to prevent accidental access
 
 // --- DEFAULT AI KEY (Fallback) ---
+// Changed to VITE_GEMINI_API_KEY to match standard practices
 export const DEFAULT_AI_KEY = 
-  (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_DEFAULT_AI_KEY) || 
-  (typeof process !== 'undefined' && process.env && process.env.REACT_APP_DEFAULT_AI_KEY) || 
+  (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_GEMINI_API_KEY) || 
   "";
 
 export const DIAMOND_OFFERS: DiamondOffer[] = [
@@ -98,13 +98,12 @@ const DEFAULT_PROFILE_AD_SCRIPT = `<script type="text/javascript">
 </script>
 <script type="text/javascript" src="//www.highperformanceformat.com/49e7bf0baed63b2660a8485cb2d96803/invoke.js"></script>`;
 
-// NEW APP SETTINGS DEFAULT WITH HYBRID ADS
 export const DEFAULT_APP_SETTINGS = {
     appName: "FF SHOP",
     maintenanceMode: false,
-    aiSupportActive: true, // Enabled by default
-    aiApiKey: "", // Dynamic API Key (empty by default)
-    aiName: "AI Tuktuki", // Default AI Name
+    aiSupportActive: true, 
+    aiApiKey: "", 
+    aiName: "AI Tuktuki", 
     logoUrl: APP_LOGO_URL,
     contactMessage: "Have a question or need help with your order? We are here to assist you 24/7.",
     operatingHours: "Operating Hours: 10:00 AM - 10:00 PM",
@@ -121,8 +120,8 @@ export const DEFAULT_APP_SETTINGS = {
         rewardPerAd: REWARD_PER_AD,
         adCooldownSeconds: 10,
         resetHours: 24,
-        vpnRequired: false, // Default OFF (Legacy)
-        vpnNoticeActive: false, // Default OFF (New Web Toggle)
+        vpnRequired: false, 
+        vpnNoticeActive: false, 
         webAds: {
             active: true,
             url: '',
@@ -130,8 +129,8 @@ export const DEFAULT_APP_SETTINGS = {
         },
         adMob: {
             active: false,
-            appId: 'ca-app-pub-3940256099942544~3347511713', // Test App ID
-            rewardId: 'ca-app-pub-3940256099942544/5224354917', // Test ID
+            appId: 'ca-app-pub-3940256099942544~3347511713', 
+            rewardId: 'ca-app-pub-3940256099942544/5224354917', 
             bannerId: '',
             interstitialId: ''
         },
@@ -149,12 +148,12 @@ export const DEFAULT_APP_SETTINGS = {
         description: "Contact for development"
     },
     uiSettings: {
-        cardSize: 'normal', // normal, small, smaller, extra-small
+        cardSize: 'normal', 
         animationsEnabled: true
     }
 };
 
-export const TEXTS: any = {
+export const TEXTS: Record<string, any> = {
   en: {
     appName: "FF SHOP",
     loginTitle: "Login to your Account",

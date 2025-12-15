@@ -229,27 +229,40 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
         }
     };
 
-    // --- REAL IP CHECK FUNCTION ---
+    // --- REAL IP CHECK FUNCTION WITH FALLBACK ---
     const checkIpLocation = async (): Promise<boolean> => {
+        const allowedCountries = ['US', 'GB', 'CA', 'DE', 'AU'];
+        
         try {
-            // Using a free IP geolocation API
+            // First Try: ipapi.co (Free, but limited)
             const response = await fetch('https://ipapi.co/json/');
             const data = await response.json();
             
-            // List of High CPM Countries
-            const allowedCountries = ['US', 'GB', 'CA', 'DE', 'AU'];
-            
             if (data && data.country_code) {
-                console.log("User Country:", data.country_code);
+                console.log("VPN Check (ipapi.co):", data.country_code);
                 return allowedCountries.includes(data.country_code);
             }
-            return false;
         } catch (error) {
-            console.error("IP Check Failed", error);
-            // Fallback: If API fails, we generally allow it to avoid blocking legit users due to network error, 
-            // OR return false if we want to be strict.
-            return true; 
+            console.warn("ipapi.co failed, trying fallback...");
         }
+
+        try {
+            // Fallback: api.country.is
+            const response = await fetch('https://api.country.is');
+            const data = await response.json();
+            
+            if (data && data.country) {
+                console.log("VPN Check (country.is):", data.country);
+                return allowedCountries.includes(data.country);
+            }
+        } catch (err) {
+            console.error("All IP checks failed");
+            // If all checks fail (e.g. adblocker, network error), assume FALSE to prevent abuse in Force Mode
+            // Returning true here would defeat the purpose of "Force VPN".
+            return false; 
+        }
+        
+        return false;
     };
 
     // --- WEB AD LOGIC ---

@@ -2,7 +2,7 @@
 import React, { FC, useEffect, useState, useMemo } from 'react';
 import { User } from '../types';
 import { db } from '../firebase';
-import { ref, onValue } from 'firebase/database';
+import { ref, onValue, query, limitToLast, orderByChild } from 'firebase/database';
 import { DEFAULT_AVATAR_URL } from '../constants';
 
 interface RankingScreenProps {
@@ -26,12 +26,17 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, 
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // --- 1. Real-time Data Fetching (Mount Only) ---
+    // --- Optimized Real-time Data Fetching ---
     useEffect(() => {
         setLoading(true);
         const usersRef = ref(db, 'users');
         
-        const unsubscribe = onValue(usersRef, (snapshot) => {
+        // Optimize: Sort by balance or totalEarned and Limit to top 100 to prevent crash
+        // Note: Firebase requires an index in rules for orderByChild to work efficiently
+        // Fallback to client side sorting if rules not set, but limit size first
+        const rankingQuery = query(usersRef, orderByChild(activeTab === 'transaction' ? 'totalSpent' : 'totalEarned'), limitToLast(100));
+        
+        const unsubscribe = onValue(rankingQuery, (snapshot) => {
             if (snapshot.exists()) {
                 const data = snapshot.val();
                 const usersList: User[] = Object.entries(data).map(([key, val]: [string, any]) => ({
@@ -46,9 +51,9 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, 
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [activeTab]); // Refetch when tab changes to optimize sort order
 
-    // --- 2. Sorting & Ranking Logic (Memoized) ---
+    // --- Sorting & Ranking Logic (Memoized) ---
     const { top3, rest, myRank, myScore } = useMemo(() => {
         const safeNumber = (val: any) => {
             if (val === undefined || val === null) return 0;
@@ -58,9 +63,6 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, 
 
         const getScoreVal = (u: User) => {
             if (activeTab === 'transaction') {
-                // Transaction Rank usually based on Total Spent + Total Deposit? 
-                // Or just Total Spent? Adjust logic as per your business rule.
-                // Assuming "Top Traders" = High Volume (Deposit + Spent)
                 return safeNumber(u.totalDeposit) + safeNumber(u.totalSpent);
             } else {
                 return safeNumber(u.totalEarned);
@@ -80,12 +82,10 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, 
         const myRankVal = myIndex !== -1 ? myIndex + 1 : null;
         const myScoreVal = myIndex !== -1 ? getScoreVal(sortedUsers[myIndex]) : 0;
 
-        // Limit list for performance
-        const top100 = sortedUsers.slice(0, 100);
-
+        // Since we already queried limited data, we just take the list
         return {
-            top3: top100.slice(0, 3),
-            rest: top100.slice(3),
+            top3: sortedUsers.slice(0, 3),
+            rest: sortedUsers.slice(3),
             myRank: myRankVal,
             myScore: myScoreVal
         };
@@ -129,7 +129,6 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, 
             <div className="flex-1 overflow-y-auto overflow-x-hidden relative z-40 pb-32 no-scrollbar scroll-smooth">
                 
                 {/* 1. PODIUM (Top 3) */}
-                {/* Added generous padding-top (pt-12) to ensure Rank 1 Crown is fully visible */}
                 {!loading && top3.length > 0 && (
                     <div className="relative pt-12 pb-10 px-4">
                         {/* Background Decor */}
@@ -206,7 +205,7 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, 
                                     </div>
                                     <div className="text-center mt-3">
                                         <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate max-w-[80px] mx-auto">{top3[2].name}</p>
-                                        <p className="text-[10px] font-bold text-slate-400 mt-0.5">
+                                        <p className="text-xs font-bold text-slate-400 mt-0.5">
                                             {Math.floor(activeTab === 'transaction' ? (Number(top3[2].totalDeposit || 0) + Number(top3[2].totalSpent || 0)) : Number(top3[2].totalEarned || 0)).toLocaleString()}
                                         </p>
                                     </div>

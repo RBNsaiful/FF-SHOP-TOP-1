@@ -1,3 +1,4 @@
+
 {
   "rules": {
     ".read": false,
@@ -21,13 +22,28 @@
         ".read": "auth != null && ($uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
         ".write": "auth != null && ($uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
         
-        ".validate": "newData.hasChildren(['name', 'email']) && (
-          (!newData.hasChild('role')) || 
-          (newData.child('role').val() === data.child('role').val()) || 
-          (root.child('users').child(auth.uid).child('role').val() === 'admin')
-        ) && (
-          (!newData.hasChild('balance')) || newData.child('balance').isNumber()
-        )"
+        "balance": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "totalEarned": {
+          ".validate": "newData.isNumber()"
+        },
+        "totalSpent": {
+          ".validate": "newData.isNumber()"
+        },
+        "totalDeposit": {
+          ".validate": "newData.isNumber()"
+        },
+        "role": {
+          // Role can only be written if it doesn't exist (new user default), 
+          // is the same as before (no change), or the writer is an admin.
+          ".validate": "!data.exists() || newData.val() === data.val() || root.child('users').child(auth.uid).child('role').val() === 'admin'"
+        },
+        "isBanned": {
+          ".validate": "newData.isBoolean()"
+        },
+        
+        ".validate": "newData.hasChildren(['name', 'email'])"
       }
     },
 
@@ -38,8 +54,7 @@
         ".write": "auth != null && ($uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
         
         "$orderId": {
-          // Allow DELETE (!newData.exists) and Allow Full Admin Override regardless of schema
-          ".validate": "!newData.exists() || root.child('users').child(auth.uid).child('role').val() === 'admin' || (newData.hasChildren(['offer', 'price']))"
+          ".validate": "!newData.exists() || root.child('users').child(auth.uid).child('role').val() === 'admin' || (newData.hasChildren(['offer', 'price']) && newData.child('price').isNumber())"
         }
       },
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
@@ -52,8 +67,7 @@
         ".write": "auth != null && ($uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
         
         "$txnId": {
-           // Allow DELETE (!newData.exists) and Allow Full Admin Override regardless of schema
-           ".validate": "!newData.exists() || root.child('users').child(auth.uid).child('role').val() === 'admin' || (newData.child('amount').isNumber())"
+           ".validate": "!newData.exists() || root.child('users').child(auth.uid).child('role').val() === 'admin' || (newData.child('amount').isNumber() && newData.child('amount').val() > 0)"
         }
       },
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"

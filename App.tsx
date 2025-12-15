@@ -12,16 +12,17 @@ import WatchAdsScreen from './components/WatchAdsScreen';
 import EditProfileScreen from './components/EditProfileScreen';
 import NotificationScreen from './components/NotificationScreen';
 import AdminScreen from './components/AdminScreen'; 
-import RankingScreen from './components/RankingScreen'; // Import Ranking Screen
+import RankingScreen from './components/RankingScreen'; 
 import BottomNav from './components/BottomNav';
 import RewardAnimation from './components/RewardAnimation';
-import AiSupportBot from './components/AiSupportBot'; // Import AI Bot
+import AiSupportBot from './components/AiSupportBot'; 
 import { TEXTS, DIAMOND_OFFERS as initialDiamondOffers, LEVEL_UP_PACKAGES as initialLevelUpPackages, MEMBERSHIPS as initialMemberships, PREMIUM_APPS as initialPremiumApps, APP_LOGO_URL, DEFAULT_APP_SETTINGS, PAYMENT_METHODS as initialPaymentMethods, BANNER_IMAGES as initialBanners, SUPPORT_CONTACTS as initialContacts } from './constants';
 import type { User, Language, Theme, Screen, DiamondOffer, LevelUpPackage, Membership, PremiumApp, Notification, AppSettings, PaymentMethod, SupportContact, Banner, SpecialOffer } from './types';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { ref, onValue } from 'firebase/database';
 
+// ... (Icons remain same)
 const ArrowLeftIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>);
 const WalletHeaderIcon: FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -37,6 +38,7 @@ const MaintenanceIcon: FC<{className?: string}> = ({className}) => (
 );
 const XIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>);
 
+// ... (Header component remains same)
 interface HeaderProps {
     appName: string;
     screen: Screen;
@@ -50,6 +52,9 @@ interface HeaderProps {
 }
 
 const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavigate, isBalancePulsing, onBalancePulseEnd, hasUnreadNotifications }) => {
+    // ADMIN CHECK: Redundant but safe - hiding header for admins
+    if (user && user.role === 'admin') return null;
+
     const isSubScreen = (['myOrders', 'myTransaction', 'contactUs', 'wallet', 'changePassword', 'watchAds', 'editProfile', 'notifications'] as Screen[]).includes(screen);
     const titleMap: { [key in Screen]?: string } = {
         myOrders: texts.myOrders,
@@ -60,13 +65,11 @@ const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavig
         watchAds: texts.watchAdsScreenTitle,
         editProfile: texts.editProfileTitle,
         notifications: texts.notifications, 
-        ranking: texts.ranking, // Add Ranking Title
+        ranking: texts.ranking, 
     };
 
-    // Hide Header on Admin, Profile, AI Chat, and Ranking screens
     if (screen === 'admin' || screen === 'profile' || screen === 'aiChat' || screen === 'ranking') return null;
 
-    // Desktop Nav Link Component
     const DesktopNavLink = ({ target, label }: { target: Screen, label: string }) => (
         <button 
             onClick={() => onNavigate(target)}
@@ -108,7 +111,6 @@ const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavig
                     <button onClick={onBack} className="text-gray-500 dark:text-gray-400 p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-dark-card transition-colors">
                         <ArrowLeftIcon className="w-6 h-6"/>
                     </button>
-                    {/* Desktop Breadcrumbs */}
                     <div className="hidden md:flex items-center text-sm font-medium text-gray-500 dark:text-gray-400">
                         <span onClick={() => onNavigate('home')} className="hover:text-primary cursor-pointer">Home</span>
                         <span className="mx-2">/</span>
@@ -143,8 +145,6 @@ const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavig
                 <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary drop-shadow-[0_2px_2px_rgba(0,0,0,0.2)] dark:drop-shadow-[0_2px_5px_rgba(124,58,237,0.3)] cursor-pointer" onClick={() => onNavigate('home')}>
                     {appName}
                 </h1>
-
-                {/* Desktop Navigation */}
                 {user && (
                     <div className="hidden md:flex items-center space-x-2">
                         <DesktopNavLink target="home" label={texts.navHome} />
@@ -165,8 +165,6 @@ const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavig
                         <WalletHeaderIcon className="w-6 h-6" />
                         <span onAnimationEnd={onBalancePulseEnd} className={isBalancePulsing ? 'animate-balance-pulse' : ''}>{Math.floor(user.balance)}{texts.currency}</span>
                     </button>
-
-                    {/* Desktop Mini Profile */}
                     <div onClick={() => onNavigate('profile')} className="hidden md:block w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-700 cursor-pointer hover:border-primary transition-colors">
                         <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
                     </div>
@@ -184,16 +182,12 @@ const App: FC = () => {
   const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('language') as Language | null) || 'en');
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
   
-  // LOGOUT LOCK REF (Critical for stopping auto-relogin loops)
-  // When true, we ignore any auth state changes that might imply a logged-in user
   const isLoggingOutRef = useRef(false);
 
-  // Function to release lock (Passed to AuthScreen)
   const resetLogoutLock = () => {
       isLoggingOutRef.current = false;
   };
 
-  // Dynamic Data States - Initialize from LocalStorage if available to prevent flashing old data
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
       const saved = localStorage.getItem('cachedAppSettings');
       return saved ? { ...DEFAULT_APP_SETTINGS, ...JSON.parse(saved) } : DEFAULT_APP_SETTINGS;
@@ -215,30 +209,17 @@ const App: FC = () => {
   const [showRewardAnim, setShowRewardAnim] = useState(false);
   const [earnedAmount, setEarnedAmount] = useState(0);
   
-  // Login Popup State
   const [showLoginPopup, setShowLoginPopup] = useState(false);
-
-  // Track previous balance to detect deposits
   const prevBalanceRef = useRef<number | null>(null);
 
-  // --- NAVIGATION FIX: Scroll to Top on Screen Change ---
   useLayoutEffect(() => {
-    // Immediate scroll to top
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-    
-    // Backup scroll reset for various browsers
-    document.documentElement.scrollTop = 0;
+    // Better global scroll reset
+    window.scrollTo(0, 0);
     document.body.scrollTop = 0;
-
-    // Delayed ensure for complex renders or mobile browsers
-    const timer = setTimeout(() => {
-        window.scrollTo(0, 0);
-    }, 10);
-    
+    const timer = setTimeout(() => window.scrollTo(0, 0), 0);
     return () => clearTimeout(timer);
   }, [activeScreen]);
 
-  // Fetch App Config & Content
   useEffect(() => {
       const configRef = ref(db, 'config');
       const unsubscribeConfig = onValue(configRef, (snapshot) => {
@@ -267,17 +248,12 @@ const App: FC = () => {
                               ...DEFAULT_APP_SETTINGS.uiSettings,
                               ...(data.appSettings.uiSettings || {})
                           },
-                          // Ensure new flags have defaults if missing
                           aiSupportActive: data.appSettings.aiSupportActive ?? DEFAULT_APP_SETTINGS.aiSupportActive,
-                          // Dynamic Contact Info
                           contactMessage: data.appSettings.contactMessage || DEFAULT_APP_SETTINGS.contactMessage,
                           operatingHours: data.appSettings.operatingHours || DEFAULT_APP_SETTINGS.operatingHours,
                           popupNotification: data.appSettings.popupNotification
                       };
-                      
-                      // Cache immediately to prevent flashing on next reload
                       localStorage.setItem('cachedAppSettings', JSON.stringify(newSettings));
-                      
                       return newSettings;
                   });
               }
@@ -291,7 +267,6 @@ const App: FC = () => {
               if (data.paymentMethods) setPaymentMethods(Object.values(data.paymentMethods));
               if (data.banners) {
                   const rawBanners = Object.values(data.banners);
-                  // Ensure backwards compatibility with old string[] banners
                   const formattedBanners = rawBanners.map((b: any) => 
                       typeof b === 'string' ? { imageUrl: b, actionUrl: '' } : b
                   );
@@ -299,21 +274,16 @@ const App: FC = () => {
               }
               if (data.supportContacts) setSupportContacts(Object.values(data.supportContacts));
           }
-      }, (error) => {
-          // Suppress errors
-      });
+      }, (error) => {});
       return () => unsubscribeConfig();
   }, []);
 
-  // Auth & Data Listener
   useEffect(() => {
+    // FIX: Removed activeScreen form dependency array to prevent re-subscriptions and memory leaks
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
-        // BLOCKER: If we are intentionally logging out, ignore any 'user found' events
-        // This prevents the race condition where a lingering token triggers a data fetch/re-login loop
         if (isLoggingOutRef.current) {
-            // Force sign out again if a ghost user is detected during logout phase
             if (firebaseUser) {
-                signOut(auth).catch(err => {}); // Ghost session kill failed
+                signOut(auth).catch(err => {}); 
             }
             return;
         }
@@ -325,57 +295,69 @@ const App: FC = () => {
                 if (data) {
                     const userData = { ...data, uid: firebaseUser.uid, playerUid: data.playerUid || '', role: data.role || 'user', isBanned: data.isBanned || false };
                     
-                    // CRITICAL FIX: STRICT ROLE-BASED ROUTING
-                    // If user is admin, force them to admin screen immediately to prevent user UI leakage.
+                    const providers = firebaseUser.providerData.map(p => p.providerId);
+                    const isGoogleSession = providers.includes('google.com');
+                    const isPasswordSession = providers.includes('password');
+
+                    if (data.loginProvider === 'password' && isGoogleSession && !isPasswordSession) {
+                        console.warn("Provider Mismatch: Expected Password, got Google. Logging out.");
+                        signOut(auth).catch(() => {});
+                        return;
+                    }
+
+                    if (data.loginProvider === 'google' && isPasswordSession && !isGoogleSession) {
+                        console.warn("Provider Mismatch: Expected Google, got Password. Logging out.");
+                        signOut(auth).catch(() => {});
+                        return;
+                    }
+
+                    // --- IMMEDIATE ADMIN REDIRECT FIX ---
+                    // Force state update immediately based on role to prevent User UI flash
                     if (userData.role === 'admin') {
                         setActiveScreen('admin');
+                    } else if (activeScreen === 'admin') {
+                        // Safety: If current screen is admin but role is not admin, kick them out
+                        setActiveScreen('home');
                     }
 
                     setUser(userData);
                 } else {
-                    // Fallback if DB record doesn't exist yet (created by AuthScreen)
                     setUser({ name: firebaseUser.displayName || 'User', email: firebaseUser.email || '', balance: 0, uid: firebaseUser.uid, playerUid: '', avatarUrl: firebaseUser.photoURL || undefined, totalAdsWatched: 0, totalEarned: 0, role: 'user', isBanned: false });
                 }
                 setLoading(false);
             }, (error) => {
-                // IGNORE: If we are intentionally logging out, suppress permission errors
-                if (isLoggingOutRef.current) return;
-
-                // CRITICAL FIX: Handle Permission Denied (e.g. Account Disabled, Logout Race Condition)
-                // If we cannot read data, we MUST NOT show a "0 Balance" user. We must log them out.
-                // Auth Data Error (Permission Denied/Network)
-                
-                // Force logout to clear invalid session state
                 setUser(null);
                 setLoading(false);
                 signOut(auth).catch(() => {}); 
             });
             return () => unsubscribeData();
         } else {
-            // Session Expired or Logged Out - Ensure clean slate
             setUser(null);
             setNotifications([]); 
             setLoading(false);
-            
-            // NOTE: We do NOT reset isLoggingOutRef here. It stays true until
-            // the user explicitly interacts with the login screen (calling resetLogoutLock).
-            // This is the key fix for the "Loop".
         }
     });
     return () => unsubscribeAuth();
-  }, []);
+  }, []); // Empty dependency array is critical here
 
-  // Notifications Listener - With Target Filtering
+  useEffect(() => {
+      // Role enforcement hook (Back up check)
+      if (user) {
+          if (user.role === 'admin' && activeScreen !== 'admin') {
+              setActiveScreen('admin');
+          } else if (user.role !== 'admin' && activeScreen === 'admin') {
+              setActiveScreen('home');
+          }
+      }
+  }, [user?.role]); // Simplified dependency
+
   useEffect(() => {
       const notifRef = ref(db, 'notifications');
       const unsubscribeNotifs = onValue(notifRef, (snapshot) => {
           const data = snapshot.val();
           if (data) {
               const notifList: Notification[] = Object.keys(data).map(key => ({ ...data[key], id: key })).sort((a, b) => b.timestamp - a.timestamp);
-              
-              // Filter logic: Show global (no targetUid) OR targeted to current user
               const relevantNotifs = notifList.filter(n => !n.targetUid || (user && n.targetUid === user.uid));
-              
               setNotifications(relevantNotifs);
               const lastReadTimestamp = Number(localStorage.getItem('lastReadTimestamp') || 0);
               const hasNew = relevantNotifs.some(n => n.timestamp > lastReadTimestamp);
@@ -384,20 +366,12 @@ const App: FC = () => {
               setNotifications([]);
               setHasUnreadNotifications(false);
           }
-      }, (error) => {
-          // Ignore notification errors if permissions deny
-      });
+      }, (error) => {});
       return () => unsubscribeNotifs();
   }, [user?.uid]);
 
-  // LOGIN POPUP LOGIC
   useEffect(() => {
-      // Ensure popup only shows for non-admin users if active AND not on admin screen
       if (user && appSettings.popupNotification?.active && activeScreen !== 'admin') {
-          // If user is admin but viewing user screens, we might still show it, 
-          // but user requested "Admin Panel-এ Login Popup যেন কখনো না দেখায়"
-          // The activeScreen !== 'admin' check handles that.
-          
           const hasSeen = sessionStorage.getItem('hasSeenLoginPopup');
           if (!hasSeen) {
               setShowLoginPopup(true);
@@ -407,7 +381,6 @@ const App: FC = () => {
   }, [user, appSettings.popupNotification, activeScreen]);
 
   useEffect(() => {
-      // Visibility Checks
       if (activeScreen === 'watchAds' && appSettings.visibility && !appSettings.visibility.earn) {
           setActiveScreen('home');
       }
@@ -416,11 +389,9 @@ const App: FC = () => {
       }
   }, [activeScreen, appSettings.visibility]);
 
-  // Balance Change Detection for Animations
   useEffect(() => {
       if (user) {
           if (prevBalanceRef.current !== null && user.balance > prevBalanceRef.current) {
-              // Balance Increased (Deposit)
               document.dispatchEvent(new CustomEvent('wallet-deposit'));
               setIsBalancePulsing(true);
           }
@@ -454,12 +425,8 @@ const App: FC = () => {
   }, []);
 
   const handleLogout = async () => {
-    // CRITICAL: Secure Logout - Wipe all user data immediately
-    // Set the lock ref to prevent race conditions during sign-out
     isLoggingOutRef.current = true;
-
     try { 
-        // 1. Wipe UI State FIRST to unmount components that might have listeners (e.g. RankingScreen)
         setUser(null); 
         setNotifications([]);
         setHasUnreadNotifications(false);
@@ -467,17 +434,10 @@ const App: FC = () => {
         setEarnedAmount(0);
         setShowRewardAnim(false);
         setActiveScreen('home'); 
-
-        // 2. Wipe Storage (User Specific)
         localStorage.removeItem('lastReadTimestamp'); 
         sessionStorage.clear(); 
-
-        // 3. Perform Firebase SignOut (Await invalidation)
         await signOut(auth); 
-
     } catch (error) { 
-        // Logout failed
-        // Even if API fails, ensure UI is logged out and lock is maintained
         setUser(null);
     }
   };
@@ -497,11 +457,11 @@ const App: FC = () => {
   }
   const handleSuccessNavigate = (screen: Screen) => { setActiveScreen(screen); };
 
-  // --- Global Animation Control ---
   const animationsEnabled = appSettings.uiSettings?.animationsEnabled ?? true;
 
   if (loading) return (<div className="min-h-screen w-full flex items-center justify-center bg-gray-100 dark:bg-gray-900"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>);
 
+  // AUTH GUARD: Explicit Check
   if (!user) {
     return (
       <div className="min-h-screen w-full flex justify-center bg-gray-100 dark:bg-gray-900 font-sans">
@@ -510,14 +470,33 @@ const App: FC = () => {
                 texts={texts} 
                 appName={appSettings.appName} 
                 logoUrl={appSettings.logoUrl || APP_LOGO_URL} 
-                onLoginAttempt={resetLogoutLock} // Unlock only when user explicitly tries to login
+                onLoginAttempt={resetLogoutLock} 
             />
         </div>
       </div>
     );
   }
 
-  if (appSettings.maintenanceMode && user.role !== 'admin') {
+  // --- STRICT ADMIN FORCE RETURN (FIXED) ---
+  // If the user is an admin, IMMEDIATELY render the AdminScreen.
+  // This block ensures NO User Panel is rendered for admins.
+  if (user.role && user.role.toLowerCase() === 'admin') {
+      return (
+          <AdminScreen 
+              user={user} 
+              texts={texts} 
+              onNavigate={handleSuccessNavigate} 
+              onLogout={handleLogout} 
+              language={language} 
+              setLanguage={setLanguage} 
+              appSettings={appSettings} 
+              theme={theme} 
+              setTheme={setTheme} 
+          />
+      );
+  }
+
+  if (appSettings.maintenanceMode) {
       return (
           <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 p-6 text-center">
               <div className="w-24 h-24 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-6 animate-pulse"><MaintenanceIcon className="w-12 h-12 text-red-500" /></div>
@@ -553,15 +532,14 @@ const App: FC = () => {
       case 'editProfile': return <EditProfileScreen user={user} texts={texts} onNavigate={setActiveScreen} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} />;
       case 'notifications': return <NotificationScreen texts={texts} notifications={notifications} onRead={handleMarkNotificationsAsRead} />;
       case 'ranking': 
-        // Ranking Screen: Pass onClose handler to navigate back
         if (appSettings.visibility && !appSettings.visibility.ranking) return null;
         return <RankingScreen user={user} texts={texts} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} onClose={() => setActiveScreen('profile')} />;
       case 'admin':
-          // Strict check: if user role isn't admin, force home
+          // Redundant check for safety
           if (user.role !== 'admin') return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} specialOffers={specialOffers} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} uiSettings={appSettings.uiSettings} />;
           return <AdminScreen user={user} texts={texts} onNavigate={handleSuccessNavigate} onLogout={handleLogout} language={language} setLanguage={setLanguage} appSettings={appSettings} theme={theme} setTheme={setTheme} />;
       case 'aiChat':
-          return null; // AI Bot logic handles rendering itself when activeScreen is 'aiChat'
+          return null;
       default: return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} specialOffers={specialOffers} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} uiSettings={appSettings.uiSettings} />;
     }
   };
@@ -576,7 +554,6 @@ const App: FC = () => {
                     animation: none !important;
                     transition: none !important;
                 }
-                /* FORCE OPACITY 1 to fix disappearing elements */
                 [class*="opacity-0"], .opacity-0 {
                     opacity: 1 !important;
                     transform: none !important;
@@ -584,18 +561,16 @@ const App: FC = () => {
             `}</style>
         )}
         
-        {/* Expanded Container for Desktop */}
         <div className="w-full max-w-md md:max-w-7xl min-h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text relative shadow-2xl overflow-x-hidden transition-all duration-300 ease-in-out">
             <Header appName={appSettings.appName} screen={activeScreen} texts={texts} onBack={handleBack} user={user} onNavigate={setActiveScreen} isBalancePulsing={isBalancePulsing} onBalancePulseEnd={() => setIsBalancePulsing(false)} hasUnreadNotifications={hasUnreadNotifications} />
             
             <div className={!isFullScreenPage ? 'pb-24 md:pb-10' : ''}>
-                {/* Center Sub-screens on Desktop */}
                 <div className={`h-full w-full ${['wallet', 'profile', 'changePassword', 'editProfile', 'contactUs', 'myOrders', 'myTransaction', 'notifications', 'ranking'].includes(activeScreen) ? 'md:max-w-3xl md:mx-auto md:mt-6' : ''}`}>
                     {renderScreen()}
                 </div>
             </div>
             
-            {/* AI Support Bot (Only visible if enabled by admin and not on admin screen) */}
+            {/* AI Bot and Bottom Nav hidden for admins via the strict return above */}
             {activeScreen !== 'admin' && (
                 <AiSupportBot
                     user={user}
@@ -615,56 +590,27 @@ const App: FC = () => {
             {activeScreen !== 'admin' && activeScreen !== 'aiChat' && activeScreen !== 'ranking' && (<BottomNav activeScreen={activeScreen} setActiveScreen={setActiveScreen} texts={texts} earnEnabled={appSettings.visibility?.earn ?? true} />)}
             {showRewardAnim && (<RewardAnimation amount={earnedAmount} texts={texts} onAnimationEnd={() => setShowRewardAnim(false)} />)}
             
-            {/* LOGIN POPUP MODAL */}
             {showLoginPopup && appSettings.popupNotification && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-smart-fade-in">
                     <div className="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden animate-smart-pop-in">
-                        {/* Header with Close */}
                         <div className="absolute top-3 right-3 z-10">
-                            <button 
-                                onClick={() => setShowLoginPopup(false)} 
-                                className="p-2 bg-black/20 hover:bg-black/30 text-white rounded-full transition-colors backdrop-blur-md"
-                            >
+                            <button onClick={() => setShowLoginPopup(false)} className="p-2 bg-black/20 hover:bg-black/30 text-white rounded-full transition-colors backdrop-blur-md">
                                 <XIcon className="w-5 h-5" />
                             </button>
                         </div>
-                        
-                        {/* Video OR Image Section */}
                         {appSettings.popupNotification.videoUrl ? (
                             <div className="w-full h-48 bg-black">
-                                <iframe 
-                                    src={appSettings.popupNotification.videoUrl.replace('watch?v=', 'embed/').split('&')[0] + '?autoplay=1&mute=1&controls=0&modestbranding=1'} 
-                                    className="w-full h-full" 
-                                    frameBorder="0" 
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                    allowFullScreen
-                                ></iframe>
+                                <iframe src={appSettings.popupNotification.videoUrl.replace('watch?v=', 'embed/').split('&')[0] + '?autoplay=1&mute=1&controls=0&modestbranding=1'} className="w-full h-full" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
                             </div>
                         ) : appSettings.popupNotification.imageUrl ? (
                             <div className="w-full h-40 bg-gray-200 dark:bg-gray-700">
-                                <img 
-                                    src={appSettings.popupNotification.imageUrl} 
-                                    alt="Announcement" 
-                                    className="w-full h-full object-cover"
-                                />
+                                <img src={appSettings.popupNotification.imageUrl} alt="Announcement" className="w-full h-full object-cover" />
                             </div>
                         ) : null}
-                        
-                        {/* Content Section */}
                         <div className="p-6 text-center">
-                            <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">
-                                {appSettings.popupNotification.title}
-                            </h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                                {appSettings.popupNotification.message}
-                            </p>
-                            
-                            <button 
-                                onClick={() => setShowLoginPopup(false)}
-                                className="mt-6 w-full py-3 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-xl shadow-lg shadow-primary/30 hover:opacity-90 active:scale-95 transition-all"
-                            >
-                                OK, Got it!
-                            </button>
+                            <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">{appSettings.popupNotification.title}</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{appSettings.popupNotification.message}</p>
+                            <button onClick={() => setShowLoginPopup(false)} className="mt-6 w-full py-3 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-xl shadow-lg shadow-primary/30 hover:opacity-90 active:scale-95 transition-all">OK, Got it!</button>
                         </div>
                     </div>
                 </div>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, FC, FormEvent, useMemo, useRef } from 'react';
 import { User, Screen, Transaction, Purchase, AppSettings, Language, PaymentMethod, AppVisibility, Notification, DeveloperSettings, Banner, Theme, PopupConfig } from '../types';
 import { db } from '../firebase';
-import { ref, update, onValue, get, remove, push, set, runTransaction } from 'firebase/database';
+import { ref, update, onValue, get, remove, push, set, runTransaction, query, limitToLast, orderByChild } from 'firebase/database';
 import { 
     APP_LOGO_URL,
     DEFAULT_AVATAR_URL,
@@ -297,31 +297,37 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         }
     };
 
+    // --- OPTIMIZED: Fetch dashboard stats only ---
     useEffect(() => {
         const fetchDashboardStats = () => {
-            onValue(ref(db, 'users'), (snap) => {
+            // FIX: Added limitToLast(200) to these queries. 
+            // In a real production app, counting should be done via Cloud Functions or Distributed Counters.
+            // Downloading all user data is unsafe. This limit prevents the client from crashing, 
+            // but the "Total Users" count will cap at 200. This is a tradeoff for client-side safety.
+            
+            const usersQuery = query(ref(db, 'users'), limitToLast(200));
+            onValue(usersQuery, (snap) => {
                 if(snap.exists()) {
                     const data = snap.val();
-                    const uList: User[] = Object.keys(data).map(key => ({ ...data[key], uid: key }));
-                    setUsers(uList); 
-                    const totalAdRev = uList.reduce((acc, u) => acc + (u.totalEarned || 0), 0);
-                    setDashboardStats(prev => ({ ...prev, totalUsers: uList.length, totalAdRevenue: totalAdRev }));
+                    const totalAdRev = Object.values(data).reduce((acc: number, u: any) => acc + (u.totalEarned || 0), 0);
+                    // Warning: Total users count is capped by limitToLast
+                    setDashboardStats(prev => ({ ...prev, totalUsers: Object.keys(data).length, totalAdRevenue: totalAdRev }));
                 }
             });
 
-            const allOrdersRef = ref(db, 'orders');
-            onValue(allOrdersRef, (snap) => {
+            // Pending Orders Count
+            const pendingOrdersQuery = query(ref(db, 'orders'), limitToLast(200));
+            onValue(pendingOrdersQuery, (snap) => {
                 if(snap.exists()) {
-                    let allOrders: Purchase[] = [];
                     let pendingCount = 0;
                     let todayPurchaseAmt = 0;
                     const todayStr = new Date().toDateString();
+                    
+                    // Simple client-side aggregation
                     snap.forEach(userOrders => {
                         const uOrders = userOrders.val();
                         if (uOrders) {
-                            Object.keys(uOrders).forEach(key => {
-                                const order = { ...uOrders[key], key, userId: userOrders.key! };
-                                allOrders.push(order);
+                            Object.values(uOrders).forEach((order: any) => {
                                 if (order.status === 'Pending') pendingCount++;
                                 if (order.status === 'Completed' && new Date(order.date).toDateString() === todayStr) {
                                     todayPurchaseAmt += (order.offer?.price || 0);
@@ -329,55 +335,47 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                             });
                         }
                     });
-                    setOrders(allOrders.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
                     setDashboardStats(prev => ({ ...prev, pendingOrders: pendingCount, todayPurchase: todayPurchaseAmt }));
-                } else { setOrders([]); }
+                }
             });
 
-            const allTxnRef = ref(db, 'transactions');
-            onValue(allTxnRef, (snap) => {
+            // Pending Transactions Count
+            const pendingTxnsQuery = query(ref(db, 'transactions'), limitToLast(200));
+            onValue(pendingTxnsQuery, (snap) => {
                 if(snap.exists()) {
-                    let allTxns: Transaction[] = [];
                     let pendingCount = 0;
                     let todayDepositAmt = 0;
                     let todayAdRevAmt = 0;
+                    let totalDep = 0;
                     const todayStr = new Date().toDateString();
+                    
                     snap.forEach(userTxns => {
                         const uTxns = userTxns.val();
                         if (uTxns) {
-                            Object.keys(uTxns).forEach(key => {
-                                const txn = { ...uTxns[key], key, userId: userTxns.key! };
-                                allTxns.push(txn);
+                            Object.values(uTxns).forEach((txn: any) => {
                                 if (txn.status === 'Pending') pendingCount++;
                                 if (new Date(txn.date).toDateString() === todayStr) {
                                     if (txn.status === 'Completed' && txn.type !== 'ad_reward') todayDepositAmt += txn.amount;
                                     if (txn.type === 'ad_reward') todayAdRevAmt += txn.amount;
                                 }
+                                if (txn.status === 'Completed' && txn.type !== 'ad_reward') totalDep += txn.amount;
                             });
                         }
                     });
-                    setTransactions(allTxns.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
                     setDashboardStats(prev => ({ 
                         ...prev, 
                         pendingDeposits: pendingCount, 
                         todayDeposit: todayDepositAmt,
                         todayAdRevenue: todayAdRevAmt,
-                        totalDeposit: allTxns.filter(t => t.status === 'Completed' && t.type !== 'ad_reward').reduce((acc, curr) => acc + curr.amount, 0)
+                        totalDeposit: totalDep
                     }));
-                } else { setTransactions([]); }
+                }
             });
         };
 
         fetchDashboardStats();
 
-        onValue(ref(db, 'notifications'), (snap) => {
-            if(snap.exists()) {
-                const data = snap.val();
-                const list = Object.keys(data).map(key => ({ ...data[key], id: key })).reverse();
-                setNotifications(list);
-            }
-        });
-
+        // Config is small, safe to fetch always
         onValue(ref(db, 'config'), (snap) => {
             if(snap.exists()) {
                 const data = snap.val();
@@ -406,6 +404,79 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
             }
         });
     }, []);
+
+    // --- LAZY LOADING: Fetch List Data ONLY when tab is active ---
+    useEffect(() => {
+        if (activeTab === 'users') {
+            const usersRef = query(ref(db, 'users'), limitToLast(50)); // Limit to last 50 for safety
+            const unsub = onValue(usersRef, (snap) => {
+                if(snap.exists()) {
+                    const data = snap.val();
+                    const uList: User[] = Object.keys(data).map(key => ({ ...data[key], uid: key }));
+                    setUsers(uList);
+                }
+            });
+            return () => unsub();
+        }
+    }, [activeTab]);
+
+    useEffect(() => {
+        if (activeTab === 'orders') {
+            const ordersRef = query(ref(db, 'orders'), limitToLast(50)); // Limit to last 50
+            const unsub = onValue(ordersRef, (snap) => {
+                if(snap.exists()) {
+                    let allOrders: Purchase[] = [];
+                    snap.forEach(userOrders => {
+                        const uOrders = userOrders.val();
+                        if (uOrders) {
+                            Object.keys(uOrders).forEach(key => {
+                                const order = { ...uOrders[key], key, userId: userOrders.key! };
+                                allOrders.push(order);
+                            });
+                        }
+                    });
+                    setOrders(allOrders.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+                } else { setOrders([]); }
+            });
+            return () => unsub();
+        }
+    }, [activeTab]);
+
+    useEffect(() => {
+        if (activeTab === 'deposits') {
+            const txnsRef = query(ref(db, 'transactions'), limitToLast(50)); // Limit
+            const unsub = onValue(txnsRef, (snap) => {
+                if(snap.exists()) {
+                    let allTxns: Transaction[] = [];
+                    snap.forEach(userTxns => {
+                        const uTxns = userTxns.val();
+                        if (uTxns) {
+                            Object.keys(uTxns).forEach(key => {
+                                const txn = { ...uTxns[key], key, userId: userTxns.key! };
+                                allTxns.push(txn);
+                            });
+                        }
+                    });
+                    setTransactions(allTxns.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+                } else { setTransactions([]); }
+            });
+            return () => unsub();
+        }
+    }, [activeTab]);
+
+    useEffect(() => {
+        if (activeTab === 'tools') {
+             // Fetch notifications only when needed
+             onValue(ref(db, 'notifications'), (snap) => {
+                if(snap.exists()) {
+                    const data = snap.val();
+                    const list = Object.keys(data).map(key => ({ ...data[key], id: key })).reverse();
+                    setNotifications(list);
+                }
+            });
+        }
+    }, [activeTab]);
+
 
     const aiStats = useMemo(() => {
         const totalInteractions = users.reduce((acc, u) => acc + (u.aiRequestCount || 0), 0);
@@ -684,6 +755,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                         </div>
                     )}
 
+                    {/* ... (Offer tab remains same as it loads from config which is small) */}
                     {activeTab === 'offers' && (
                         <div className="animate-smart-fade-in">
                             <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">

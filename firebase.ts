@@ -2,20 +2,17 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getDatabase } from "firebase/database";
 
-const getEnvVar = (key: string) => {
-  // Check for Vite/ESM environment
+// Robust Environment Variable Helper for Vite
+const getEnvVar = (key: string): string => {
+  // Vite / ESM Environment
   if (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env[key]) {
     return (import.meta as any).env[key];
-  }
-  // Check for Node/Webpack environment
-  if (typeof process !== 'undefined' && process.env && process.env[key]) {
-    return process.env[key];
   }
   return "";
 };
 
-// Use the provided real keys as defaults. 
-// This ensures the app works even if environment variables are missing.
+// Use the provided real keys as defaults if env vars are missing.
+// Using VITE_ prefix is standard for Vite apps.
 const firebaseConfig = {
   apiKey: getEnvVar("VITE_FIREBASE_API_KEY") || "AIzaSyDqZcbgRV_XKh84Hz9XWoLi57OHJtSkWbI",
   authDomain: getEnvVar("VITE_FIREBASE_AUTH_DOMAIN") || "my-ff-shop-352fd.firebaseapp.com",

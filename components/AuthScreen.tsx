@@ -40,10 +40,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
   // --- VALIDATION RULES ---
 
-  // 1. Email: Strict Gmail Only
+  // 1. Email: Standard Email Validation (Fixed: Not just Gmail)
   const validateEmail = (val: string) => {
-      // Regex checks for alphanumeric chars, dots, underscores, plus, hyphen before @, then strictly gmail.com
-      return /^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(val);
+      // Standard regex for email validation
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
   };
 
   const isEmailValid = validateEmail(email);
@@ -51,12 +51,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   
   // 2. Name Validation
   const validateName = (val: string) => {
-      // Length Check: 6-15 chars
-      if (val.length < 6 || val.length > 15) return false;
-      
-      // Repeating Character Check: No more than 3 consecutive same characters (e.g. mmmm is bad)
-      if (/(.)\1\1\1/.test(val)) return false; 
-      
+      const trimmed = val.trim();
+      // Length Check: 3-20 chars (Relaxed slightly)
+      if (trimmed.length < 3 || trimmed.length > 20) return false;
       return true;
   };
 
@@ -68,8 +65,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   // Sanitization Handler for Name (Strict No Special Chars)
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
-      // Replace anything that is NOT a letter (a-z, A-Z) or a space.
-      // This strictly implements "No garbage names" and blocks # $ % & etc.
+      // Allow letters and spaces only
       const sanitized = raw.replace(/[^a-zA-Z\s]/g, '');
       setName(sanitized);
   };
@@ -124,6 +120,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           msg = "An account already exists with this email. Please sign in with your Password.";
       } else if (error.code === 'auth/unauthorized-domain') {
           msg = "Domain not authorized. Add to Firebase Console.";
+      } else if (error.code === 'auth/invalid-credential') {
+          msg = "Invalid configuration or credentials.";
       }
       setError(msg);
       setLoading(false);
@@ -146,23 +144,25 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
     }
 
     setLoading(true);
+    const trimmedEmail = email.trim();
+    const trimmedName = name.trim();
 
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword(auth, trimmedEmail, password);
       } else {
         if (password !== confirmPassword) {
             throw new Error(texts.passwordsDoNotMatch);
         }
         
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
         const user = userCredential.user;
         
-        await updateProfile(user, { displayName: name });
+        await updateProfile(user, { displayName: trimmedName });
 
         await set(ref(db, 'users/' + user.uid), {
-            name: name,
-            email: email,
+            name: trimmedName,
+            email: trimmedEmail,
             balance: 0,
             role: 'user',
             uid: user.uid,
@@ -190,6 +190,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           case 'auth/invalid-credential':
           case 'auth/invalid-login-credentials':
               msg = "Invalid email or password.";
+              break;
+          case 'auth/user-disabled':
+              msg = "This account has been disabled.";
               break;
           case 'auth/email-already-in-use':
               msg = "Email already in use.";
@@ -262,7 +265,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                         />
                     </div>
                     {/* Error Message for Name */}
-                    {nameTouched && !validateName(name) && <p className="text-red-500 text-xs mt-1 ml-1">Invalid name</p>}
+                    {nameTouched && !validateName(name) && <p className="text-red-500 text-xs mt-1 ml-1">Invalid name (3-20 letters)</p>}
                 </div>
             )}
 
@@ -288,7 +291,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                     />
                 </div>
                 {/* Error Message for Email */}
-                {emailTouched && !isEmailValid && <p className="text-red-500 text-xs mt-1 ml-1">Invalid email</p>}
+                {emailTouched && !isEmailValid && <p className="text-red-500 text-xs mt-1 ml-1">Invalid email address</p>}
             </div>
 
             <div>

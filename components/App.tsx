@@ -52,6 +52,9 @@ interface HeaderProps {
 }
 
 const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavigate, isBalancePulsing, onBalancePulseEnd, hasUnreadNotifications }) => {
+    // ADMIN CHECK: If user is admin, hide header (AdminScreen has its own)
+    if (user && user.role && user.role.toLowerCase() === 'admin') return null;
+
     const isSubScreen = (['myOrders', 'myTransaction', 'contactUs', 'wallet', 'changePassword', 'watchAds', 'editProfile', 'notifications'] as Screen[]).includes(screen);
     const titleMap: { [key in Screen]?: string } = {
         myOrders: texts.myOrders,
@@ -210,12 +213,10 @@ const App: FC = () => {
   const prevBalanceRef = useRef<number | null>(null);
 
   useLayoutEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-    document.documentElement.scrollTop = 0;
+    // Better global scroll reset
+    window.scrollTo(0, 0);
     document.body.scrollTop = 0;
-    const timer = setTimeout(() => {
-        window.scrollTo(0, 0);
-    }, 10);
+    const timer = setTimeout(() => window.scrollTo(0, 0), 0);
     return () => clearTimeout(timer);
   }, [activeScreen]);
 
@@ -278,6 +279,7 @@ const App: FC = () => {
   }, []);
 
   useEffect(() => {
+    // FIX: Removed activeScreen form dependency array to prevent re-subscriptions and memory leaks
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
         if (isLoggingOutRef.current) {
             if (firebaseUser) {
@@ -293,28 +295,20 @@ const App: FC = () => {
                 if (data) {
                     const userData = { ...data, uid: firebaseUser.uid, playerUid: data.playerUid || '', role: data.role || 'user', isBanned: data.isBanned || false };
                     
-                    // --- SESSION SECURITY: Enforce Provider Isolation ---
                     const providers = firebaseUser.providerData.map(p => p.providerId);
                     const isGoogleSession = providers.includes('google.com');
                     const isPasswordSession = providers.includes('password');
 
-                    // If DB says 'password' but we are in a Google session -> Logout
                     if (data.loginProvider === 'password' && isGoogleSession && !isPasswordSession) {
                         console.warn("Provider Mismatch: Expected Password, got Google. Logging out.");
                         signOut(auth).catch(() => {});
                         return;
                     }
 
-                    // If DB says 'google' but we are in a Password session -> Logout
                     if (data.loginProvider === 'google' && isPasswordSession && !isGoogleSession) {
                         console.warn("Provider Mismatch: Expected Google, got Password. Logging out.");
                         signOut(auth).catch(() => {});
                         return;
-                    }
-                    // --------------------------------------------------
-
-                    if (userData.role === 'admin') {
-                        setActiveScreen('admin');
                     }
 
                     setUser(userData);
@@ -335,7 +329,7 @@ const App: FC = () => {
         }
     });
     return () => unsubscribeAuth();
-  }, []);
+  }, []); // Empty dependency array is critical here
 
   useEffect(() => {
       const notifRef = ref(db, 'notifications');
@@ -447,6 +441,7 @@ const App: FC = () => {
 
   if (loading) return (<div className="min-h-screen w-full flex items-center justify-center bg-gray-100 dark:bg-gray-900"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>);
 
+  // AUTH GUARD: Explicit Check
   if (!user) {
     return (
       <div className="min-h-screen w-full flex justify-center bg-gray-100 dark:bg-gray-900 font-sans">
@@ -483,6 +478,25 @@ const App: FC = () => {
       )
   }
 
+  // --- STRICT ADMIN FORCE RETURN (FIXED & CASE INSENSITIVE) ---
+  // If the user is an admin, immediately render the AdminScreen and exit the function.
+  // This bypasses ALL User UI logic.
+  if (user.role && user.role.toLowerCase() === 'admin') {
+      return (
+          <AdminScreen 
+              user={user} 
+              texts={texts} 
+              onNavigate={handleSuccessNavigate} 
+              onLogout={handleLogout} 
+              language={language} 
+              setLanguage={setLanguage} 
+              appSettings={appSettings} 
+              theme={theme} 
+              setTheme={setTheme} 
+          />
+      );
+  }
+
   const renderScreen = () => {
     switch (activeScreen) {
       case 'home': return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} specialOffers={specialOffers} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} uiSettings={appSettings.uiSettings} />;
@@ -501,6 +515,7 @@ const App: FC = () => {
         if (appSettings.visibility && !appSettings.visibility.ranking) return null;
         return <RankingScreen user={user} texts={texts} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} onClose={() => setActiveScreen('profile')} />;
       case 'admin':
+          // Redundant check for safety
           if (user.role !== 'admin') return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} specialOffers={specialOffers} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} uiSettings={appSettings.uiSettings} />;
           return <AdminScreen user={user} texts={texts} onNavigate={handleSuccessNavigate} onLogout={handleLogout} language={language} setLanguage={setLanguage} appSettings={appSettings} theme={theme} setTheme={setTheme} />;
       case 'aiChat':
@@ -535,6 +550,7 @@ const App: FC = () => {
                 </div>
             </div>
             
+            {/* AI Bot and Bottom Nav hidden for admins via the strict return above */}
             {activeScreen !== 'admin' && (
                 <AiSupportBot
                     user={user}

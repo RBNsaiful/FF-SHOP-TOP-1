@@ -1,6 +1,5 @@
 
-
-
+// ... (Imports remain the same)
 import React, { useState, FC } from 'react';
 import type { User, Screen, Theme, Language, AppSettings } from '../types';
 import { DEFAULT_AVATAR_URL } from '../constants';
@@ -18,7 +17,7 @@ interface ProfileScreenProps {
   appSettings?: AppSettings;
 }
 
-// Icons
+// ... (Icons remain the same)
 const UserIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>);
 const PowerIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><path d="M12 2v10"/></svg>);
 const MyOrdersIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>);
@@ -150,16 +149,13 @@ const ProfileScreen: FC<ProfileScreenProps> = ({ user, texts, onLogout, setActiv
         { label: texts.changePassword, icon: KeyIcon, action: () => setActiveScreen('changePassword') }
     ];
 
-    // Add Ranking if Enabled (Checking explicitly against true/undefined to be safe, defaulting to true if not present in DB yet)
+    // Add Ranking if Enabled
     if (appSettings?.visibility?.ranking !== false) {
-        // Insert after 'Add Funds' (index 3) to be prominent
         menuItems.splice(3, 0, { label: texts.ranking, icon: TrophyIcon, action: () => setActiveScreen('ranking') });
     }
 
-    // Admin Access Item
-    if (user.role === 'admin') {
-        menuItems.push({ label: "Admin Panel", icon: ShieldIcon, action: () => setActiveScreen('admin') });
-    }
+    // REMOVED ADMIN BUTTON: Admins are now auto-redirected by App.tsx router.
+    // If they somehow land here, they are treated as users to prevent mixed UI states.
 
     const devInfo = appSettings?.developerSettings || {
         message: "Developed by",
