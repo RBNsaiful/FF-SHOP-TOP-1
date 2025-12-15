@@ -22,6 +22,7 @@ import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { ref, onValue } from 'firebase/database';
 
+// ... (Icons remain same)
 const ArrowLeftIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>);
 const WalletHeaderIcon: FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -37,6 +38,7 @@ const MaintenanceIcon: FC<{className?: string}> = ({className}) => (
 );
 const XIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>);
 
+// ... (Header component remains same)
 interface HeaderProps {
     appName: string;
     screen: Screen;
@@ -291,6 +293,26 @@ const App: FC = () => {
                 if (data) {
                     const userData = { ...data, uid: firebaseUser.uid, playerUid: data.playerUid || '', role: data.role || 'user', isBanned: data.isBanned || false };
                     
+                    // --- SESSION SECURITY: Enforce Provider Isolation ---
+                    const providers = firebaseUser.providerData.map(p => p.providerId);
+                    const isGoogleSession = providers.includes('google.com');
+                    const isPasswordSession = providers.includes('password');
+
+                    // If DB says 'password' but we are in a Google session -> Logout
+                    if (data.loginProvider === 'password' && isGoogleSession && !isPasswordSession) {
+                        console.warn("Provider Mismatch: Expected Password, got Google. Logging out.");
+                        signOut(auth).catch(() => {});
+                        return;
+                    }
+
+                    // If DB says 'google' but we are in a Password session -> Logout
+                    if (data.loginProvider === 'google' && isPasswordSession && !isGoogleSession) {
+                        console.warn("Provider Mismatch: Expected Google, got Password. Logging out.");
+                        signOut(auth).catch(() => {});
+                        return;
+                    }
+                    // --------------------------------------------------
+
                     if (userData.role === 'admin') {
                         setActiveScreen('admin');
                     }
@@ -301,7 +323,6 @@ const App: FC = () => {
                 }
                 setLoading(false);
             }, (error) => {
-                // If permission denied, likely deleted user or security rule block
                 setUser(null);
                 setLoading(false);
                 signOut(auth).catch(() => {}); 
