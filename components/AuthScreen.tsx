@@ -66,6 +66,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           case 'auth/too-many-requests': return "Too many failed attempts. Try later."; 
           case 'auth/email-already-in-use': return "Email already in use. Please login.";
           case 'auth/weak-password': return "Password should be at least 6 characters.";
+          case 'auth/network-request-failed': return "Network error. Check your connection.";
           default: return message || "Authentication failed.";
       }
   };
@@ -115,7 +116,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
               throw new Error("This email is registered with Password. Please use Email & Password Login.");
           }
 
-          // Ensure loginProvider is set to 'google' (migration/fix)
+          // Ensure loginProvider is set to 'google' (Legacy Migration)
           if (userData.loginProvider !== 'google') {
               await update(userRef, { loginProvider: 'google' });
           }
