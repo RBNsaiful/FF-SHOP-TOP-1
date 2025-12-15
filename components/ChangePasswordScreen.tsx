@@ -1,6 +1,7 @@
+
 import React, { useState, FC, FormEvent } from 'react';
 import { auth } from '../firebase';
-import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
 import AdRenderer from './AdRenderer';
 
 const EyeIcon: FC<{className?: string}> = ({className}) => (
@@ -17,6 +18,10 @@ const KeyIcon: FC<{className?: string}> = ({className}) => (
 
 const CheckCircleIcon: FC<{className?: string}> = ({className}) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01" /></svg>
+);
+
+const MailIcon: FC<{className?: string}> = ({className}) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
 );
 
 interface ChangePasswordScreenProps {
@@ -36,6 +41,11 @@ const ChangePasswordScreen: FC<ChangePasswordScreenProps> = ({ texts, onPassword
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  // Email Reset State
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetError, setResetError] = useState('');
 
   // Button Activation Logic
   const isFormValid = 
@@ -81,10 +91,32 @@ const ChangePasswordScreen: FC<ChangePasswordScreenProps> = ({ texts, onPassword
     }
   };
 
+  const handleResetViaEmail = async () => {
+      const user = auth.currentUser;
+      if (!user || !user.email) {
+          setResetError(texts.invalidEmail);
+          return;
+      }
+
+      setResetLoading(true);
+      setResetMessage('');
+      setResetError('');
+
+      try {
+          await sendPasswordResetEmail(auth, user.email);
+          setResetMessage(texts.resetEmailSent);
+      } catch (err) {
+          console.error(err);
+          setResetError(texts.invalidEmail);
+      } finally {
+          setResetLoading(false);
+      }
+  };
+
   return (
     <div className="p-4 animate-smart-fade-in pb-24">
       <div className="max-w-md mx-auto">
-         <form onSubmit={handleSubmit} className="bg-light-card dark:bg-dark-card rounded-2xl shadow-lg p-6 space-y-6 border border-gray-100 dark:border-gray-800">
+         <div className="bg-light-card dark:bg-dark-card rounded-2xl shadow-lg p-6 space-y-6 border border-gray-100 dark:border-gray-800">
             
             {/* Header Icon Only - Duplicate Text Removed */}
             <div className="text-center mb-2">
@@ -93,7 +125,7 @@ const ChangePasswordScreen: FC<ChangePasswordScreenProps> = ({ texts, onPassword
                 </div>
             </div>
 
-            <div className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Current Password */}
                 <div>
                     <label className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-2 block ml-1">{texts.currentPassword}</label>
@@ -164,37 +196,63 @@ const ChangePasswordScreen: FC<ChangePasswordScreenProps> = ({ texts, onPassword
                         <p className="text-red-500 text-[10px] mt-1 ml-1 font-bold animate-fade-in">{texts.passwordsDoNotMatch}</p>
                     )}
                 </div>
-            </div>
 
-            {error && (
-                <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs rounded-lg font-bold text-center animate-pulse border border-red-200 dark:border-red-800">
-                    {error}
+                {error && (
+                    <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs rounded-lg font-bold text-center animate-pulse border border-red-200 dark:border-red-800">
+                        {error}
+                    </div>
+                )}
+
+                {success && (
+                    <div className="p-3 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs rounded-lg font-bold text-center animate-bounce flex items-center justify-center gap-2 border border-green-200 dark:border-green-800">
+                        <CheckCircleIcon className="w-4 h-4" /> {texts.passwordChangedSuccess}
+                    </div>
+                )}
+
+                <div className="pt-2">
+                    <button 
+                        type="submit" 
+                        disabled={loading || success || !isFormValid}
+                        className={`w-full py-4 rounded-2xl font-bold text-white shadow-lg flex items-center justify-center transition-all duration-300
+                            ${loading || success
+                                ? 'bg-gray-400 cursor-not-allowed shadow-none' 
+                                : !isFormValid 
+                                    ? 'bg-gradient-to-r from-primary to-secondary opacity-50 cursor-not-allowed shadow-none'
+                                    : 'bg-gradient-to-r from-primary to-secondary hover:opacity-95 active:scale-95 shadow-primary/30 cursor-pointer'
+                            }
+                        `}
+                    >
+                        {loading ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> : texts.updatePassword}
+                    </button>
                 </div>
-            )}
+            </form>
 
-            {success && (
-                <div className="p-3 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs rounded-lg font-bold text-center animate-bounce flex items-center justify-center gap-2 border border-green-200 dark:border-green-800">
-                    <CheckCircleIcon className="w-4 h-4" /> {texts.passwordChangedSuccess}
-                </div>
-            )}
+            <div className="w-full h-px bg-gray-100 dark:bg-gray-800 my-4"></div>
 
-            <div className="pt-4">
+            {/* Reset via Email Section */}
+            <div className="text-center space-y-3">
                 <button 
-                    type="submit" 
-                    disabled={loading || success || !isFormValid}
-                    className={`w-full py-4 rounded-2xl font-bold text-white shadow-lg flex items-center justify-center transition-all duration-300
-                        ${loading || success
-                            ? 'bg-gray-400 cursor-not-allowed shadow-none' 
-                            : !isFormValid 
-                                ? 'bg-gradient-to-r from-primary to-secondary opacity-50 cursor-not-allowed shadow-none'
-                                : 'bg-gradient-to-r from-primary to-secondary hover:opacity-95 active:scale-95 shadow-primary/30 cursor-pointer'
-                        }
-                    `}
+                    type="button" 
+                    onClick={handleResetViaEmail} 
+                    disabled={resetLoading}
+                    className="w-full py-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-primary font-bold rounded-2xl border border-gray-200 dark:border-gray-700 transition-colors flex items-center justify-center gap-2 active:scale-95"
                 >
-                    {loading ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> : texts.updatePassword}
+                    {resetLoading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div> : <MailIcon className="w-4 h-4" />}
+                    <span>{texts.resetViaEmail}</span>
                 </button>
+                {resetMessage && (
+                    <div className="p-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-xs rounded-lg font-bold border border-green-100 dark:border-green-800 animate-fade-in">
+                        {resetMessage}
+                    </div>
+                )}
+                {resetError && (
+                    <div className="p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs rounded-lg font-bold border border-red-100 dark:border-red-800 animate-fade-in">
+                        {resetError}
+                    </div>
+                )}
             </div>
-         </form>
+
+         </div>
       </div>
 
         {/* --- FOOTER ADVERTISEMENT --- */}
