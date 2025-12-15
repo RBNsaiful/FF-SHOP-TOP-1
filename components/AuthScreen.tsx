@@ -1,8 +1,8 @@
 
 import React, { useState, FC, FormEvent } from 'react';
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { ref, set, get, update } from 'firebase/database';
+import { ref, set, get } from 'firebase/database';
 
 interface AuthScreenProps {
   texts: any;
@@ -29,7 +29,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const [confirmPassword, setConfirmPassword] = useState('');
   
   const [name, setName] = useState('');
-  const [nameTouched, setNameTouched] = useState(false); // Track if user left the field
+  const [nameTouched, setNameTouched] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,13 +38,25 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Form Validation Logic
-  const isEmailValid = email.includes('@') && email.includes('.');
+  // --- VALIDATION RULES ---
+
+  // 1. Email: Strict Gmail Only
+  const validateEmail = (val: string) => {
+      // Regex checks for alphanumeric chars, dots, underscores, plus, hyphen before @, then strictly gmail.com
+      return /^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(val);
+  };
+
+  const isEmailValid = validateEmail(email);
   const isPasswordValid = password.length >= 6;
   
-  // Name Validation: 6-15 chars
+  // 2. Name Validation
   const validateName = (val: string) => {
+      // Length Check: 6-15 chars
       if (val.length < 6 || val.length > 15) return false;
+      
+      // Repeating Character Check: No more than 3 consecutive same characters (e.g. mmmm is bad)
+      if (/(.)\1\1\1/.test(val)) return false; 
+      
       return true;
   };
 
@@ -52,56 +65,39 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   
   const isFormValid = isEmailValid && isPasswordValid && isNameValid && doPasswordsMatch;
 
-  // Sanitization Handler
+  // Sanitization Handler for Name (Strict No Special Chars)
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
-      const sanitized = raw.replace(/[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/g, '');
+      // Replace anything that is NOT a letter (a-z, A-Z) or a space.
+      // This strictly implements "No garbage names" and blocks # $ % & etc.
+      const sanitized = raw.replace(/[^a-zA-Z\s]/g, '');
       setName(sanitized);
-      if (nameTouched) setNameTouched(false);
   };
 
   const handleNameBlur = () => {
       setNameTouched(true);
   };
 
-  // --- GOOGLE LOGIN WITH STRICT PROVIDER ISOLATION ---
+  const handleEmailBlur = () => {
+      setEmailTouched(true);
+  };
+
   const handleGoogleLogin = async () => {
-    // UNLOCK LOGOUT STATE
+    // UNLOCK LOGOUT STATE: User is explicitly trying to login
     onLoginAttempt();
-    setError('');
+
+    const provider = new GoogleAuthProvider();
     setLoading(true);
-
     try {
-      const provider = new GoogleAuthProvider();
-      // Force account selection prompt to avoid auto-login loops with wrong account
-      provider.setCustomParameters({ prompt: 'select_account' });
-
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // 1. Check Database immediately
       const userRef = ref(db, 'users/' + user.uid);
       const snapshot = await get(userRef);
 
       if (snapshot.exists()) {
-          const userData = snapshot.val();
-          
-          // 2. CRITICAL SECURITY CHECK
-          // If the user previously registered with 'password', BLOCK Google Login.
-          if (userData.loginProvider === 'password') {
-              // Sign out immediately to prevent session creation
-              await signOut(auth);
-              throw new Error("This email is registered with Password. Please login using Email & Password.");
-          }
-
-          // Legacy support: If no loginProvider exists but user exists, assume 'google' if we are here, 
-          // or update it to ensure consistency.
-          if (userData.loginProvider !== 'google') {
-              await update(userRef, { loginProvider: 'google' });
-          }
-          console.log("Verified Google User.");
+          console.log("Existing user logged in via Google. Data preserved.");
       } else {
-          // 3. New User Registration via Google
           await set(userRef, {
             name: user.displayName || 'User',
             email: user.email || '',
@@ -110,26 +106,20 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             uid: user.uid,
             totalEarned: 0,
             totalAdsWatched: 0,
-            isBanned: false,
-            loginProvider: 'google' // Enforce 'google' provider
+            isBanned: false
         });
       }
       setSuccess(true);
     } catch (error: any) {
       console.error("Google Login failed", error);
-      
-      // Ensure session is cleared if any error occurs
-      if (auth.currentUser) await signOut(auth);
-
       let msg = "Google Login Failed.";
       if (error.code === 'auth/popup-closed-by-user') {
           msg = "Login canceled.";
       } else if (error.code === 'auth/account-exists-with-different-credential') {
-          msg = "An account already exists. Please sign in with your Email & Password.";
-      } else if (error.message) {
-          msg = error.message; // Show our custom error message
+          msg = "An account already exists with this email. Please sign in with your Password.";
+      } else if (error.code === 'auth/unauthorized-domain') {
+          msg = "Domain not authorized. Add to Firebase Console.";
       }
-      
       setError(msg);
       setLoading(false);
     }
@@ -139,14 +129,14 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
     e.preventDefault();
     setError('');
 
+    // Force touch states on submit to show errors if fields are empty/invalid
+    if (!isLogin) setNameTouched(true);
+    setEmailTouched(true);
+
     // UNLOCK LOGOUT STATE
     onLoginAttempt();
 
     if (!isFormValid) {
-        if (!isLogin && !validateName(name)) {
-             setNameTouched(true);
-             return;
-        }
         return;
     }
 
@@ -154,39 +144,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
     try {
       if (isLogin) {
-        // LOGIN FLOW
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        // DB Check for Provider Isolation (Optional but recommended for consistency)
-        const userRef = ref(db, 'users/' + user.uid);
-        const snapshot = await get(userRef);
-        
-        if (snapshot.exists()) {
-            const userData = snapshot.val();
-            // If registered with Google, block Password login
-            if (userData.loginProvider === 'google') {
-                await signOut(auth);
-                throw new Error("This email is registered with Google. Please use Google Login.");
-            }
-        } else {
-            // Should theoretically not happen for existing auth users without DB record, 
-            // but we can create a record here if missing.
-             await set(userRef, {
-                name: user.displayName || 'User',
-                email: user.email || '',
-                balance: 0,
-                role: 'user',
-                uid: user.uid,
-                totalEarned: 0,
-                totalAdsWatched: 0,
-                isBanned: false,
-                loginProvider: 'password'
-            });
-        }
-
+        await signInWithEmailAndPassword(auth, email, password);
       } else {
-        // REGISTER FLOW
         if (password !== confirmPassword) {
             throw new Error(texts.passwordsDoNotMatch);
         }
@@ -204,8 +163,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             uid: user.uid,
             totalEarned: 0,
             totalAdsWatched: 0,
-            isBanned: false,
-            loginProvider: 'password' // Enforce 'password' provider
+            isBanned: false
         });
       }
       setLoading(false);
@@ -213,10 +171,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
     } catch (err: any) {
       console.error(err);
       setLoading(false);
-      
-      // Clear session on error
-      if (auth.currentUser) await signOut(auth);
-
       let msg = "Authentication failed.";
       if (err.code === 'auth/invalid-email') msg = texts.emailInvalid;
       if (err.code === 'auth/user-not-found') msg = "No account found.";
@@ -224,8 +178,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       if (err.code === 'auth/email-already-in-use') msg = "Email already in use.";
       if (err.code === 'auth/weak-password') msg = "Password too weak (min 6 chars).";
       if (err.code === 'auth/invalid-credential') msg = "Invalid email or password.";
-      if (err.message) msg = err.message;
-      
+      if (err.message === texts.passwordsDoNotMatch) msg = texts.passwordsDoNotMatch;
       setError(msg);
     }
   };
@@ -238,7 +191,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           {/* App Header */}
           <div className="flex flex-col items-center mb-6 mt-20">
               <div className="relative mb-2"> 
-                  <div className="w-24 h-24 rounded-full bg-white dark:bg-dark-card p-1 shadow-md ring-1 ring-gray-200 dark:ring-gray-700">
+                  {/* 3. LOGO SIZE FIX: Reduced from w-24 (96px) to w-[5.5rem] (88px) - Approx 8-10% smaller */}
+                  <div className="w-[5.5rem] h-[5.5rem] rounded-full bg-white dark:bg-dark-card p-1 shadow-md ring-1 ring-gray-200 dark:ring-gray-700">
                       <img src={logoUrl} alt={appName} className="w-full h-full object-cover rounded-full" />
                   </div>
               </div>
@@ -272,6 +226,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                             required={!isLogin}
                         />
                     </div>
+                    {/* Error Message for Name */}
                     {nameTouched && !validateName(name) && <p className="text-red-500 text-xs mt-1 ml-1">Invalid name</p>}
                 </div>
             )}
@@ -286,11 +241,19 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        onBlur={handleEmailBlur}
                         placeholder="Email"
-                        className="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium text-gray-800 dark:text-white"
+                        className={`w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-card border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
+                            ${emailTouched && !isEmailValid 
+                                ? 'border-red-500 focus:ring-red-500' 
+                                : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
+                            }
+                        `}
                         required
                     />
                 </div>
+                {/* Error Message for Email */}
+                {emailTouched && !isEmailValid && <p className="text-red-500 text-xs mt-1 ml-1">Invalid email</p>}
             </div>
 
             <div>
@@ -357,8 +320,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                 className={`w-full h-14 font-bold rounded-xl flex justify-center items-center transition-all duration-200
                     bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30
                     ${!isFormValid || loading || success
-                        ? 'opacity-50 cursor-not-allowed' // 50% opacity for inactive
-                        : 'opacity-100 hover:opacity-90 active:scale-[0.98]' // 100% opacity for active
+                        ? 'opacity-50 cursor-not-allowed' 
+                        : 'opacity-100 hover:opacity-90 active:scale-[0.98]'
                     }
                 `}
             >
@@ -381,7 +344,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           </form>
 
           {/* Divider */}
-          <div className="relative flex py-4 items-center w-full"> {/* Reduced spacing to move bottom elements up */}
+          <div className="relative flex py-4 items-center w-full"> 
                 <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
                 <span className="flex-shrink-0 mx-4 text-gray-400 dark:text-gray-500 text-xs font-medium">Or</span>
                 <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
@@ -404,7 +367,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
               <p className="text-sm text-gray-600 dark:text-gray-400">
                   {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
                   <button 
-                    onClick={() => { setIsLogin(!isLogin); setError(''); setPassword(''); setConfirmPassword(''); setNameTouched(false); setSuccess(false); }}
+                    onClick={() => { setIsLogin(!isLogin); setError(''); setPassword(''); setConfirmPassword(''); setNameTouched(false); setEmailTouched(false); setSuccess(false); }}
                     className="text-primary font-bold hover:underline transition-colors ml-1"
                   >
                       {isLogin ? "Register" : "Login"}
