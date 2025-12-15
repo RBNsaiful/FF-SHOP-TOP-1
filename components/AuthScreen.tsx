@@ -190,11 +190,16 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           
           {/* App Header */}
           <div className="flex flex-col items-center mb-6 mt-20">
-              <div className="relative mb-2"> 
-                  {/* 3. LOGO SIZE FIX: Reduced from w-24 (96px) to w-[5.5rem] (88px) - Approx 8-10% smaller */}
-                  <div className="w-[5.5rem] h-[5.5rem] rounded-full bg-white dark:bg-dark-card p-1 shadow-md ring-1 ring-gray-200 dark:ring-gray-700">
-                      <img src={logoUrl} alt={appName} className="w-full h-full object-cover rounded-full" />
-                  </div>
+              <div className="relative mb-2 min-h-[5.5rem] flex items-center justify-center"> 
+                  {/* LOGO SIZE: w-[5.5rem] (88px) */}
+                  {logoUrl ? (
+                      <div className="w-[5.5rem] h-[5.5rem] rounded-full bg-white dark:bg-dark-card p-1 shadow-md ring-1 ring-gray-200 dark:ring-gray-700 animate-smart-pop-in">
+                          <img src={logoUrl} alt={appName} className="w-full h-full object-cover rounded-full" />
+                      </div>
+                  ) : (
+                      // Transparent placeholder to hold layout
+                      <div className="w-[5.5rem] h-[5.5rem] rounded-full bg-transparent"></div>
+                  )}
               </div>
               <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mt-2">
                 {appName}

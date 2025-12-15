@@ -1,7 +1,7 @@
 
 import type { DiamondOffer, PaymentMethod, SupportContact, LevelUpPackage, Membership, PremiumApp, Banner } from './types';
 
-export const APP_LOGO_URL = 'https://i.ibb.co/k2nGxqwY/1763225878291.jpg';
+export const APP_LOGO_URL = ''; // REMOVED HARDCODED DEFAULT LOGO
 export const DEFAULT_AVATAR_URL = 'https://i.ibb.co/k2nGxqwY/1763225878291.jpg';
 
 // --- SECURITY KEY FOR DEVELOPER SETTINGS ---
