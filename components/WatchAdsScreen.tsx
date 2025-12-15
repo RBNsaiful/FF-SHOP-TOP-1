@@ -49,6 +49,7 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
     const [showVpnWarning, setShowVpnWarning] = useState(false);
     const [vpnMode, setVpnMode] = useState<'notice' | 'force'>('notice');
     const [isAdLoading, setIsAdLoading] = useState(false); // Track ad loading state
+    const [isCheckingVpn, setIsCheckingVpn] = useState(false); // New state for checking VPN
     
     const cooldownTimerRef = useRef<number | null>(null);
     const resetTimerRef = useRef<number | null>(null);
@@ -145,8 +146,8 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
 
 
     // --- Main Action Handler ---
-    const handleStartAd = () => {
-        if (isAdLoading) return; // Prevent double taps
+    const handleStartAd = async () => {
+        if (isAdLoading || isCheckingVpn) return; // Prevent double taps
 
         // 1. Check Limits
         if ((user.adsWatchedInfo?.count || 0) >= dailyLimit) {
@@ -155,24 +156,34 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
         }
         if (adCooldown > 0) return;
 
-        // 2. APK Logic (Simulated Native Check)
         // @ts-ignore
-        const isApk = !!(window.admob || window.AdMob); // Native plugin detection
+        const isApk = !!(window.admob || window.AdMob || window.Android); 
 
-        if (isApk) {
-            // --- APK LOGIC ---
-            if (earnSettings?.vpnRequired) {
-                // FORCE MODE: Always show popup -> YES -> Check VPN -> Load
+        // 2. FORCE MODE CHECK (Global - Web & APK)
+        // SILENT CHECK FIRST: Don't annoy the user if they are already connected.
+        if (earnSettings?.vpnRequired) {
+            setIsCheckingVpn(true); // Show spinner on button
+            const isVpnConnected = await checkIpLocation();
+            setIsCheckingVpn(false);
+
+            if (isVpnConnected) {
+                // VPN IS GOOD: Proceed to play ad without popup
+                playAdMobAd();
+            } else {
+                // VPN IS BAD: Show Popup Warning
                 setVpnMode('force');
                 setShowVpnWarning(true);
-            } else {
-                // No VPN required: Just play
-                playAdMobAd();
             }
             return;
         }
 
-        // 3. Web Logic
+        // 3. APK Only Logic (If Force Mode is OFF)
+        if (isApk) {
+            playAdMobAd();
+            return;
+        }
+
+        // 4. Web Logic (If Force Mode is OFF)
         // Check for Web Notice Toggle
         if (earnSettings?.vpnNoticeActive) {
             const hasSeenNotice = sessionStorage.getItem('vpn_notice_seen');
@@ -193,11 +204,10 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
         }
     };
 
-    const handleConfirmVpnPopup = () => {
-        setShowVpnWarning(false);
-
+    const handleConfirmVpnPopup = async () => {
         if (vpnMode === 'notice') {
-            // WEB: Mark as seen for session, then load ad
+            setShowVpnWarning(false);
+            // WEB: Mark as seen for session, then load ad (No strict check for notice mode)
             sessionStorage.setItem('vpn_notice_seen', 'true');
             if (adMobActive) {
                 playAdMobAd();
@@ -205,8 +215,40 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
                 playWebAd();
             }
         } else {
-            // APK FORCE MODE: Check VPN Status Here
-            checkNativeVpnAndLoad();
+            // FORCE MODE: User says "Yes I Connected", so we check again.
+            setIsCheckingVpn(true);
+            const isVpnConnected = await checkIpLocation();
+            setIsCheckingVpn(false);
+
+            if (isVpnConnected) {
+                setShowVpnWarning(false);
+                playAdMobAd(); 
+            } else {
+                alert("❌ VPN Not Detected or Wrong Country! Please connect to US, UK, CA, DE, or AU.");
+            }
+        }
+    };
+
+    // --- REAL IP CHECK FUNCTION ---
+    const checkIpLocation = async (): Promise<boolean> => {
+        try {
+            // Using a free IP geolocation API
+            const response = await fetch('https://ipapi.co/json/');
+            const data = await response.json();
+            
+            // List of High CPM Countries
+            const allowedCountries = ['US', 'GB', 'CA', 'DE', 'AU'];
+            
+            if (data && data.country_code) {
+                console.log("User Country:", data.country_code);
+                return allowedCountries.includes(data.country_code);
+            }
+            return false;
+        } catch (error) {
+            console.error("IP Check Failed", error);
+            // Fallback: If API fails, we generally allow it to avoid blocking legit users due to network error, 
+            // OR return false if we want to be strict.
+            return true; 
         }
     };
 
@@ -241,20 +283,7 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
         }
     };
 
-    // --- APK AD LOGIC (Placeholder) ---
-    const checkNativeVpnAndLoad = async () => {
-        // TODO: Call Native VPN Checker Plugin here
-        // const isVpn = await NativeVPN.check();
-        const isVpn = true; // Placeholder for now
-
-        if (isVpn) {
-            playAdMobAd();
-        } else {
-            alert("VPN Not Connected! Please connect to US/UK VPN.");
-        }
-    };
-
-    // --- ADMOB LOGIC (Improved Future-Proof) ---
+    // --- ADMOB LOGIC ---
     const playAdMobAd = async () => {
         setIsAdLoading(true);
 
@@ -267,48 +296,35 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
             
             try {
                 // A. CREATE REWARD VIDEO INSTANCE
-                // Using standard AdMob Plus syntax (Instance-based)
                 // @ts-ignore
                 const rewardVideo = new nativeAdMob.RewardVideo({
                     id: adMobRewardId || 'ca-app-pub-3940256099942544/5224354917' // Use Test ID if admin ID missing
                 });
 
-                // B. ONE-TIME LISTENER SETUP (Critical for Future-Proofing)
-                // We use 'once' logic or cleanup to prevent duplicate rewards.
-                
-                // Load Event
+                // B. LISTENERS
                 // @ts-ignore
-                const loadListener = rewardVideo.on('load', async () => {
-                    console.log('AdMob Video Loaded');
+                rewardVideo.on('load', async () => {
                     await rewardVideo.show();
                 });
 
-                // Reward Event
                 // @ts-ignore
-                const rewardListener = rewardVideo.on('reward', (evt) => {
-                    console.log('💰 AdMob Reward Earned!');
-                    handleRewardClaim(); // Secure server-side claim logic
+                rewardVideo.on('reward', (evt) => {
+                    handleRewardClaim(); 
                 });
 
-                // Close/Dismiss Event (Cleanup)
                 // @ts-ignore
-                const closeListener = rewardVideo.on('dismiss', () => {
-                    console.log('AdMob Video Closed');
+                rewardVideo.on('dismiss', () => {
                     setIsAdLoading(false);
-                    // CLEANUP: Ensure we don't duplicate listeners next time
-                    // NOTE: AdMob Plus instances are usually disposable, but this is safe practice.
                 });
 
-                // Load Fail Event
                 // @ts-ignore
-                const failListener = rewardVideo.on('loadfail', (err) => {
+                rewardVideo.on('loadfail', (err) => {
                     console.error('AdMob Load Failed:', err);
                     setIsAdLoading(false);
                     alert("Ad failed to load. Please try again or check connection.");
                 });
 
                 // C. TRIGGER LOAD
-                console.log("Loading AdMob Video...");
                 await rewardVideo.load();
 
             } catch (err) {
@@ -464,12 +480,21 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
                             <div className="flex flex-col gap-3">
                                 <button 
                                     onClick={handleConfirmVpnPopup}
-                                    className="w-full py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-500/30 transition-all active:scale-95"
+                                    disabled={isCheckingVpn}
+                                    className={`w-full py-3 text-white font-bold rounded-xl shadow-lg shadow-red-500/30 transition-all active:scale-95 flex items-center justify-center
+                                        ${isCheckingVpn ? 'bg-red-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}
+                                    `}
                                 >
-                                    YES, I CONNECTED
+                                    {isCheckingVpn ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin mr-2"></div>
+                                            Checking IP...
+                                        </>
+                                    ) : "YES, I CONNECTED"}
                                 </button>
                                 <button 
                                     onClick={() => setShowVpnWarning(false)}
+                                    disabled={isCheckingVpn}
                                     className="w-full py-3 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                                 >
                                     CANCEL
@@ -518,13 +543,18 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
                     ) : (
                         <button
                             onClick={handleStartAd}
-                            disabled={showWebAd || showAdMobSimulator || isAdLoading || adCooldown > 0}
+                            disabled={showWebAd || showAdMobSimulator || isAdLoading || isCheckingVpn || adCooldown > 0}
                             className={`w-full text-white font-bold py-4 px-4 rounded-xl flex items-center justify-center text-lg shadow-lg transition-all duration-300 transform 
-                                ${showWebAd || showAdMobSimulator || isAdLoading || adCooldown > 0
+                                ${showWebAd || showAdMobSimulator || isAdLoading || isCheckingVpn || adCooldown > 0
                                     ? 'bg-slate-700 cursor-not-allowed text-slate-400' 
                                     : 'bg-gradient-to-r from-primary to-secondary hover:opacity-90 active:scale-95 shadow-primary/30'}`}
                         >
-                            {isAdLoading ? (
+                            {isCheckingVpn ? (
+                                <div className="flex items-center">
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                                    <span>Checking IP...</span>
+                                </div>
+                            ) : isAdLoading ? (
                                 <div className="flex items-center">
                                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
                                     <span>Loading Ad...</span>

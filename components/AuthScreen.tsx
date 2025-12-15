@@ -1,6 +1,6 @@
 
 import React, { useState, FC, FormEvent } from 'react';
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { ref, set, get } from 'firebase/database';
 
@@ -37,13 +37,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  // Forgot Password State
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [resetEmail, setResetEmail] = useState('');
-  const [resetLoading, setResetLoading] = useState(false);
-  const [resetMessage, setResetMessage] = useState('');
-  const [resetError, setResetError] = useState('');
 
   // --- VALIDATION RULES ---
 
@@ -103,7 +96,11 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       const snapshot = await get(userRef);
 
       if (snapshot.exists()) {
-          console.log("Existing user logged in via Google. Data preserved.");
+          const userData = snapshot.val();
+          // Ensure correct login provider tracking
+          if (userData.loginProvider !== 'google') {
+              await set(ref(db, 'users/' + user.uid + '/loginProvider'), 'google');
+          }
       } else {
           await set(userRef, {
             name: user.displayName || 'User',
@@ -113,7 +110,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             uid: user.uid,
             totalEarned: 0,
             totalAdsWatched: 0,
-            isBanned: false
+            isBanned: false,
+            loginProvider: 'google'
         });
       }
       setSuccess(true);
@@ -170,7 +168,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             uid: user.uid,
             totalEarned: 0,
             totalAdsWatched: 0,
-            isBanned: false
+            isBanned: false,
+            loginProvider: 'password'
         });
       }
       setLoading(false);
@@ -178,110 +177,41 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
     } catch (err: any) {
       console.error(err);
       setLoading(false);
+      
       let msg = "Authentication failed.";
-      if (err.code === 'auth/invalid-email') msg = texts.emailInvalid;
-      if (err.code === 'auth/user-not-found') msg = "No account found.";
-      if (err.code === 'auth/wrong-password') msg = texts.incorrectCurrentPassword;
-      if (err.code === 'auth/email-already-in-use') msg = "Email already in use.";
-      if (err.code === 'auth/weak-password') msg = "Password too weak (min 6 chars).";
-      if (err.code === 'auth/invalid-credential') msg = "Invalid email or password.";
-      if (err.message === texts.passwordsDoNotMatch) msg = texts.passwordsDoNotMatch;
+      
+      // Standardized Error Mapping
+      switch (err.code) {
+          case 'auth/invalid-email':
+              msg = texts.emailInvalid;
+              break;
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+          case 'auth/invalid-credential':
+          case 'auth/invalid-login-credentials':
+              msg = "Invalid email or password.";
+              break;
+          case 'auth/email-already-in-use':
+              msg = "Email already in use.";
+              break;
+          case 'auth/weak-password':
+              msg = "Password too weak (min 6 chars).";
+              break;
+          case 'auth/too-many-requests':
+              msg = "Too many failed attempts. Please try again later.";
+              break;
+          case 'auth/network-request-failed':
+              msg = "Network error. Please check your connection.";
+              break;
+          default:
+              if (err.message === texts.passwordsDoNotMatch) {
+                  msg = texts.passwordsDoNotMatch;
+              }
+      }
+      
       setError(msg);
     }
   };
-
-  const handleResetPassword = async (e: FormEvent) => {
-      e.preventDefault();
-      setResetError('');
-      setResetMessage('');
-      
-      // Strict Email Validation for Reset
-      if (!validateEmail(resetEmail)) {
-          setResetError(texts.invalidEmail);
-          return;
-      }
-
-      setResetLoading(true);
-      try {
-          await sendPasswordResetEmail(auth, resetEmail);
-          setResetMessage(texts.resetEmailSent);
-          // Optional: Clear input or close modal automatically after a delay
-          // setTimeout(() => setShowForgotPassword(false), 3000);
-      } catch (err: any) {
-          console.error(err);
-          // Only show "Invalid email" error message as requested, even if user not found for security privacy
-          // But strict requirement says "Email wrong -> Invalid Email", "Correct -> Success"
-          // We'll stick to displaying what the error might imply or generic invalid
-          setResetError(texts.invalidEmail);
-      } finally {
-          setResetLoading(false);
-      }
-  };
-
-  // --- FORGOT PASSWORD MODAL ---
-  if (showForgotPassword) {
-      return (
-          <div className="min-h-screen w-full flex items-center justify-center px-4 bg-light-bg dark:bg-dark-bg">
-              <div className="w-full max-w-sm bg-white dark:bg-dark-card p-6 rounded-2xl shadow-xl animate-smart-pop-in border border-gray-100 dark:border-gray-800">
-                  <h3 className="text-xl font-extrabold text-center mb-6 text-gray-900 dark:text-white">
-                      {texts.resetPassword}
-                  </h3>
-                  
-                  <form onSubmit={handleResetPassword} className="space-y-4">
-                      <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.email}</label>
-                          <div className="relative group">
-                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                  <MailIcon className="h-5 w-5 text-primary" />
-                              </div>
-                              <input
-                                  type="email"
-                                  value={resetEmail}
-                                  onChange={(e) => { setResetEmail(e.target.value); setResetError(''); setResetMessage(''); }}
-                                  placeholder="Email"
-                                  className={`w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-dark-bg border rounded-xl shadow-sm focus:outline-none focus:ring-2 transition-all font-medium text-gray-800 dark:text-white
-                                      ${resetError 
-                                          ? 'border-red-500 focus:ring-red-500' 
-                                          : 'border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary'
-                                      }
-                                  `}
-                                  required
-                              />
-                          </div>
-                      </div>
-
-                      {resetError && (
-                          <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center font-bold border border-red-100 dark:border-red-800 animate-fade-in">
-                              {resetError}
-                          </div>
-                      )}
-
-                      {resetMessage && (
-                          <div className="p-3 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-sm rounded-lg text-center font-bold border border-green-100 dark:border-green-800 animate-fade-in">
-                              {resetMessage}
-                          </div>
-                      )}
-
-                      <button
-                          type="submit"
-                          disabled={resetLoading}
-                          className="w-full h-12 font-bold rounded-xl bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30 opacity-100 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
-                      >
-                          {resetLoading ? <Spinner /> : texts.sendResetLink}
-                      </button>
-
-                      <button
-                          type="button"
-                          onClick={() => { setShowForgotPassword(false); setResetEmail(''); setResetMessage(''); setResetError(''); }}
-                          className="w-full py-3 text-gray-500 dark:text-gray-400 font-bold hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-                      >
-                          {texts.back}
-                      </button>
-                  </form>
-              </div>
-          </div>
-      );
-  }
 
   return (
     <div className="min-h-screen w-full flex flex-col justify-center px-6 bg-light-bg dark:bg-dark-bg transition-colors duration-300">
@@ -385,19 +315,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                 </div>
             </div>
 
-            {/* Forgot Password Button (Login Mode Only) */}
-            {isLogin && (
-                <div className="flex justify-end -mt-2">
-                    <button
-                        type="button"
-                        onClick={() => setShowForgotPassword(true)}
-                        className="text-xs font-bold text-primary hover:text-secondary transition-colors py-1"
-                    >
-                        {texts.forgotPassword}
-                    </button>
-                </div>
-            )}
-
             {!isLogin && (
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.confirmPassword}</label>
@@ -485,7 +402,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
               <p className="text-sm text-gray-600 dark:text-gray-400">
                   {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
                   <button 
-                    onClick={() => { setIsLogin(!isLogin); setError(''); setPassword(''); setConfirmPassword(''); setNameTouched(false); setEmailTouched(false); setSuccess(false); setShowForgotPassword(false); }}
+                    onClick={() => { setIsLogin(!isLogin); setError(''); setPassword(''); setConfirmPassword(''); setNameTouched(false); setEmailTouched(false); setSuccess(false); }}
                     className="text-primary font-bold hover:underline transition-colors ml-1"
                   >
                       {isLogin ? "Register" : "Login"}

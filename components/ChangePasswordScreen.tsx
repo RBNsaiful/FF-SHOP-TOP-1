@@ -1,7 +1,7 @@
 
 import React, { useState, FC, FormEvent } from 'react';
 import { auth } from '../firebase';
-import { updatePassword, reauthenticateWithCredential, EmailAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
+import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import AdRenderer from './AdRenderer';
 
 const EyeIcon: FC<{className?: string}> = ({className}) => (
@@ -9,7 +9,7 @@ const EyeIcon: FC<{className?: string}> = ({className}) => (
 );
 
 const EyeOffIcon: FC<{className?: string}> = ({className}) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x="1" y1="2" x2="22" y2="22"/></svg>
 );
 
 const KeyIcon: FC<{className?: string}> = ({className}) => (
@@ -18,10 +18,6 @@ const KeyIcon: FC<{className?: string}> = ({className}) => (
 
 const CheckCircleIcon: FC<{className?: string}> = ({className}) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01" /></svg>
-);
-
-const MailIcon: FC<{className?: string}> = ({className}) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
 );
 
 interface ChangePasswordScreenProps {
@@ -41,11 +37,6 @@ const ChangePasswordScreen: FC<ChangePasswordScreenProps> = ({ texts, onPassword
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-
-  // Email Reset State
-  const [resetLoading, setResetLoading] = useState(false);
-  const [resetMessage, setResetMessage] = useState('');
-  const [resetError, setResetError] = useState('');
 
   // Button Activation Logic
   const isFormValid = 
@@ -91,34 +82,12 @@ const ChangePasswordScreen: FC<ChangePasswordScreenProps> = ({ texts, onPassword
     }
   };
 
-  const handleResetViaEmail = async () => {
-      const user = auth.currentUser;
-      if (!user || !user.email) {
-          setResetError(texts.invalidEmail);
-          return;
-      }
-
-      setResetLoading(true);
-      setResetMessage('');
-      setResetError('');
-
-      try {
-          await sendPasswordResetEmail(auth, user.email);
-          setResetMessage(texts.resetEmailSent);
-      } catch (err) {
-          console.error(err);
-          setResetError(texts.invalidEmail);
-      } finally {
-          setResetLoading(false);
-      }
-  };
-
   return (
     <div className="p-4 animate-smart-fade-in pb-24">
       <div className="max-w-md mx-auto">
          <div className="bg-light-card dark:bg-dark-card rounded-2xl shadow-lg p-6 space-y-6 border border-gray-100 dark:border-gray-800">
             
-            {/* Header Icon Only - Duplicate Text Removed */}
+            {/* Header Icon Only */}
             <div className="text-center mb-2">
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
                     <KeyIcon className="w-8 h-8 text-primary" />
@@ -226,32 +195,6 @@ const ChangePasswordScreen: FC<ChangePasswordScreenProps> = ({ texts, onPassword
                     </button>
                 </div>
             </form>
-
-            <div className="w-full h-px bg-gray-100 dark:bg-gray-800 my-4"></div>
-
-            {/* Reset via Email Section */}
-            <div className="text-center space-y-3">
-                <button 
-                    type="button" 
-                    onClick={handleResetViaEmail} 
-                    disabled={resetLoading}
-                    className="w-full py-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-primary font-bold rounded-2xl border border-gray-200 dark:border-gray-700 transition-colors flex items-center justify-center gap-2 active:scale-95"
-                >
-                    {resetLoading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div> : <MailIcon className="w-4 h-4" />}
-                    <span>{texts.resetViaEmail}</span>
-                </button>
-                {resetMessage && (
-                    <div className="p-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-xs rounded-lg font-bold border border-green-100 dark:border-green-800 animate-fade-in">
-                        {resetMessage}
-                    </div>
-                )}
-                {resetError && (
-                    <div className="p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs rounded-lg font-bold border border-red-100 dark:border-red-800 animate-fade-in">
-                        {resetError}
-                    </div>
-                )}
-            </div>
-
          </div>
       </div>
 
