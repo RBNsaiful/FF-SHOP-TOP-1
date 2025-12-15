@@ -1,8 +1,8 @@
 
 import React, { useState, FC, FormEvent } from 'react';
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { ref, set, get } from 'firebase/database';
+import { ref, set, get, update } from 'firebase/database';
 
 interface AuthScreenProps {
   texts: any;
@@ -64,22 +64,44 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       setNameTouched(true);
   };
 
+  // --- GOOGLE LOGIN WITH STRICT PROVIDER ISOLATION ---
   const handleGoogleLogin = async () => {
-    // UNLOCK LOGOUT STATE: User is explicitly trying to login
+    // UNLOCK LOGOUT STATE
     onLoginAttempt();
-
-    const provider = new GoogleAuthProvider();
+    setError('');
     setLoading(true);
+
     try {
+      const provider = new GoogleAuthProvider();
+      // Force account selection prompt to avoid auto-login loops with wrong account
+      provider.setCustomParameters({ prompt: 'select_account' });
+
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
+      // 1. Check Database immediately
       const userRef = ref(db, 'users/' + user.uid);
       const snapshot = await get(userRef);
 
       if (snapshot.exists()) {
-          console.log("Existing user logged in via Google. Data preserved.");
+          const userData = snapshot.val();
+          
+          // 2. CRITICAL SECURITY CHECK
+          // If the user previously registered with 'password', BLOCK Google Login.
+          if (userData.loginProvider === 'password') {
+              // Sign out immediately to prevent session creation
+              await signOut(auth);
+              throw new Error("This email is registered with Password. Please login using Email & Password.");
+          }
+
+          // Legacy support: If no loginProvider exists but user exists, assume 'google' if we are here, 
+          // or update it to ensure consistency.
+          if (userData.loginProvider !== 'google') {
+              await update(userRef, { loginProvider: 'google' });
+          }
+          console.log("Verified Google User.");
       } else {
+          // 3. New User Registration via Google
           await set(userRef, {
             name: user.displayName || 'User',
             email: user.email || '',
@@ -88,20 +110,26 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             uid: user.uid,
             totalEarned: 0,
             totalAdsWatched: 0,
-            isBanned: false
+            isBanned: false,
+            loginProvider: 'google' // Enforce 'google' provider
         });
       }
       setSuccess(true);
     } catch (error: any) {
       console.error("Google Login failed", error);
+      
+      // Ensure session is cleared if any error occurs
+      if (auth.currentUser) await signOut(auth);
+
       let msg = "Google Login Failed.";
       if (error.code === 'auth/popup-closed-by-user') {
           msg = "Login canceled.";
       } else if (error.code === 'auth/account-exists-with-different-credential') {
-          msg = "An account already exists with this email. Please sign in with your Password.";
-      } else if (error.code === 'auth/unauthorized-domain') {
-          msg = "Domain not authorized. Add to Firebase Console.";
+          msg = "An account already exists. Please sign in with your Email & Password.";
+      } else if (error.message) {
+          msg = error.message; // Show our custom error message
       }
+      
       setError(msg);
       setLoading(false);
     }
@@ -111,7 +139,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
     e.preventDefault();
     setError('');
 
-    // UNLOCK LOGOUT STATE: User is explicitly trying to login
+    // UNLOCK LOGOUT STATE
     onLoginAttempt();
 
     if (!isFormValid) {
@@ -126,8 +154,39 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        // LOGIN FLOW
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // DB Check for Provider Isolation (Optional but recommended for consistency)
+        const userRef = ref(db, 'users/' + user.uid);
+        const snapshot = await get(userRef);
+        
+        if (snapshot.exists()) {
+            const userData = snapshot.val();
+            // If registered with Google, block Password login
+            if (userData.loginProvider === 'google') {
+                await signOut(auth);
+                throw new Error("This email is registered with Google. Please use Google Login.");
+            }
+        } else {
+            // Should theoretically not happen for existing auth users without DB record, 
+            // but we can create a record here if missing.
+             await set(userRef, {
+                name: user.displayName || 'User',
+                email: user.email || '',
+                balance: 0,
+                role: 'user',
+                uid: user.uid,
+                totalEarned: 0,
+                totalAdsWatched: 0,
+                isBanned: false,
+                loginProvider: 'password'
+            });
+        }
+
       } else {
+        // REGISTER FLOW
         if (password !== confirmPassword) {
             throw new Error(texts.passwordsDoNotMatch);
         }
@@ -145,15 +204,19 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             uid: user.uid,
             totalEarned: 0,
             totalAdsWatched: 0,
-            isBanned: false
+            isBanned: false,
+            loginProvider: 'password' // Enforce 'password' provider
         });
       }
-      // Show success state briefly before redirect (handled by auth listener)
       setLoading(false);
       setSuccess(true);
     } catch (err: any) {
       console.error(err);
       setLoading(false);
+      
+      // Clear session on error
+      if (auth.currentUser) await signOut(auth);
+
       let msg = "Authentication failed.";
       if (err.code === 'auth/invalid-email') msg = texts.emailInvalid;
       if (err.code === 'auth/user-not-found') msg = "No account found.";
@@ -161,7 +224,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       if (err.code === 'auth/email-already-in-use') msg = "Email already in use.";
       if (err.code === 'auth/weak-password') msg = "Password too weak (min 6 chars).";
       if (err.code === 'auth/invalid-credential') msg = "Invalid email or password.";
-      if (err.message === texts.passwordsDoNotMatch) msg = texts.passwordsDoNotMatch;
+      if (err.message) msg = err.message;
+      
       setError(msg);
     }
   };
@@ -173,7 +237,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
           
           {/* App Header */}
           <div className="flex flex-col items-center mb-6 mt-20">
-              <div className="relative mb-2"> {/* Reduced from mb-4 to bring name closer */}
+              <div className="relative mb-2"> 
                   <div className="w-24 h-24 rounded-full bg-white dark:bg-dark-card p-1 shadow-md ring-1 ring-gray-200 dark:ring-gray-700">
                       <img src={logoUrl} alt={appName} className="w-full h-full object-cover rounded-full" />
                   </div>
