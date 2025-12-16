@@ -4,7 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import { User, AppSettings, DiamondOffer, PaymentMethod, SupportContact, LevelUpPackage, Membership, PremiumApp, SpecialOffer, Screen } from '../types';
 import { DEFAULT_AI_KEY } from '../constants';
 import { db } from '../firebase';
-import { ref, get, update } from 'firebase/database';
+import { ref, get, update, runTransaction } from 'firebase/database';
 
 // --- SOUND ASSETS ---
 const SEND_SOUND = "data:audio/mp3;base64,SUQzBAAAAAAAI1RTSVMAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWgAAAA0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAABzgM0AAAAAAOAAAAAAAAAAAA0gAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAALQAAAAADgOAAA///+5JkAAAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD//+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAADcADQAAAAADgAAAAAAAAAtAAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAAAAAANIAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA"; 
@@ -226,6 +226,8 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
   const checkDailyLimit = async (): Promise<boolean> => {
       const today = new Date().toISOString().split('T')[0];
       const usageRef = ref(db, `users/${user.uid}/aiDailyUsage`);
+      const countRef = ref(db, `users/${user.uid}/aiRequestCount`); // Global count ref
+
       try {
           const snapshot = await get(usageRef);
           let currentUsage = { date: today, count: 0 };
@@ -234,7 +236,15 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
               if (data.date === today) currentUsage = data;
           }
           if (currentUsage.count >= DAILY_LIMIT) return false;
+          
+          // Update daily usage
           await update(ref(db, `users/${user.uid}/aiDailyUsage`), { date: today, count: currentUsage.count + 1 });
+          
+          // NEW: Increment Total Lifetime Usage for Admin Stats
+          await runTransaction(countRef, (currentCount) => {
+              return (currentCount || 0) + 1;
+          });
+
           return true;
       } catch (error) { return true; }
   };
@@ -265,10 +275,9 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
     }
 
     try {
-      let apiKey = appSettings.aiApiKey ? appSettings.aiApiKey.trim() : ""; 
-      if (!apiKey) apiKey = DEFAULT_AI_KEY; 
+      // Prioritize process.env.API_KEY to prevent 403 errors, fallback to user settings
+      const apiKey = process.env.API_KEY || (appSettings.aiApiKey ? appSettings.aiApiKey.trim() : "") || DEFAULT_AI_KEY;
       
-      // FIX: Check for API Key existence to prevent crash
       if (!apiKey) {
           throw new Error("API Key Missing");
       }
@@ -297,6 +306,8 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
       let errorMsg = "নেটওয়ার্ক সমস্যার কারণে উত্তর দিতে পারছি না। দয়া করে আবার চেষ্টা করুন।";
       if (error.message === "API Key Missing") {
           errorMsg = "সিস্টেম এরর: AI কনফিগারেশন সেট করা নেই। অ্যাডমিনকে জানান।";
+      } else if (error.status === 403 || (error.message && error.message.includes('403'))) {
+          errorMsg = "সিস্টেম এরর: AI পারমিশন নেই (403)। অ্যাডমিনকে API Key চেক করতে বলুন।";
       }
       setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: errorMsg }]);
     } finally {

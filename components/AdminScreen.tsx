@@ -205,6 +205,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         totalAdRevenue: 0,
         todayAdRevenue: 0
     });
+    const [aiOverview, setAiOverview] = useState({ totalInteractions: 0, activeAiUsers: 0 });
     
     // Settings State
     const [settings, setSettings] = useState<AppSettings>(appSettings);
@@ -309,7 +310,14 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
             onValue(usersQuery, (snap) => {
                 if(snap.exists()) {
                     const data = snap.val();
-                    const totalAdRev = Object.values(data).reduce((acc: number, u: any) => acc + (u.totalEarned || 0), 0);
+                    const values: any[] = Object.values(data);
+                    const totalAdRev = values.reduce((acc: number, u: any) => acc + (u.totalEarned || 0), 0);
+                    
+                    // AI Stats Calculation
+                    const totalInteractions = values.reduce((acc: number, u: any) => acc + (u.aiRequestCount || 0), 0);
+                    const activeAiUsers = values.filter((u: any) => (u.aiRequestCount || 0) > 0).length;
+                    setAiOverview({ totalInteractions, activeAiUsers });
+
                     // Warning: Total users count is capped by limitToLast
                     setDashboardStats(prev => ({ ...prev, totalUsers: Object.keys(data).length, totalAdRevenue: totalAdRev }));
                 }
@@ -476,13 +484,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
             });
         }
     }, [activeTab]);
-
-
-    const aiStats = useMemo(() => {
-        const totalInteractions = users.reduce((acc, u) => acc + (u.aiRequestCount || 0), 0);
-        const activeAiUsers = users.filter(u => (u.aiRequestCount || 0) > 0).length;
-        return { totalInteractions, activeAiUsers };
-    }, [users]);
 
     const filteredUsers = useMemo(() => {
         if (!userSearch) return users;
@@ -851,7 +852,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 )}
                                 {activeTool === 'ai' && (
                                     <div className="space-y-6">
-                                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-5 rounded-3xl text-white shadow-lg"><div className="flex items-center gap-3 mb-4"><RobotIcon className="w-8 h-8 text-white/90" /><h3 className="font-bold text-base">AI Manager</h3></div><div className="grid grid-cols-2 gap-4"><div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl border border-white/10"><p className="text-2xl font-black mb-1">{aiStats.totalInteractions}</p><p className="text-[10px] font-bold text-white/80 uppercase">Total Interactions</p></div><div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl border border-white/10"><p className="text-2xl font-black mb-1">{aiStats.activeAiUsers}</p><p className="text-[10px] font-bold text-white/80 uppercase">Active Users</p></div></div></div>
+                                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-5 rounded-3xl text-white shadow-lg"><div className="flex items-center gap-3 mb-4"><RobotIcon className="w-8 h-8 text-white/90" /><h3 className="font-bold text-base">AI Manager</h3></div><div className="grid grid-cols-2 gap-4"><div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl border border-white/10"><p className="text-2xl font-black mb-1">{aiOverview.totalInteractions}</p><p className="text-[10px] font-bold text-white/80 uppercase">Total Interactions</p></div><div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl border border-white/10"><p className="text-2xl font-black mb-1">{aiOverview.activeAiUsers}</p><p className="text-[10px] font-bold text-white/80 uppercase">Active Users</p></div></div></div>
                                         <div className="bg-gray-50 dark:bg-gray-800 p-5 rounded-3xl border border-gray-200 dark:border-gray-700 space-y-4">
                                             <div className="flex justify-between items-center p-4 bg-white dark:bg-dark-card rounded-2xl border border-gray-100 dark:border-gray-700"><div className="flex items-center gap-3"><span className="font-bold text-sm">Enable AI Support</span></div><div onClick={() => setSettings({...settings, aiSupportActive: !settings.aiSupportActive})} className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${settings.aiSupportActive ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${settings.aiSupportActive ? 'translate-x-6' : 'translate-x-0'}`}></div></div></div>
                                             <div><label className="block text-xs font-bold text-gray-500 mb-2">Bot Name</label><input type="text" value={settings.aiName || ''} onChange={(e) => setSettings({...settings, aiName: e.target.value})} className={inputClass} placeholder="AI Tuktuki" /></div>
