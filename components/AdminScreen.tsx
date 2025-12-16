@@ -34,12 +34,16 @@ const CodeIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://
 const UnlockIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>);
 const PlusIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>);
 const MinusIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="5" y1="12" x2="19" y2="12"/></svg>);
+const ArrowUpIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>);
+const ArrowDownIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg>);
 const RobotIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 8V4H8" /><rect x="4" y="8" width="16" height="12" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" /></svg>);
 const LayoutIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></svg>);
 const DollarIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>);
 const AdMobIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6v12"/><path d="M8 10l4-4 4 4"/></svg>); 
 const GridIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>);
 const BackIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>);
+const GripIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="9" cy="5" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="19" r="1"/></svg>);
+const SortIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M11 5h10"/><path d="M11 9h7"/><path d="M11 13h4"/><path d="M3 17l3 3 3-3"/><path d="M6 18V4"/></svg>);
 
 // Offer Icons
 const DiamondIcon: FC<{className?: string}> = ({className}) => (<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className={className}><path d="M12 2L2 8.5l10 13.5L22 8.5 12 2z" /></svg>);
@@ -234,6 +238,10 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const [offersData, setOffersData] = useState<any>({ diamond: [], levelUp: [], membership: [], premium: [], special: [] });
     const [editingOffer, setEditingOffer] = useState<any>(null);
     const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
+    
+    // Drag and Drop State
+    const dragItem = useRef<number | null>(null);
+    const dragOverItem = useRef<number | null>(null);
 
     // Tools State
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -605,23 +613,31 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const handleSaveOffer = async (e: FormEvent) => { e.preventDefault(); const path = `config/offers/${offerType}`; let newOffer = { ...editingOffer }; if (!newOffer.id) newOffer.id = Date.now(); if (newOffer.price) newOffer.price = Number(newOffer.price); if (newOffer.diamonds) newOffer.diamonds = Number(newOffer.diamonds); if (offerType === 'special' && newOffer.isActive === undefined) newOffer.isActive = true; let updatedList = [...offersData[offerType]]; if (editingOffer.id && offersData[offerType].find((o: any) => o.id === editingOffer.id)) { updatedList = updatedList.map((o: any) => o.id === editingOffer.id ? newOffer : o); } else { updatedList.push(newOffer); } await set(ref(db, path), updatedList); setIsOfferModalOpen(false); setEditingOffer(null); };
     const handleDeleteOffer = (id: number) => requestConfirmation(async () => { const path = `config/offers/${offerType}`; const updatedList = offersData[offerType].filter((o: any) => o.id !== id); await set(ref(db, path), updatedList); });
     
-    // --- DIRECT NUMBER REORDERING LOGIC ---
-    const handleDirectReorder = async (fromIndex: number, newPosStr: string) => {
-        const newPos = parseInt(newPosStr);
-        if (isNaN(newPos) || newPos < 1) return; // Invalid input
+    // --- DRAG AND DROP REORDERING ---
+    const handleSort = async () => {
+        const _offers = [...offersData[offerType]];
+        
+        if (dragItem.current === null || dragOverItem.current === null) return;
 
-        const currentList = [...offersData[offerType]];
-        const toIndex = Math.min(newPos - 1, currentList.length - 1); // Clamp to array bounds
+        // Remove and insert
+        const draggedItemContent = _offers.splice(dragItem.current, 1)[0];
+        _offers.splice(dragOverItem.current, 0, draggedItemContent);
 
-        if (fromIndex === toIndex) return;
+        dragItem.current = null;
+        dragOverItem.current = null;
 
-        // Move item
-        const itemToMove = currentList.splice(fromIndex, 1)[0];
-        currentList.splice(toIndex, 0, itemToMove);
+        // Update State & DB
+        setOffersData({ ...offersData, [offerType]: _offers });
+        await set(ref(db, `config/offers/${offerType}`), _offers);
+    };
 
-        // Update state and DB
-        setOffersData({ ...offersData, [offerType]: currentList });
-        await set(ref(db, `config/offers/${offerType}`), currentList); 
+    // --- SORT BY PRICE (New Feature) ---
+    const handleSortByPrice = async () => {
+        requestConfirmation(async () => {
+            const sorted = [...offersData[offerType]].sort((a: any, b: any) => Number(a.price) - Number(b.price));
+            setOffersData({ ...offersData, [offerType]: sorted });
+            await set(ref(db, `config/offers/${offerType}`), sorted);
+        }, "Auto-arrange all offers by price (Low to High)?");
     };
     
     const openAddOfferModal = () => { setEditingOffer({}); setIsOfferModalOpen(true); };
@@ -741,16 +757,26 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
 
                     {activeTab === 'offers' && (
                         <div className="animate-smart-fade-in pb-10">
-                            {/* --- New Clean Header --- */}
+                            {/* --- Header with Auto Sort --- */}
                             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                                 <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary hidden md:block">Manage Offers</h2>
-                                <button 
-                                    onClick={openAddOfferModal} 
-                                    className="w-full md:w-auto py-3 px-6 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-bold shadow-lg shadow-primary/30 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all text-sm flex items-center justify-center gap-2"
-                                >
-                                    <PlusIcon className="w-5 h-5" />
-                                    <span>Add New Offer</span>
-                                </button>
+                                <div className="flex w-full md:w-auto gap-2">
+                                    <button 
+                                        onClick={handleSortByPrice} 
+                                        className="flex-1 md:flex-none py-3 px-4 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl font-bold shadow-sm hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all text-xs flex items-center justify-center gap-2"
+                                        title="Auto Sort Low to High"
+                                    >
+                                        <SortIcon className="w-4 h-4" />
+                                        <span>Sort by Price</span>
+                                    </button>
+                                    <button 
+                                        onClick={openAddOfferModal} 
+                                        className="flex-1 md:flex-none py-3 px-6 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-bold shadow-lg shadow-primary/30 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all text-xs flex items-center justify-center gap-2"
+                                    >
+                                        <PlusIcon className="w-4 h-4" />
+                                        <span>Add New</span>
+                                    </button>
+                                </div>
                             </div>
 
                             {/* --- New Modern Tabs (Pill Style) --- */}
@@ -770,16 +796,28 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 ))}
                             </div>
 
-                            {/* --- New 2-Column Grid Layout with Direct Number Sort --- */}
-                            <div className="grid grid-cols-2 gap-3 sm:gap-4 animate-smart-slide-up">
+                            {/* --- New 2-Column Grid Layout with Drag-Drop Handles & Compact Cards --- */}
+                            <div className="grid grid-cols-2 gap-3 animate-smart-slide-up">
                                 {offersData[offerType]?.map((offer: any, index: number) => (
                                     <div 
                                         key={offer.id} 
-                                        className="relative bg-white dark:bg-dark-card rounded-2xl p-4 shadow-sm hover:shadow-md transition-all border border-gray-100 dark:border-gray-800 flex flex-col justify-between"
+                                        draggable
+                                        onDragStart={() => (dragItem.current = index)}
+                                        onDragEnter={() => (dragOverItem.current = index)}
+                                        onDragEnd={handleSort}
+                                        onDragOver={(e) => e.preventDefault()}
+                                        className="group relative bg-white dark:bg-dark-card rounded-2xl p-3 shadow-sm hover:shadow-md transition-all border border-gray-100 dark:border-gray-800 flex flex-col justify-between overflow-hidden"
                                     >
-                                        {/* Top Row: Icon & Position Input */}
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div className={`p-2.5 rounded-xl ${
+                                        {/* Status Badge */}
+                                        {offerType === 'special' && (
+                                            <div className={`absolute top-0 right-0 rounded-bl-xl px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider z-10 ${offer.isActive ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                                                {offer.isActive ? 'Active' : 'Hidden'}
+                                            </div>
+                                        )}
+
+                                        {/* Top Row: Icon & Drag Handle */}
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className={`p-2 rounded-xl shadow-inner ${
                                                 offerType === 'diamond' ? 'bg-blue-50 text-blue-500 dark:bg-blue-900/20' : 
                                                 offerType === 'levelUp' ? 'bg-purple-50 text-purple-500 dark:bg-purple-900/20' : 
                                                 offerType === 'membership' ? 'bg-orange-50 text-orange-500 dark:bg-orange-900/20' : 
@@ -793,32 +831,14 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                                  <CrownIcon className="w-5 h-5" />}
                                             </div>
 
-                                            {/* DIRECT POSITION INPUT */}
-                                            <div className="flex flex-col items-end">
-                                                <label className="text-[9px] text-gray-400 font-bold uppercase mb-0.5">Pos</label>
-                                                <input 
-                                                    type="number"
-                                                    min="1"
-                                                    defaultValue={index + 1}
-                                                    onBlur={(e) => handleDirectReorder(index, e.target.value)}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter') {
-                                                            e.currentTarget.blur();
-                                                        }
-                                                    }}
-                                                    className="w-10 h-8 text-center text-sm font-bold bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
-                                                />
+                                            {/* Drag Handle */}
+                                            <div className="cursor-move p-1 text-gray-300 hover:text-primary transition-colors" title="Drag to reorder">
+                                                <GripIcon className="w-4 h-4" />
                                             </div>
                                         </div>
 
                                         {/* Content */}
-                                        <div className="mb-3">
-                                            {offerType === 'special' && (
-                                                <div className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider mb-1 ${offer.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                    <span className={`w-1 h-1 rounded-full mr-1 ${offer.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                                                    {offer.isActive ? 'Active' : 'Inactive'}
-                                                </div>
-                                            )}
+                                        <div className="mb-2">
                                             <h3 className="font-extrabold text-gray-900 dark:text-white text-sm leading-tight line-clamp-1 mb-0.5" title={offer.name}>
                                                 {offer.name || `${offer.diamonds} Diamonds`}
                                             </h3>
@@ -828,22 +848,22 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                         </div>
 
                                         {/* Price & Actions */}
-                                        <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-800">
-                                            <div className="flex items-baseline gap-0.5">
-                                                <span className="text-[10px] font-bold text-gray-400">৳</span>
-                                                <span className="text-lg font-black text-gray-900 dark:text-white">{offer.price}</span>
-                                            </div>
-                                            <div className="flex gap-1.5">
+                                        <div className="mt-auto flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800">
+                                            <span className="text-lg font-black text-gray-900 dark:text-white">
+                                                ৳{offer.price}
+                                            </span>
+                                            
+                                            <div className="flex gap-1">
                                                 <button 
                                                     onClick={() => { setEditingOffer(offer); setIsOfferModalOpen(true); }} 
-                                                    className="p-2 bg-gray-50 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-500 hover:text-blue-600 rounded-lg transition-colors active:scale-95 border border-transparent hover:border-blue-100 dark:hover:border-blue-900/30"
+                                                    className="p-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors active:scale-95"
                                                     title="Edit"
                                                 >
                                                     <EditIcon className="w-3.5 h-3.5" />
                                                 </button>
                                                 <button 
                                                     onClick={() => handleDeleteOffer(offer.id)} 
-                                                    className="p-2 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600 rounded-lg transition-colors active:scale-95 border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
+                                                    className="p-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-lg hover:bg-red-100 transition-colors active:scale-95"
                                                     title="Delete"
                                                 >
                                                     <TrashIcon className="w-3.5 h-3.5" />
@@ -855,19 +875,18 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                                 
                                 {/* Empty State */}
                                 {offersData[offerType]?.length === 0 && (
-                                    <div className="col-span-2 py-16 flex flex-col items-center justify-center text-center opacity-60">
-                                        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-3">
-                                            <TagIcon className="w-8 h-8 text-gray-400" />
+                                    <div className="col-span-2 py-10 flex flex-col items-center justify-center text-center opacity-60 bg-white dark:bg-dark-card rounded-2xl border border-dashed border-gray-300 dark:border-gray-700">
+                                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-2">
+                                            <TagIcon className="w-6 h-6 text-gray-400" />
                                         </div>
-                                        <p className="font-bold text-gray-500">No Offers Found</p>
-                                        <p className="text-xs text-gray-400 mt-1">Add a new offer to get started.</p>
+                                        <p className="font-bold text-gray-500 text-xs">No Offers Found</p>
                                     </div>
                                 )}
                             </div>
                         </div>
                     )}
 
-                    {/* ... (Orders, Deposits, Tools, Settings tabs remain essentially unchanged, just using the same layout structure) ... */}
+                    {/* ... (Orders, Deposits, Tools, Settings tabs remain essentially unchanged) ... */}
                     {activeTab === 'orders' && (
                         <div className="space-y-5 animate-smart-fade-in">
                             <SearchInput value={orderSearch} onChange={setOrderSearch} placeholder="Search Order ID..." />
