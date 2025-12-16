@@ -145,9 +145,40 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
     }, [user.adsWatchedInfo?.limitReachedAt, resetHours, user.uid]);
 
 
+    // --- STRICT CONNECTIVITY CHECK ---
+    const verifyConnection = async () => {
+        if (!navigator.onLine) return false;
+        try {
+            // Simple ping to Google's favicon or a lightweight resource to ensure actual data flow
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), 3000); // 3 sec timeout
+            
+            // Using 'no-cors' mode to fetch an opaque response just to check network reachability
+            await fetch('https://www.google.com/favicon.ico?' + new Date().getTime(), { 
+                method: 'HEAD', 
+                mode: 'no-cors',
+                signal: controller.signal 
+            });
+            clearTimeout(id);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    };
+
     // --- Main Action Handler ---
     const handleStartAd = async () => {
         if (isAdLoading || isCheckingVpn) return; // Prevent double taps
+
+        // 0. PRE-FLIGHT INTERNET CHECK
+        setIsAdLoading(true);
+        const isOnline = await verifyConnection();
+        if (!isOnline) {
+            setIsAdLoading(false);
+            alert("No Internet Connection! Please enable data/wifi to watch ads.");
+            return;
+        }
+        setIsAdLoading(false);
 
         // 1. Check Limits
         if ((user.adsWatchedInfo?.count || 0) >= dailyLimit) {
@@ -363,6 +394,14 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
     // --- REWARD PROCESSING (Atomic Transaction) ---
     const handleRewardClaim = async () => {
         if (!user.uid) return;
+
+        // CRITICAL: FINAL CONNECTIVITY CHECK BEFORE REWARD
+        // If user turned off internet during the ad, this will fail.
+        const isOnline = await verifyConnection();
+        if (!isOnline) {
+            alert("Reward Failed! No Internet Connection Detected.");
+            return;
+        }
 
         // Firebase Logic
         const userRef = ref(db, 'users/' + user.uid);
