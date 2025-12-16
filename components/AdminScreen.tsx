@@ -34,8 +34,6 @@ const CodeIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://
 const UnlockIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>);
 const PlusIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>);
 const MinusIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="5" y1="12" x2="19" y2="12"/></svg>);
-const ArrowUpIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>);
-const ArrowDownIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg>);
 const RobotIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 8V4H8" /><rect x="4" y="8" width="16" height="12" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" /></svg>);
 const LayoutIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></svg>);
 const DollarIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>);
@@ -301,37 +299,25 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     // --- OPTIMIZED: Fetch dashboard stats only ---
     useEffect(() => {
         const fetchDashboardStats = () => {
-            // FIX: Added limitToLast(200) to these queries. 
-            // In a real production app, counting should be done via Cloud Functions or Distributed Counters.
-            // Downloading all user data is unsafe. This limit prevents the client from crashing, 
-            // but the "Total Users" count will cap at 200. This is a tradeoff for client-side safety.
-            
             const usersQuery = query(ref(db, 'users'), limitToLast(200));
             onValue(usersQuery, (snap) => {
                 if(snap.exists()) {
                     const data = snap.val();
                     const values: any[] = Object.values(data);
                     const totalAdRev = values.reduce((acc: number, u: any) => acc + (u.totalEarned || 0), 0);
-                    
-                    // AI Stats Calculation
                     const totalInteractions = values.reduce((acc: number, u: any) => acc + (u.aiRequestCount || 0), 0);
                     const activeAiUsers = values.filter((u: any) => (u.aiRequestCount || 0) > 0).length;
                     setAiOverview({ totalInteractions, activeAiUsers });
-
-                    // Warning: Total users count is capped by limitToLast
                     setDashboardStats(prev => ({ ...prev, totalUsers: Object.keys(data).length, totalAdRevenue: totalAdRev }));
                 }
             });
 
-            // Pending Orders Count
             const pendingOrdersQuery = query(ref(db, 'orders'), limitToLast(200));
             onValue(pendingOrdersQuery, (snap) => {
                 if(snap.exists()) {
                     let pendingCount = 0;
                     let todayPurchaseAmt = 0;
                     const todayStr = new Date().toDateString();
-                    
-                    // Simple client-side aggregation
                     snap.forEach(userOrders => {
                         const uOrders = userOrders.val();
                         if (uOrders) {
@@ -347,7 +333,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 }
             });
 
-            // Pending Transactions Count
             const pendingTxnsQuery = query(ref(db, 'transactions'), limitToLast(200));
             onValue(pendingTxnsQuery, (snap) => {
                 if(snap.exists()) {
@@ -356,7 +341,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                     let todayAdRevAmt = 0;
                     let totalDep = 0;
                     const todayStr = new Date().toDateString();
-                    
                     snap.forEach(userTxns => {
                         const uTxns = userTxns.val();
                         if (uTxns) {
@@ -383,7 +367,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
 
         fetchDashboardStats();
 
-        // Config is small, safe to fetch always
         onValue(ref(db, 'config'), (snap) => {
             if(snap.exists()) {
                 const data = snap.val();
@@ -416,7 +399,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     // --- LAZY LOADING: Fetch List Data ONLY when tab is active ---
     useEffect(() => {
         if (activeTab === 'users') {
-            const usersRef = query(ref(db, 'users'), limitToLast(50)); // Limit to last 50 for safety
+            const usersRef = query(ref(db, 'users'), limitToLast(50));
             const unsub = onValue(usersRef, (snap) => {
                 if(snap.exists()) {
                     const data = snap.val();
@@ -430,7 +413,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
 
     useEffect(() => {
         if (activeTab === 'orders') {
-            const ordersRef = query(ref(db, 'orders'), limitToLast(50)); // Limit to last 50
+            const ordersRef = query(ref(db, 'orders'), limitToLast(50));
             const unsub = onValue(ordersRef, (snap) => {
                 if(snap.exists()) {
                     let allOrders: Purchase[] = [];
@@ -452,7 +435,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
 
     useEffect(() => {
         if (activeTab === 'deposits') {
-            const txnsRef = query(ref(db, 'transactions'), limitToLast(50)); // Limit
+            const txnsRef = query(ref(db, 'transactions'), limitToLast(50));
             const unsub = onValue(txnsRef, (snap) => {
                 if(snap.exists()) {
                     let allTxns: Transaction[] = [];
@@ -474,7 +457,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
 
     useEffect(() => {
         if (activeTab === 'tools') {
-             // Fetch notifications only when needed
              onValue(ref(db, 'notifications'), (snap) => {
                 if(snap.exists()) {
                     const data = snap.val();
@@ -545,7 +527,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const handleVerifySecurityKey = (e: FormEvent) => { e.preventDefault(); if (securityKeyInput === PROTECTION_KEY) { setIsDevUnlocked(true); setIsSecurityModalOpen(false); } else { alert("ACCESS DENIED: Incorrect Secret Key."); } };
     const handleSaveDeveloperInfo = async () => { try { await update(ref(db, 'config/appSettings/developerSettings'), devSettings); alert("Success: Developer Info Updated."); setIsDevUnlocked(false); } catch (error) { alert("Error updating database."); } };
 
-    // --- REJECTION REFUND FIX (Decrements totalSpent) ---
     const handleOrderAction = (order: Purchase, action: 'Completed' | 'Failed') => {
         requestConfirmation(() => animateAndAction(order.key!, async () => {
             if (order.key && order.userId) {
@@ -553,14 +534,11 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 const snapshot = await get(orderRef);
                 if (snapshot.exists() && snapshot.val().status === 'Pending') {
                     await update(orderRef, { status: action });
-                    
                     if (action === 'Failed') {
                         const userRef = ref(db, `users/${order.userId}`);
                         await runTransaction(userRef, (userData) => { 
                             if (userData) {
-                                // Refund Balance
                                 userData.balance = (Number(userData.balance) || 0) + Number(order.offer?.price || 0);
-                                // FIX: Revert totalSpent for Leaderboard Accuracy
                                 const price = Number(order.offer?.price || 0);
                                 if (userData.totalSpent && userData.totalSpent >= price) {
                                     userData.totalSpent -= price;
@@ -580,7 +558,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
         }), "Delete this order?");
     };
 
-    // --- DEPOSIT APPROVAL FIX (Increments totalDeposit) ---
     const handleTxnAction = (txn: Transaction, action: 'Completed' | 'Failed') => {
         requestConfirmation(() => animateAndAction(txn.key!, async () => {
             if (txn.key && txn.userId) {
@@ -592,9 +569,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                         const userRef = ref(db, `users/${txn.userId}`);
                         await runTransaction(userRef, (userData) => { 
                             if (userData) {
-                                // Add Balance
                                 userData.balance = (Number(userData.balance) || 0) + Number(txn.amount);
-                                // FIX: Increment totalDeposit for Leaderboard
                                 userData.totalDeposit = (Number(userData.totalDeposit) || 0) + Number(txn.amount);
                             } 
                             return userData; 
@@ -620,7 +595,6 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
             await runTransaction(userRef, (userData) => { 
                 if(userData) {
                     userData.balance = balanceAction === 'add' ? (userData.balance||0) + amount : (userData.balance||0) - amount; 
-                    // Optional: Manual balance adjustments usually don't count towards 'Total Deposit' unless explicitly desired, keeping simple for now.
                 }
                 return userData; 
             });
@@ -631,13 +605,21 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
     const handleSaveOffer = async (e: FormEvent) => { e.preventDefault(); const path = `config/offers/${offerType}`; let newOffer = { ...editingOffer }; if (!newOffer.id) newOffer.id = Date.now(); if (newOffer.price) newOffer.price = Number(newOffer.price); if (newOffer.diamonds) newOffer.diamonds = Number(newOffer.diamonds); if (offerType === 'special' && newOffer.isActive === undefined) newOffer.isActive = true; let updatedList = [...offersData[offerType]]; if (editingOffer.id && offersData[offerType].find((o: any) => o.id === editingOffer.id)) { updatedList = updatedList.map((o: any) => o.id === editingOffer.id ? newOffer : o); } else { updatedList.push(newOffer); } await set(ref(db, path), updatedList); setIsOfferModalOpen(false); setEditingOffer(null); };
     const handleDeleteOffer = (id: number) => requestConfirmation(async () => { const path = `config/offers/${offerType}`; const updatedList = offersData[offerType].filter((o: any) => o.id !== id); await set(ref(db, path), updatedList); });
     
-    const handleReorderOffer = async (index: number, direction: 'up' | 'down') => { 
-        const currentList = [...offersData[offerType]]; 
-        if (direction === 'up' && index > 0) {
-            [currentList[index], currentList[index - 1]] = [currentList[index - 1], currentList[index]]; 
-        } else if (direction === 'down' && index < currentList.length - 1) {
-            [currentList[index], currentList[index + 1]] = [currentList[index + 1], currentList[index]]; 
-        }
+    // --- DIRECT NUMBER REORDERING LOGIC ---
+    const handleDirectReorder = async (fromIndex: number, newPosStr: string) => {
+        const newPos = parseInt(newPosStr);
+        if (isNaN(newPos) || newPos < 1) return; // Invalid input
+
+        const currentList = [...offersData[offerType]];
+        const toIndex = Math.min(newPos - 1, currentList.length - 1); // Clamp to array bounds
+
+        if (fromIndex === toIndex) return;
+
+        // Move item
+        const itemToMove = currentList.splice(fromIndex, 1)[0];
+        currentList.splice(toIndex, 0, itemToMove);
+
+        // Update state and DB
         setOffersData({ ...offersData, [offerType]: currentList });
         await set(ref(db, `config/offers/${offerType}`), currentList); 
     };
@@ -714,6 +696,7 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                 </header>
 
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-32">
+                    {/* ... (Dashboard, Users, Orders, Deposits, Tools sections remain unchanged) ... */}
                     {activeTab === 'dashboard' && (
                         <div className="animate-smart-fade-in space-y-8">
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-smart-slide-up">
@@ -756,37 +739,135 @@ const AdminScreen: FC<AdminScreenProps> = ({ user, onNavigate, onLogout, languag
                         </div>
                     )}
 
-                    {/* ... (Offer tab remains same as it loads from config which is small) */}
                     {activeTab === 'offers' && (
-                        <div className="animate-smart-fade-in">
-                            <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
+                        <div className="animate-smart-fade-in pb-10">
+                            {/* --- New Clean Header --- */}
+                            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                                <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary hidden md:block">Manage Offers</h2>
+                                <button 
+                                    onClick={openAddOfferModal} 
+                                    className="w-full md:w-auto py-3 px-6 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-bold shadow-lg shadow-primary/30 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all text-sm flex items-center justify-center gap-2"
+                                >
+                                    <PlusIcon className="w-5 h-5" />
+                                    <span>Add New Offer</span>
+                                </button>
+                            </div>
+
+                            {/* --- New Modern Tabs (Pill Style) --- */}
+                            <div className="flex items-center gap-2 p-1.5 bg-gray-100 dark:bg-gray-800/50 rounded-2xl mb-8 overflow-x-auto no-scrollbar shadow-inner border border-gray-200 dark:border-gray-700/50">
                                 {['diamond', 'levelUp', 'membership', 'premium', 'special'].map((type) => (
-                                    <button key={type} onClick={() => setOfferType(type as any)} className={`px-5 py-2.5 rounded-full font-bold text-xs uppercase whitespace-nowrap transition-all border ${offerType === type ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-lg active:scale-95' : 'bg-white dark:bg-dark-card text-gray-500 border-transparent hover:bg-gray-100 dark:hover:bg-gray-800'}`}>{type}</button>
+                                    <button 
+                                        key={type} 
+                                        onClick={() => setOfferType(type as any)} 
+                                        className={`px-6 py-2.5 rounded-xl font-bold text-xs uppercase whitespace-nowrap transition-all duration-300 flex-shrink-0 ${
+                                            offerType === type 
+                                            ? 'bg-white dark:bg-dark-card text-primary shadow-md transform scale-[1.02]' 
+                                            : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                                        }`}
+                                    >
+                                        {type.replace(/([A-Z])/g, ' $1').trim()}
+                                    </button>
                                 ))}
                             </div>
-                            <button onClick={openAddOfferModal} className="w-full py-4 mb-6 border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-500 rounded-3xl font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm active:scale-95 transform">+ Add New {offerType} Offer</button>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-smart-slide-up">
+
+                            {/* --- New 2-Column Grid Layout with Direct Number Sort --- */}
+                            <div className="grid grid-cols-2 gap-3 sm:gap-4 animate-smart-slide-up">
                                 {offersData[offerType]?.map((offer: any, index: number) => (
-                                    <div key={offer.id} className="group bg-white dark:bg-dark-card rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 relative">
-                                        {offerType === 'special' && (<div className={`absolute top-4 right-4 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide z-10 ${offer.isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>{offer.isActive ? 'Active' : 'Inactive'}</div>)}
-                                        <div className="p-5 pb-0 flex items-start justify-between">
-                                            <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-2xl">
-                                                {offerType === 'diamond' ? <DiamondIcon className="w-6 h-6 text-blue-500" /> : offerType === 'levelUp' ? <StarIcon className="w-6 h-6 text-purple-500" /> : offerType === 'membership' ? <IdCardIcon className="w-6 h-6 text-orange-500" /> : offerType === 'special' ? <TagIcon className="w-6 h-6 text-red-500" /> : <CrownIcon className="w-6 h-6 text-yellow-500" />}
+                                    <div 
+                                        key={offer.id} 
+                                        className="relative bg-white dark:bg-dark-card rounded-2xl p-4 shadow-sm hover:shadow-md transition-all border border-gray-100 dark:border-gray-800 flex flex-col justify-between"
+                                    >
+                                        {/* Top Row: Icon & Position Input */}
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className={`p-2.5 rounded-xl ${
+                                                offerType === 'diamond' ? 'bg-blue-50 text-blue-500 dark:bg-blue-900/20' : 
+                                                offerType === 'levelUp' ? 'bg-purple-50 text-purple-500 dark:bg-purple-900/20' : 
+                                                offerType === 'membership' ? 'bg-orange-50 text-orange-500 dark:bg-orange-900/20' : 
+                                                offerType === 'special' ? 'bg-red-50 text-red-500 dark:bg-red-900/20' : 
+                                                'bg-yellow-50 text-yellow-500 dark:bg-yellow-900/20'
+                                            }`}>
+                                                {offerType === 'diamond' ? <DiamondIcon className="w-5 h-5" /> : 
+                                                 offerType === 'levelUp' ? <StarIcon className="w-5 h-5" /> : 
+                                                 offerType === 'membership' ? <IdCardIcon className="w-5 h-5" /> : 
+                                                 offerType === 'special' ? <TagIcon className="w-5 h-5" /> : 
+                                                 <CrownIcon className="w-5 h-5" />}
                                             </div>
-                                            <div className="flex flex-col gap-1"><button onClick={() => handleReorderOffer(index, 'up')} disabled={index === 0} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"><ArrowUpIcon className="w-4 h-4" /></button><button onClick={() => handleReorderOffer(index, 'down')} disabled={index === offersData[offerType].length - 1} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"><ArrowDownIcon className="w-4 h-4" /></button></div>
+
+                                            {/* DIRECT POSITION INPUT */}
+                                            <div className="flex flex-col items-end">
+                                                <label className="text-[9px] text-gray-400 font-bold uppercase mb-0.5">Pos</label>
+                                                <input 
+                                                    type="number"
+                                                    min="1"
+                                                    defaultValue={index + 1}
+                                                    onBlur={(e) => handleDirectReorder(index, e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.currentTarget.blur();
+                                                        }
+                                                    }}
+                                                    className="w-10 h-8 text-center text-sm font-bold bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
+                                                />
+                                            </div>
                                         </div>
-                                        <div className="p-5">
-                                            <h3 className="font-extrabold text-gray-900 dark:text-white text-lg leading-tight mb-1 truncate">{offer.name || `${offer.diamonds} Diamonds`}</h3>
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">{offerType === 'diamond' ? `${offer.diamonds} DM` : offerType === 'levelUp' ? 'Level Up Pass' : offerType === 'special' ? offer.title : 'Package'}</p>
-                                            <div className="flex items-baseline gap-1 mb-4"><span className="text-sm font-bold text-gray-500">৳</span><span className="text-2xl font-black text-gray-900 dark:text-white">{offer.price}</span></div>
-                                            <div className="grid grid-cols-2 gap-2 border-t border-gray-100 dark:border-gray-800 pt-4"><button onClick={() => { setEditingOffer(offer); setIsOfferModalOpen(true); }} className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-blue-600 font-bold text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors active:scale-95"><EditIcon className="w-4 h-4" /> Edit</button><button onClick={() => handleDeleteOffer(offer.id)} className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-red-600 font-bold text-xs hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors active:scale-95"><TrashIcon className="w-4 h-4" /> Delete</button></div>
+
+                                        {/* Content */}
+                                        <div className="mb-3">
+                                            {offerType === 'special' && (
+                                                <div className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider mb-1 ${offer.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                    <span className={`w-1 h-1 rounded-full mr-1 ${offer.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                                                    {offer.isActive ? 'Active' : 'Inactive'}
+                                                </div>
+                                            )}
+                                            <h3 className="font-extrabold text-gray-900 dark:text-white text-sm leading-tight line-clamp-1 mb-0.5" title={offer.name}>
+                                                {offer.name || `${offer.diamonds} Diamonds`}
+                                            </h3>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                                {offerType === 'diamond' ? `${offer.diamonds} DM` : offerType === 'special' ? offer.title : 'Package'}
+                                            </p>
+                                        </div>
+
+                                        {/* Price & Actions */}
+                                        <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-800">
+                                            <div className="flex items-baseline gap-0.5">
+                                                <span className="text-[10px] font-bold text-gray-400">৳</span>
+                                                <span className="text-lg font-black text-gray-900 dark:text-white">{offer.price}</span>
+                                            </div>
+                                            <div className="flex gap-1.5">
+                                                <button 
+                                                    onClick={() => { setEditingOffer(offer); setIsOfferModalOpen(true); }} 
+                                                    className="p-2 bg-gray-50 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-500 hover:text-blue-600 rounded-lg transition-colors active:scale-95 border border-transparent hover:border-blue-100 dark:hover:border-blue-900/30"
+                                                    title="Edit"
+                                                >
+                                                    <EditIcon className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteOffer(offer.id)} 
+                                                    className="p-2 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600 rounded-lg transition-colors active:scale-95 border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
+                                                    title="Delete"
+                                                >
+                                                    <TrashIcon className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
+                                
+                                {/* Empty State */}
+                                {offersData[offerType]?.length === 0 && (
+                                    <div className="col-span-2 py-16 flex flex-col items-center justify-center text-center opacity-60">
+                                        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-3">
+                                            <TagIcon className="w-8 h-8 text-gray-400" />
+                                        </div>
+                                        <p className="font-bold text-gray-500">No Offers Found</p>
+                                        <p className="text-xs text-gray-400 mt-1">Add a new offer to get started.</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
 
+                    {/* ... (Orders, Deposits, Tools, Settings tabs remain essentially unchanged, just using the same layout structure) ... */}
                     {activeTab === 'orders' && (
                         <div className="space-y-5 animate-smart-fade-in">
                             <SearchInput value={orderSearch} onChange={setOrderSearch} placeholder="Search Order ID..." />
