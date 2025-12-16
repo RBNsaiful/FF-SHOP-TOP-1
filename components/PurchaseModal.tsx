@@ -29,10 +29,10 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
   const isEmailType = offer.inputType === 'email';
   
   const [inputValue, setInputValue] = useState(isEmailType ? '' : (defaultUid || ''));
-  const [phoneNumber, setPhoneNumber] = useState(''); // New state for Phone Number
+  const [phoneNumber, setPhoneNumber] = useState(''); 
   
   const [inputError, setInputError] = useState('');
-  const [phoneError, setPhoneError] = useState(''); // New error state for phone
+  const [phoneError, setPhoneError] = useState('');
   
   const [status, setStatus] = useState<'idle' | 'processing' | 'button-success' | 'success'>('idle');
 
@@ -51,7 +51,6 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
     }
 
     if (isEmailType) {
-        // STRICT GMAIL VALIDATION
         const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
         if (!gmailRegex.test(value)) {
             setInputError("Only @gmail.com addresses are allowed.");
@@ -59,11 +58,11 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
         }
     } else {
         if (!/^\d+$/.test(value)) {
-            setInputError("Invalid UID");
+            setInputError("Digits only");
             return false;
         }
-        if (value.length < 8 || value.length > 12) {
-            setInputError("Invalid UID");
+        if (value.length < 8 || value.length > 15) {
+            setInputError("Invalid UID Length");
             return false;
         }
     }
@@ -73,15 +72,13 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
   };
 
   const validatePhone = (value: string): boolean => {
-      if (!isEmailType) return true; // Phone only required for Premium Apps (email type)
+      if (!isEmailType) return true; 
 
       if (!value.trim()) {
           setPhoneError("Required");
           return false;
       }
 
-      // STRICT BD PHONE VALIDATION
-      // Must start with 01, contain only digits, and be 11 characters long.
       const bdPhoneRegex = /^01[3-9]\d{8}$/;
       
       if (!/^\d+$/.test(value)) {
@@ -90,7 +87,7 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
       }
       
       if (!bdPhoneRegex.test(value)) {
-          setPhoneError("Invalid");
+          setPhoneError("Invalid BD Number");
           return false;
       }
 
@@ -98,19 +95,13 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
       return true;
   };
   
-  // Validate on blur
-  const handleBlur = () => {
-      validateInput(inputValue);
-  };
-
-  const handlePhoneBlur = () => {
-      validatePhone(phoneNumber);
-  };
+  const handleBlur = () => { validateInput(inputValue); };
+  const handlePhoneBlur = () => { validatePhone(phoneNumber); };
   
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value;
-      
       if (!isEmailType) {
+          // STRICT: Only digits
           if (/^\d*$/.test(newValue)) {
               setInputValue(newValue);
               if (inputError) setInputError('');
@@ -129,6 +120,19 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
       }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, type: 'uid' | 'phone') => {
+      if (type === 'uid' && !isEmailType) {
+          if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+              e.preventDefault();
+          }
+      }
+      if (type === 'phone') {
+          if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+              e.preventDefault();
+          }
+      }
+  };
+
   const handleConfirm = async () => {
     const isMainValid = validateInput(inputValue);
     const isPhoneValid = validatePhone(phoneNumber);
@@ -137,7 +141,6 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
     
     setStatus('processing');
 
-    // Combine data if it's a premium app purchase (Email + Phone)
     const finalData = isEmailType ? `${inputValue} | ${phoneNumber}` : inputValue;
 
     await onConfirm(finalData);
@@ -147,17 +150,12 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
     setTimeout(() => {
         setStatus('success');
         setTimeout(() => {
-          if (onSuccess) {
-              onSuccess();
-          } else {
-              onClose();
-          }
+          if (onSuccess) onSuccess(); else onClose();
         }, 3000); 
     }, 500);
   };
 
   const isConfirmDisabled = !inputValue || !!inputError || (isEmailType && (!phoneNumber || !!phoneError)) || status === 'processing' || status === 'button-success' || insufficientBalance;
-
   const OfferIcon = offer.icon || DiamondIcon;
 
   return (
@@ -203,16 +201,16 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
               <input
                 type={isEmailType ? 'email' : 'text'}
                 inputMode={isEmailType ? 'email' : 'numeric'}
-                pattern={isEmailType ? undefined : "[0-9]*"}
                 id="uidInput"
                 value={inputValue}
                 onChange={handleInputChange}
+                onKeyDown={(e) => handleKeyDown(e, 'uid')}
                 onBlur={handleBlur}
                 onFocus={handleInputFocus}
                 placeholder={isEmailType ? "Email" : texts.enterUID}
                 className={`w-full p-3.5 bg-gray-50 dark:bg-dark-bg border rounded-2xl focus:outline-none focus:ring-2 font-medium transition-all ${inputError ? 'border-red-500 focus:ring-red-500/30' : 'border-gray-200 dark:border-gray-700 focus:ring-primary/50'}`}
                 disabled={status === 'processing' || status === 'button-success'}
-                maxLength={!isEmailType ? 12 : undefined}
+                maxLength={!isEmailType ? 15 : undefined}
               />
               {inputError && <p className="text-red-500 text-xs mt-1.5 font-bold ml-1 animate-fade-in">{inputError}</p>}
             </div>
@@ -229,6 +227,7 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
                         id="phoneInput"
                         value={phoneNumber}
                         onChange={handlePhoneChange}
+                        onKeyDown={(e) => handleKeyDown(e, 'phone')}
                         onBlur={handlePhoneBlur}
                         onFocus={handleInputFocus}
                         placeholder="WA or IMO"

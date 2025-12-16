@@ -1,11 +1,10 @@
-
 {
   "rules": {
     ".read": false,
     ".write": false,
     
     "config": {
-      ".read": true,
+      ".read": "auth != null",
       ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
     },
 
@@ -26,24 +25,29 @@
           ".validate": "newData.isNumber() && newData.val() >= 0"
         },
         "totalEarned": {
-          ".validate": "newData.isNumber()"
+          ".validate": "newData.isNumber() && newData.val() >= 0"
         },
         "totalSpent": {
-          ".validate": "newData.isNumber()"
+          ".validate": "newData.isNumber() && newData.val() >= 0"
         },
         "totalDeposit": {
-          ".validate": "newData.isNumber()"
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "totalAdsWatched": {
+           ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 50"
+        },
+        "email": {
+          ".validate": "newData.isString() && newData.val().contains('@')"
         },
         "role": {
-          // Role can only be written if it doesn't exist (new user default), 
-          // is the same as before (no change), or the writer is an admin.
           ".validate": "!data.exists() || newData.val() === data.val() || root.child('users').child(auth.uid).child('role').val() === 'admin'"
         },
         "isBanned": {
           ".validate": "newData.isBoolean()"
-        },
-        
-        ".validate": "newData.hasChildren(['name', 'email'])"
+        }
       }
     },
 
@@ -54,7 +58,11 @@
         ".write": "auth != null && ($uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
         
         "$orderId": {
-          ".validate": "!newData.exists() || root.child('users').child(auth.uid).child('role').val() === 'admin' || (newData.hasChildren(['offer', 'price']) && newData.child('price').isNumber())"
+          // Only allow creation if user has balance (checked via client logic, reinforced here by structure)
+          ".validate": "newData.hasChildren(['offer', 'price', 'status', 'date']) && newData.child('price').isNumber()",
+          "status": {
+             ".validate": "newData.val() === 'Pending' || newData.val() === 'Completed' || newData.val() === 'Failed'"
+          }
         }
       },
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
@@ -67,7 +75,10 @@
         ".write": "auth != null && ($uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
         
         "$txnId": {
-           ".validate": "!newData.exists() || root.child('users').child(auth.uid).child('role').val() === 'admin' || (newData.child('amount').isNumber() && newData.child('amount').val() > 0)"
+           ".validate": "newData.hasChildren(['amount', 'method', 'transactionId', 'status']) && newData.child('amount').isNumber() && newData.child('amount').val() > 0",
+           "status": {
+             ".validate": "newData.val() === 'Pending' || newData.val() === 'Completed' || newData.val() === 'Failed'"
+           }
         }
       },
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
@@ -77,7 +88,7 @@
       ".read": true,
       ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
       "$notifId": {
-        ".validate": "newData.hasChildren(['title', 'message'])"
+        ".validate": "newData.hasChildren(['title', 'message', 'timestamp'])"
       }
     }
   }

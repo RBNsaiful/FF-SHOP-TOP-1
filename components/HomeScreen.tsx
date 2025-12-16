@@ -423,18 +423,21 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
         
         {visibleTabs.length > 0 ? (
             <>
+                {/* Horizontal Scrollable Tabs - Filled & Premium (3 Items fit perfectly on mobile) */}
                 <div className="my-4 opacity-0 animate-smart-slide-down" style={{ animationDelay: '200ms' }}>
-                    <div className="flex flex-wrap md:flex-nowrap gap-2 justify-start md:justify-center py-1">
+                    <div className="flex gap-2 pb-2 overflow-x-auto no-scrollbar snap-x">
                         {visibleTabs.map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`
-                                    flex-grow md:flex-grow-0 md:w-auto md:px-6
-                                    px-4 py-2.5 rounded-xl font-bold uppercase text-xs sm:text-sm transition-all duration-300 border-2 shadow-sm
-                                    whitespace-nowrap overflow-hidden text-ellipsis
+                                    flex-shrink-0 
+                                    w-[calc((100%-1rem)/3)] sm:w-auto
+                                    px-1 sm:px-6
+                                    py-2.5 rounded-xl font-bold uppercase text-[10px] sm:text-xs transition-all duration-300 border-2 shadow-sm
+                                    flex items-center justify-center text-center leading-tight whitespace-normal sm:whitespace-nowrap snap-start
                                     ${activeTab === tab.id 
-                                        ? 'bg-primary border-primary text-white shadow-md shadow-primary/30 scale-105' 
+                                        ? 'bg-primary border-primary text-white shadow-md shadow-primary/30 scale-[1.02] z-10' 
                                         : 'bg-light-card dark:bg-dark-card text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-primary/50 hover:text-primary dark:hover:text-primary hover:bg-gray-50 dark:hover:bg-gray-800'
                                     }
                                 `}

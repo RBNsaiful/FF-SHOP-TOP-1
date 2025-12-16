@@ -95,7 +95,6 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [recentHistory, setRecentHistory] = useState<string>(''); 
-  const [isAdminMode, setIsAdminMode] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -225,7 +224,6 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
 
   // Rate Limiting
   const checkDailyLimit = async (): Promise<boolean> => {
-      // Admin Mode Bypass removed for security in this version
       const today = new Date().toISOString().split('T')[0];
       const usageRef = ref(db, `users/${user.uid}/aiDailyUsage`);
       try {
@@ -244,8 +242,6 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
 
-    // SECURITY FIX: Removed insecure plaintext admin trigger
-    
     const userMessageText = input;
     setInput('');
     
@@ -272,6 +268,11 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
       let apiKey = appSettings.aiApiKey ? appSettings.aiApiKey.trim() : ""; 
       if (!apiKey) apiKey = DEFAULT_AI_KEY; 
       
+      // FIX: Check for API Key existence to prevent crash
+      if (!apiKey) {
+          throw new Error("API Key Missing");
+      }
+
       const ai = new GoogleGenAI({ apiKey: apiKey });
       const history = messages.map(m => ({ role: m.role, parts: [{ text: m.text }] }));
       const chat = ai.chats.create({ model: "gemini-2.5-flash", config: { systemInstruction: systemInstruction }, history: history });
@@ -292,7 +293,12 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
         }
       }
     } catch (error: any) {
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: "নেটওয়ার্ক সমস্যার কারণে উত্তর দিতে পারছি না। দয়া করে আবার চেষ্টা করুন।" }]);
+      console.error("AI Error:", error);
+      let errorMsg = "নেটওয়ার্ক সমস্যার কারণে উত্তর দিতে পারছি না। দয়া করে আবার চেষ্টা করুন।";
+      if (error.message === "API Key Missing") {
+          errorMsg = "সিস্টেম এরর: AI কনফিগারেশন সেট করা নেই। অ্যাডমিনকে জানান।";
+      }
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: errorMsg }]);
     } finally {
       setIsTyping(false);
     }
@@ -364,7 +370,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
             <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-2 border border-transparent focus-within:border-primary/50 transition-colors">
                 <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder="এখানে লিখুন..." rows={1} className="w-full bg-transparent text-gray-900 dark:text-white text-sm focus:outline-none resize-none max-h-32 overflow-y-auto leading-relaxed pt-1.5" style={{ minHeight: '24px' }} />
             </div>
-            <button onClick={handleSend} disabled={!input.trim() || isTyping} className={`p-3 rounded-full transition-all shadow-md flex items-center justify-center mb-0.5 ${!input.trim() || isTyping ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' : isAdminMode ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-primary text-white hover:bg-primary-dark active:scale-95'}`}><SendIcon className="w-5 h-5 ml-0.5" /></button>
+            <button onClick={handleSend} disabled={!input.trim() || isTyping} className={`p-3 rounded-full transition-all shadow-md flex items-center justify-center mb-0.5 ${!input.trim() || isTyping ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary-dark active:scale-95'}`}><SendIcon className="w-5 h-5 ml-0.5" /></button>
           </div>
         </div>
       )}

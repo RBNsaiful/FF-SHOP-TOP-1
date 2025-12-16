@@ -1,8 +1,9 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>FF SHOP</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -181,6 +182,15 @@
       .dark input:-webkit-autofill:active {
         -webkit-text-fill-color: #E2E8F0 !important;
         -webkit-box-shadow: 0 0 0px 1000px #0F172A inset !important;
+      }
+      
+      /* Hide Scrollbar but keep functionality */
+      .no-scrollbar::-webkit-scrollbar {
+          display: none;
+      }
+      .no-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
       }
     </style>
 <script type="importmap">

@@ -257,9 +257,9 @@ const WatchAdsScreen: FC<WatchAdsScreenProps> = ({ user, texts, onRewardEarned, 
             }
         } catch (err) {
             console.error("All IP checks failed");
-            // If all checks fail (e.g. adblocker, network error), assume FALSE to prevent abuse in Force Mode
-            // Returning true here would defeat the purpose of "Force VPN".
-            return false; 
+            // FAIL OPEN: If IP check fails (network error), allow user to proceed
+            // to avoid blocking legitimate users when API is down.
+            return true; 
         }
         
         return false;

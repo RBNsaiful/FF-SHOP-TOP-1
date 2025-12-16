@@ -44,11 +44,13 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
   const [error, setError] = useState<string>('');
   const [isCopied, setIsCopied] = useState(false);
   
-  // FIX: Removed useLayoutEffect that was causing jittery scrolling. 
-  // App.tsx handles global scroll reset.
-
   const MIN_AMOUNT = 20;
   const MAX_AMOUNT = 10000;
+
+  useEffect(() => {
+      // Gentle scroll to top when step changes
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
 
   const handleInputFocus = (event: React.FocusEvent<HTMLInputElement>) => {
     setTimeout(() => {
@@ -84,10 +86,14 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
       }
       setError('');
       setStep(2);
-      
-      // Scroll to top gently when step changes
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  const handleAmountKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // Prevent invalid number characters
+      if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+          e.preventDefault();
+      }
   };
 
   const handleTrxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,12 +105,8 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
   
   const validateTrxID = (id: string) => {
       const cleanId = id.trim();
-      
       if (cleanId.length === 0) return { isValid: false, isError: false };
-
-      // Since input is restricted, we just check length and pure number
       if (cleanId.length < 8) return { isValid: false, isError: false };
-      
       return { isValid: true, isError: false };
   };
 
@@ -180,6 +182,7 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
                                 value={amount}
                                 onChange={(e) => { setAmount(e.target.value); setError(''); }}
                                 onFocus={handleInputFocus}
+                                onKeyDown={handleAmountKeyDown}
                                 className={`w-full pl-8 pr-4 py-2.5 bg-gray-50 dark:bg-dark-bg border ${amount && !isAmountInRange ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700 focus:ring-primary'} rounded-xl focus:outline-none focus:ring-2 text-lg font-bold transition-all`}
                             />
                         </div>

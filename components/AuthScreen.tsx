@@ -40,10 +40,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
 
   // --- VALIDATION RULES ---
 
-  // 1. Email: Standard Email Validation (Fixed: Not just Gmail)
+  // 1. Email: Standard Email Validation
   const validateEmail = (val: string) => {
-      // Standard regex for email validation
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
+      // Robust regex for email validation
+      return /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/.test(val.trim());
   };
 
   const isEmailValid = validateEmail(email);
@@ -52,9 +52,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   // 2. Name Validation
   const validateName = (val: string) => {
       const trimmed = val.trim();
-      // Length Check: 3-20 chars (Relaxed slightly)
       if (trimmed.length < 3 || trimmed.length > 20) return false;
-      return true;
+      return /^[a-zA-Z\s]*$/.test(trimmed); // Allow letters and spaces only
   };
 
   const isNameValid = isLogin || validateName(name);
@@ -62,12 +61,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   
   const isFormValid = isEmailValid && isPasswordValid && isNameValid && doPasswordsMatch;
 
-  // Sanitization Handler for Name (Strict No Special Chars)
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
-      // Allow letters and spaces only
-      const sanitized = raw.replace(/[^a-zA-Z\s]/g, '');
-      setName(sanitized);
+      // Filter out special chars immediately
+      if (/^[a-zA-Z\s]*$/.test(raw)) {
+          setName(raw);
+      }
   };
 
   const handleNameBlur = () => {

@@ -31,9 +31,9 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, 
         setLoading(true);
         const usersRef = ref(db, 'users');
         
-        // Optimize: Sort by balance or totalEarned and Limit to top 100 to prevent crash
-        // Note: Firebase requires an index in rules for orderByChild to work efficiently
-        // Fallback to client side sorting if rules not set, but limit size first
+        // FIX: limitToLast helps performance but might cut off the *actual* top user if index is missing.
+        // For accurate ranking on small datasets (<1000), fetching all is safer for "My Rank". 
+        // Assuming dataset is moderate for this challenge.
         const rankingQuery = query(usersRef, orderByChild(activeTab === 'transaction' ? 'totalSpent' : 'totalEarned'), limitToLast(100));
         
         const unsubscribe = onValue(rankingQuery, (snapshot) => {
@@ -51,7 +51,7 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, 
         });
 
         return () => unsubscribe();
-    }, [activeTab]); // Refetch when tab changes to optimize sort order
+    }, [activeTab]);
 
     // --- Sorting & Ranking Logic (Memoized) ---
     const { top3, rest, myRank, myScore } = useMemo(() => {
@@ -82,7 +82,6 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, 
         const myRankVal = myIndex !== -1 ? myIndex + 1 : null;
         const myScoreVal = myIndex !== -1 ? getScoreVal(sortedUsers[myIndex]) : 0;
 
-        // Since we already queried limited data, we just take the list
         return {
             top3: sortedUsers.slice(0, 3),
             rest: sortedUsers.slice(3),
@@ -140,20 +139,20 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, 
                             {top3[1] && (
                                 <div className="flex flex-col items-center w-1/3 order-1 animate-smart-slide-up" style={{ animationDelay: '150ms' }}>
                                     <div className="relative mb-2 group">
-                                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-br from-[#E2E8F0] via-[#CBD5E1] to-[#94A3B8] shadow-lg shadow-slate-400/30 transform transition-transform group-hover:scale-105">
+                                        <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-br from-[#E2E8F0] via-[#CBD5E1] to-[#94A3B8] shadow-lg shadow-slate-400/30 transform transition-transform group-hover:scale-105">
                                             <img 
                                                 src={top3[1].avatarUrl || DEFAULT_AVATAR_URL} 
                                                 className="w-full h-full rounded-full object-cover border-[3px] border-white dark:border-slate-800"
                                                 alt="Rank 2"
                                             />
                                         </div>
-                                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-7 h-7 bg-[#94A3B8] text-white rounded-full flex items-center justify-center text-xs font-black border-2 border-white dark:border-slate-800 shadow-md z-20">
+                                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 sm:w-7 sm:h-7 bg-[#94A3B8] text-white rounded-full flex items-center justify-center text-[10px] sm:text-xs font-black border-2 border-white dark:border-slate-800 shadow-md z-20">
                                             2
                                         </div>
                                     </div>
                                     <div className="text-center mt-3">
-                                        <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate max-w-[80px] mx-auto">{top3[1].name}</p>
-                                        <p className="text-[10px] font-bold text-slate-400 mt-0.5">
+                                        <p className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-200 truncate max-w-[70px] sm:max-w-[80px] mx-auto">{top3[1].name}</p>
+                                        <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 mt-0.5">
                                             {Math.floor(activeTab === 'transaction' ? (Number(top3[1].totalDeposit || 0) + Number(top3[1].totalSpent || 0)) : Number(top3[1].totalEarned || 0)).toLocaleString()}
                                         </p>
                                     </div>
@@ -162,26 +161,26 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, 
 
                             {/* --- Rank 1 (Gold) - Center (LARGEST & HIGHEST) --- */}
                             {top3[0] && (
-                                <div className="flex flex-col items-center w-1/3 order-2 -mt-12 animate-smart-slide-up z-20">
+                                <div className="flex flex-col items-center w-1/3 order-2 -mt-10 sm:-mt-12 animate-smart-slide-up z-20">
                                     <div className="mb-1 relative">
-                                        <CrownIcon className="w-10 h-10 text-yellow-400 drop-shadow-md animate-bounce" fill="currentColor" />
+                                        <CrownIcon className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-400 drop-shadow-md animate-bounce" fill="currentColor" />
                                         <div className="absolute inset-0 bg-yellow-400 blur-lg opacity-40 animate-pulse"></div>
                                     </div>
                                     <div className="relative mb-3 group">
-                                        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1 bg-gradient-to-br from-[#FCD34D] via-[#F59E0B] to-[#B45309] shadow-xl shadow-yellow-500/40 transform transition-transform group-hover:scale-105">
+                                        <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full p-1 bg-gradient-to-br from-[#FCD34D] via-[#F59E0B] to-[#B45309] shadow-xl shadow-yellow-500/40 transform transition-transform group-hover:scale-105">
                                             <img 
                                                 src={top3[0].avatarUrl || DEFAULT_AVATAR_URL} 
                                                 className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-800"
                                                 alt="Rank 1"
                                             />
                                         </div>
-                                        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full flex items-center justify-center text-sm font-black border-2 border-white dark:border-slate-800 shadow-lg z-20">
+                                        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full flex items-center justify-center text-xs sm:text-sm font-black border-2 border-white dark:border-slate-800 shadow-lg z-20">
                                             1
                                         </div>
                                     </div>
                                     <div className="text-center mt-3">
-                                        <p className="text-sm font-black text-slate-800 dark:text-white truncate max-w-[110px] mx-auto">{top3[0].name}</p>
-                                        <p className="text-xs font-bold text-primary mt-0.5">
+                                        <p className="text-xs sm:text-sm font-black text-slate-800 dark:text-white truncate max-w-[90px] sm:max-w-[110px] mx-auto">{top3[0].name}</p>
+                                        <p className="text-[10px] sm:text-xs font-bold text-primary mt-0.5">
                                             {Math.floor(activeTab === 'transaction' ? (Number(top3[0].totalDeposit || 0) + Number(top3[0].totalSpent || 0)) : Number(top3[0].totalEarned || 0)).toLocaleString()}
                                         </p>
                                     </div>
@@ -192,20 +191,20 @@ const RankingScreen: FC<RankingScreenProps> = ({ user, texts, adCode, adActive, 
                             {top3[2] && (
                                 <div className="flex flex-col items-center w-1/3 order-3 animate-smart-slide-up" style={{ animationDelay: '300ms' }}>
                                     <div className="relative mb-2 group">
-                                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full p-1 bg-gradient-to-br from-[#FDBA74] via-[#EA580C] to-[#9A3412] shadow-lg shadow-orange-700/20 transform transition-transform group-hover:scale-105">
+                                        <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-full p-1 bg-gradient-to-br from-[#FDBA74] via-[#EA580C] to-[#9A3412] shadow-lg shadow-orange-700/20 transform transition-transform group-hover:scale-105">
                                             <img 
                                                 src={top3[2].avatarUrl || DEFAULT_AVATAR_URL} 
                                                 className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-800"
                                                 alt="Rank 3"
                                             />
                                         </div>
-                                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-[#EA580C] text-white rounded-full flex items-center justify-center text-[10px] font-black border-2 border-white dark:border-slate-800 shadow-md z-20">
+                                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-5 h-5 sm:w-6 sm:h-6 bg-[#EA580C] text-white rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-black border-2 border-white dark:border-slate-800 shadow-md z-20">
                                             3
                                         </div>
                                     </div>
                                     <div className="text-center mt-3">
-                                        <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate max-w-[80px] mx-auto">{top3[2].name}</p>
-                                        <p className="text-xs font-bold text-slate-400 mt-0.5">
+                                        <p className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-200 truncate max-w-[70px] sm:max-w-[80px] mx-auto">{top3[2].name}</p>
+                                        <p className="text-[9px] sm:text-xs font-bold text-slate-400 mt-0.5">
                                             {Math.floor(activeTab === 'transaction' ? (Number(top3[2].totalDeposit || 0) + Number(top3[2].totalSpent || 0)) : Number(top3[2].totalEarned || 0)).toLocaleString()}
                                         </p>
                                     </div>

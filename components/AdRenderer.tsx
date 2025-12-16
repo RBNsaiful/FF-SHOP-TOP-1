@@ -1,3 +1,4 @@
+
 import React, { FC, useEffect, useState } from 'react';
 
 interface AdRendererProps {
@@ -70,7 +71,7 @@ const AdRenderer: FC<AdRendererProps> = ({ code, active = true }) => {
                     style={{
                         width: '100%', 
                         maxWidth: '100%', // Allow it to take available space
-                        minWidth: '300px', // Ensure at least standard mobile ad width
+                        minWidth: '250px', // Lower min-width to accommodate iPhone SE (320px)
                         height: '100px', // Give enough vertical space for banner + margins
                         border: 'none',
                         overflow: 'hidden'
