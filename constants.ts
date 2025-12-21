@@ -5,13 +5,11 @@ export const APP_LOGO_URL = '';
 export const DEFAULT_AVATAR_URL = 'https://i.ibb.co/k2nGxqwY/1763225878291.jpg';
 
 // --- SECURITY KEY FOR DEVELOPER SETTINGS ---
-// Prioritize Vite env vars - NEVER HARDCODE SECRETS IN PRODUCTION
 export const PROTECTION_KEY = 
   (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_PROTECTION_KEY) || 
-  ""; // Empty default to prevent accidental access
+  "SAIFULISLAM+999"; 
 
 // --- DEFAULT AI KEY (Fallback) ---
-// Changed to VITE_GEMINI_API_KEY to match standard practices
 export const DEFAULT_AI_KEY = 
   (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_GEMINI_API_KEY) || 
   "";

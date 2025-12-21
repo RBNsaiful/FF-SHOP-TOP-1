@@ -201,7 +201,7 @@ const PackageCard: FC<{
 const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffers, levelUpPackages, memberships, premiumApps, specialOffers = [], onNavigate, bannerImages, visibility, homeAdCode, homeAdActive, uiSettings }) => {
   const [selectedOffer, setSelectedOffer] = useState<GenericOffer | null>(null);
   const [activeTab, setActiveTab] = useState('');
-  const [showScrollHint, setShowScrollHint] = useState(true);
+  const [showScrollHint, setShowScrollHint] = useState(false);
 
   const showDiamond = visibility?.diamonds ?? true;
   const showLevelUp = visibility?.levelUp ?? true;
@@ -231,10 +231,16 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
   }, [visibleTabs.length, activeTab, visibility]);
 
   useEffect(() => {
-      const timer = setTimeout(() => {
-          setShowScrollHint(false);
-      }, 1500); 
-      return () => clearTimeout(timer);
+      // PLAY NUDGE ONLY ONCE PER SESSION
+      const hasNudged = sessionStorage.getItem('hasPlayedNudge');
+      if (!hasNudged) {
+          setShowScrollHint(true);
+          sessionStorage.setItem('hasPlayedNudge', 'true');
+          const timer = setTimeout(() => {
+              setShowScrollHint(false);
+          }, 1500); 
+          return () => clearTimeout(timer);
+      }
   }, []);
 
   const handleBuyClick = (offer: GenericOffer) => {
@@ -312,6 +318,8 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
     }
   };
 
+  // Determine width based on count: 1 = full, 2 = half, 3+ = slightly over 1/3 (scrollable)
+  const tabWidthClass = visibleTabs.length === 1 ? 'w-full' : visibleTabs.length === 2 ? 'w-1/2' : 'w-[35.5%]';
 
   return (
     <div>
@@ -328,7 +336,7 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex-shrink-0 w-1/3 px-1 py-2.5 transition-all duration-300 snap-start
+                                className={`flex-shrink-0 ${tabWidthClass} px-1 py-2.5 transition-all duration-300 snap-start
                                     ${activeTab === tab.id ? 'z-10' : ''}
                                 `}
                             >
