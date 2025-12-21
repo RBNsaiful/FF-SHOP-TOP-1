@@ -131,6 +131,7 @@ export interface AppVisibility {
   premium: boolean;
   earn: boolean;
   ranking: boolean;
+  specialOffers: boolean; // Added control for the new OFFER tab
 }
 
 // HYBRID AD SYSTEM SETTINGS

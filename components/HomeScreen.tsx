@@ -51,7 +51,7 @@ const BannerCarousel: FC<{ images: Banner[] }> = ({ images }) => {
                 setCurrentIndex((prevIndex) =>
                     prevIndex === images.length - 1 ? 0 : prevIndex + 1
                 ),
-            3000 // Change slide every 3 seconds
+            3000
         );
 
         return () => {
@@ -109,9 +109,19 @@ const BannerCarousel: FC<{ images: Banner[] }> = ({ images }) => {
 };
 
 
-const PackageCard: FC<{ name: string; price: number; texts: any; onBuy: () => void; icon: FC<{className?: string}>; description?: string; isPremium?: boolean; size?: 'normal' | 'small' | 'smaller' | 'extra-small' }> = ({ name, price, texts, onBuy, icon: Icon, description, isPremium, size = 'normal' }) => {
+const PackageCard: FC<{ 
+    name: string; 
+    price: number; 
+    texts: any; 
+    onBuy: () => void; 
+    icon: FC<{className?: string}>; 
+    description?: string; 
+    isSpecial?: boolean; 
+    isPremium?: boolean;
+    size?: 'normal' | 'small' | 'smaller' | 'extra-small' 
+}> = ({ name, price, texts, onBuy, icon: Icon, description, isSpecial, isPremium, size = 'normal' }) => {
     
-    // Dynamic styles based on size prop - NEW SIZE LOGIC
+    // Dynamic styles based on size prop
     const sizeConfig = {
         'normal': {
             padding: 'p-2',
@@ -151,20 +161,25 @@ const PackageCard: FC<{ name: string; price: number; texts: any; onBuy: () => vo
         }
     };
 
-    // Default to 'normal' if invalid size passed
     const s = sizeConfig[size] || sizeConfig.normal;
 
     return (
-        <div className={`bg-light-card dark:bg-dark-card rounded-2xl shadow-md ${s.padding} flex flex-col items-center justify-between transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 border border-transparent dark:border-gray-800 text-center relative overflow-hidden h-full ${isPremium ? 'border-primary/30 shadow-lg shadow-primary/10' : 'hover:border-primary/50'}`}>
+        <div className={`bg-light-card dark:bg-dark-card rounded-2xl shadow-md ${s.padding} flex flex-col items-center justify-between transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 border border-transparent dark:border-gray-800 text-center relative overflow-hidden h-full ${isSpecial || isPremium ? 'border-primary/30 shadow-lg' : 'hover:border-primary/50'}`}>
+            
+            {isSpecial && (
+                <div className="absolute -right-5 top-3 bg-gradient-to-r from-red-600 to-orange-600 text-white text-[9px] font-black px-6 py-1 rotate-45 shadow-sm uppercase tracking-tighter">
+                    LIMITED
+                </div>
+            )}
             
             {isPremium && (
-                <div className="absolute -right-5 top-3 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white text-[9px] font-bold px-6 py-1 rotate-45 shadow-sm">
+                <div className="absolute -right-5 top-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-[9px] font-black px-6 py-1 rotate-45 shadow-sm uppercase tracking-tighter">
                     PREMIUM
                 </div>
             )}
 
             <div className="flex flex-col items-center justify-center flex-grow py-1">
-                <Icon className={`${s.iconSize} mb-1 ${isPremium ? 'text-yellow-500 drop-shadow-sm' : 'text-primary'}`}/>
+                <Icon className={`${s.iconSize} mb-1 ${isSpecial ? 'text-red-500' : isPremium ? 'text-yellow-500' : 'text-primary'}`}/>
                 <h3 className={`${s.titleSize} font-bold text-light-text dark:text-dark-text tracking-tight line-clamp-2 ${s.minHeight} flex items-center justify-center`}>
                     {name}
                 </h3>
@@ -175,7 +190,7 @@ const PackageCard: FC<{ name: string; price: number; texts: any; onBuy: () => vo
                 <p className={`${s.priceSize} font-bold text-primary mb-1`}>{texts.currency}{price}</p>
                 <button
                 onClick={onBuy}
-                className={`w-full text-white font-bold ${s.btnSize} rounded-lg hover:opacity-90 transition-opacity shadow-lg ${isPremium ? 'bg-gradient-to-r from-yellow-500 to-orange-500 shadow-yellow-500/30' : 'bg-gradient-to-r from-primary to-secondary shadow-primary/30'}`}
+                className={`w-full text-white font-bold ${s.btnSize} rounded-lg hover:opacity-90 transition-opacity shadow-lg ${isSpecial ? 'bg-gradient-to-r from-red-600 to-red-500 shadow-red-500/30' : isPremium ? 'bg-gradient-to-r from-yellow-500 to-orange-500 shadow-yellow-500/30' : 'bg-gradient-to-r from-primary to-secondary shadow-primary/30'}`}
                 >
                 {texts.buyNow}
                 </button>
@@ -184,68 +199,30 @@ const PackageCard: FC<{ name: string; price: number; texts: any; onBuy: () => vo
     );
 };
 
-const SpecialOfferCard: FC<{ offer: SpecialOffer; texts: any; onBuy: () => void }> = ({ offer, texts, onBuy }) => (
-    <div className="relative group bg-gradient-to-br from-red-600 to-orange-600 rounded-2xl p-4 shadow-xl shadow-red-500/30 overflow-hidden transform transition-all duration-300 hover:scale-[1.02]">
-        {/* Background Decor */}
-        <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-xl -mr-10 -mt-10"></div>
-        <div className="absolute bottom-0 left-0 w-20 h-20 bg-black/10 rounded-full blur-xl -ml-10 -mb-10"></div>
-        
-        <div className="absolute top-2 right-2 bg-yellow-400 text-red-700 text-[10px] font-black px-2 py-0.5 rounded-md shadow-lg uppercase tracking-wider animate-pulse">
-            {texts.hotDeal}
-        </div>
-
-        <div className="flex flex-row items-center justify-between relative z-10 gap-3">
-            <div className="flex-1">
-                <div className="flex items-center gap-1.5 mb-1">
-                    <FireIcon className="w-4 h-4 text-yellow-300" />
-                    <span className="text-xs font-bold text-yellow-100 uppercase tracking-wide">{offer.name}</span>
-                </div>
-                <h3 className="text-lg font-black text-white leading-tight drop-shadow-md">
-                    {offer.title}
-                </h3>
-                <div className="flex items-center gap-2 mt-1">
-                    <span className="text-white/80 text-xs font-medium">{offer.diamonds} Diamonds</span>
-                </div>
-            </div>
-
-            <div className="flex flex-col items-end">
-                <p className="text-2xl font-black text-white drop-shadow-sm mb-2">{texts.currency}{offer.price}</p>
-                <button
-                    onClick={onBuy}
-                    className="bg-white text-red-600 font-bold py-1.5 px-4 rounded-full text-xs shadow-lg hover:bg-gray-100 active:scale-95 transition-all whitespace-nowrap"
-                >
-                    {texts.buyNow}
-                </button>
-            </div>
-        </div>
-    </div>
-);
-
 const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffers, levelUpPackages, memberships, premiumApps, specialOffers = [], onNavigate, bannerImages, visibility, homeAdCode, homeAdActive, uiSettings }) => {
   const [selectedOffer, setSelectedOffer] = useState<GenericOffer | null>(null);
   const [activeTab, setActiveTab] = useState('');
+  const [showScrollHint, setShowScrollHint] = useState(true);
 
-  // Default to true if not provided (backward compatibility)
+  // Default to true if not provided
   const showDiamond = visibility?.diamonds ?? true;
   const showLevelUp = visibility?.levelUp ?? true;
   const showMembership = visibility?.membership ?? true;
   const showPremium = visibility?.premium ?? true;
+  const showSpecial = visibility?.specialOffers ?? true;
 
   const cardSize = uiSettings?.cardSize || 'normal';
-
-  const activeSpecialOffers = specialOffers.filter(offer => offer.isActive);
 
   const visibleTabs = [
       { id: 'diamonds', label: texts.diamondOffers, visible: showDiamond },
       { id: 'level-up', label: texts.levelUpPackages, visible: showLevelUp },
       { id: 'memberships', label: texts.memberships, visible: showMembership },
+      { id: 'special', label: texts.specialOffersTab, visible: showSpecial }, 
       { id: 'premium-apps', label: texts.premiumApps, visible: showPremium && premiumApps && premiumApps.length > 0 },
   ].filter(t => t.visible);
 
-  // Set initial active tab based on visibility
   useEffect(() => {
       if (visibleTabs.length > 0) {
-          // If current active tab is not in visible list, switch to first visible
           const isActiveVisible = visibleTabs.find(t => t.id === activeTab);
           if (!isActiveVisible) {
               setActiveTab(visibleTabs[0].id);
@@ -253,7 +230,15 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
       } else {
           setActiveTab('');
       }
-  }, [visibleTabs.length, activeTab, visibility]); // Re-run when visibility changes
+  }, [visibleTabs.length, activeTab, visibility]);
+
+  // Handle nudge animation disappearance
+  useEffect(() => {
+      const timer = setTimeout(() => {
+          setShowScrollHint(false);
+      }, 1200); // 1.2s to cover the 1s animation duration
+      return () => clearTimeout(timer);
+  }, []);
 
   const handleBuyClick = (offer: GenericOffer) => {
     setSelectedOffer(offer);
@@ -270,16 +255,13 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
     const orderRef = ref(db, 'orders/' + user.uid);
 
     try {
-        // ATOMIC TRANSACTION: Ensuring balance doesn't go negative if multiple clicks happen
         await runTransaction(userRef, (userData) => {
             if (userData) {
                 if (userData.balance >= selectedOffer.price) {
                     userData.balance -= selectedOffer.price;
-                    // Increment totalSpent for Leaderboard
                     userData.totalSpent = (Number(userData.totalSpent) || 0) + selectedOffer.price;
                     return userData;
                 } else {
-                    // Abort transaction if insufficient funds
                     return; 
                 }
             }
@@ -366,6 +348,25 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
                     />
                 </div>
             ));
+        case 'special':
+            return specialOffers.filter(offer => offer.isActive).map((offer, index) => (
+                <div
+                    key={offer.id}
+                    className="opacity-0 animate-smart-slide-down"
+                    style={{ animationDelay: `${index * 120}ms` }}
+                >
+                    <PackageCard 
+                        name={offer.title || offer.name}
+                        description={offer.title ? offer.name : undefined}
+                        price={offer.price}
+                        texts={texts}
+                        icon={FireIcon}
+                        size={cardSize}
+                        isSpecial={true}
+                        onBuy={() => handleBuyClick({id: offer.id, name: offer.name, price: offer.price, icon: FireIcon, diamonds: offer.diamonds, inputType: 'uid'})} 
+                    />
+                </div>
+            ));
         case 'premium-apps':
             return premiumApps.map((app, index) => (
                 <div
@@ -397,35 +398,14 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
         <div className="opacity-0 animate-smart-slide-down" style={{ animationDelay: '100ms' }}>
             <BannerCarousel images={bannerImages} />
         </div>
-
-        {/* --- SPECIAL EVENT OFFERS SECTION --- */}
-        {activeSpecialOffers.length > 0 && (
-            <div className="mb-6 opacity-0 animate-smart-slide-down" style={{ animationDelay: '150ms' }}>
-                <div className="grid grid-cols-1 gap-3">
-                    {activeSpecialOffers.map((offer) => (
-                        <SpecialOfferCard 
-                            key={offer.id} 
-                            offer={offer} 
-                            texts={texts} 
-                            onBuy={() => handleBuyClick({
-                                id: offer.id, 
-                                name: `${offer.title} (${offer.name})`, 
-                                price: offer.price, 
-                                icon: FireIcon, 
-                                diamonds: offer.diamonds, 
-                                inputType: 'uid'
-                            })} 
-                        />
-                    ))}
-                </div>
-            </div>
-        )}
         
         {visibleTabs.length > 0 ? (
             <>
-                {/* Horizontal Scrollable Tabs - Filled & Premium (3 Items fit perfectly on mobile) */}
+                {/* Horizontal Scrollable Tabs - Layout fixed for 3 highlighted items */}
                 <div className="my-4 opacity-0 animate-smart-slide-down" style={{ animationDelay: '200ms' }}>
-                    <div className="flex gap-2 pb-2 overflow-x-auto no-scrollbar snap-x">
+                    <div 
+                        className={`flex gap-2 pb-2 overflow-x-auto no-scrollbar snap-x ${showScrollHint ? 'animate-[scroll-nudge_1s_ease-in-out_1]' : ''}`}
+                    >
                         {visibleTabs.map(tab => (
                             <button
                                 key={tab.id}
@@ -433,8 +413,8 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
                                 className={`
                                     flex-shrink-0 
                                     w-[calc((100%-1rem)/3)] sm:w-auto
-                                    px-1 sm:px-6
-                                    py-2.5 rounded-xl font-bold uppercase text-[10px] sm:text-xs transition-all duration-300 border-2 shadow-sm
+                                    px-2 sm:px-6
+                                    py-3 rounded-xl font-black uppercase text-[10px] sm:text-xs transition-all duration-300 border-2 shadow-sm
                                     flex items-center justify-center text-center leading-tight whitespace-normal sm:whitespace-nowrap snap-start
                                     ${activeTab === tab.id 
                                         ? 'bg-primary border-primary text-white shadow-md shadow-primary/30 scale-[1.02] z-10' 
@@ -458,7 +438,6 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
             </>
         ) : null}
 
-        {/* --- FOOTER ADVERTISEMENT (Scroll to View) --- */}
         <div className="mt-8 animate-fade-in w-full flex justify-center min-h-[60px]">
             {homeAdActive ? (
                 <AdRenderer code={homeAdCode || ''} active={homeAdActive} />

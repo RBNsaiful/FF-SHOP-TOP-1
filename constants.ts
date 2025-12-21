@@ -113,7 +113,8 @@ export const DEFAULT_APP_SETTINGS = {
         membership: true,
         premium: true,
         earn: true,
-        ranking: true
+        ranking: true,
+        specialOffers: true
     },
     earnSettings: {
         dailyLimit: DAILY_AD_LIMIT,
@@ -288,6 +289,7 @@ export const TEXTS: Record<string, any> = {
     levelUpPackages: "Level Up",
     memberships: "Membership",
     premiumApps: "Premium App",
+    specialOffersTab: "OFFERS",
     notifications: "Notifications",
     noNotifications: "No notifications yet.",
     markAllRead: "Mark all as read",
@@ -459,6 +461,7 @@ export const TEXTS: Record<string, any> = {
     levelUpPackages: "লেভেল আপ",
     memberships: "মেম্বারশিপ",
     premiumApps: "প্রিমিয়াম অ্যাপস",
+    specialOffersTab: "অফারসমূহ",
     notifications: "নোটিফিকেশন",
     noNotifications: "কোনো নোটিফিকেশন নেই।",
     markAllRead: "সব পড়া হয়েছে হিসেবে মার্ক করুন",
@@ -478,7 +481,7 @@ export const TEXTS: Record<string, any> = {
     hotDeal: "হট ডিল",
     watchTutorialDesc: "টিউটোরিয়াল দেখুন",
     callUsDesc: "সরাসরি কল করুন",
-    chatSupportDesc: "সাপোর্টে চ্যাট করুন",
+    chatSupportDesc: "সরাসরি চ্যাট করুন",
     forgotPassword: "পাসওয়ার্ড ভুলে গেছেন?",
     resetPassword: "পাসওয়ার্ড রিসেট করুন",
     sendResetLink: "রিসেট লিংক পাঠান",
