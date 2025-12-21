@@ -53,7 +53,7 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
     if (isEmailType) {
         const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
         if (!gmailRegex.test(value)) {
-            setInputError("Only @gmail.com addresses are allowed.");
+            setInputError("Only @gmail.com allowed");
             return false;
         }
     } else {
@@ -62,7 +62,7 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
             return false;
         }
         if (value.length < 8 || value.length > 15) {
-            setInputError("Invalid UID Length");
+            setInputError("Invalid UID");
             return false;
         }
     }
@@ -80,14 +80,8 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
       }
 
       const bdPhoneRegex = /^01[3-9]\d{8}$/;
-      
-      if (!/^\d+$/.test(value)) {
-          setPhoneError("Digits only");
-          return false;
-      }
-      
       if (!bdPhoneRegex.test(value)) {
-          setPhoneError("Invalid BD Number");
+          setPhoneError("Invalid Number");
           return false;
       }
 
@@ -101,7 +95,6 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value;
       if (!isEmailType) {
-          // STRICT: Only digits
           if (/^\d*$/.test(newValue)) {
               setInputValue(newValue);
               if (inputError) setInputError('');
@@ -121,12 +114,7 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, type: 'uid' | 'phone') => {
-      if (type === 'uid' && !isEmailType) {
-          if (['e', 'E', '+', '-', '.'].includes(e.key)) {
-              e.preventDefault();
-          }
-      }
-      if (type === 'phone') {
+      if ((type === 'uid' && !isEmailType) || type === 'phone') {
           if (['e', 'E', '+', '-', '.'].includes(e.key)) {
               e.preventDefault();
           }
@@ -140,11 +128,8 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
     if (!isMainValid || (isEmailType && !isPhoneValid) || insufficientBalance || status === 'processing') return;
     
     setStatus('processing');
-
     const finalData = isEmailType ? `${inputValue} | ${phoneNumber}` : inputValue;
-
     await onConfirm(finalData);
-    
     setStatus('button-success');
     
     setTimeout(() => {
@@ -180,12 +165,7 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
                     <span className="text-gray-500 dark:text-gray-400 font-medium">{texts.balance}</span>
                     <span className="font-bold">{texts.currency}{Math.floor(userBalance)}</span>
                 </div>
-                <div className="flex justify-between">
-                    <span className="text-gray-500 dark:text-gray-400 font-medium">{texts.purchase}</span>
-                    <span className="text-red-500 font-bold">-{texts.currency}{offer.price.toLocaleString()}</span>
-                </div>
-                <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-                <div className="flex justify-between font-bold text-base">
+                <div className="flex justify-between font-bold text-base border-t border-gray-200 dark:border-gray-700 mt-1 pt-1">
                     <span>{texts.newBalance}</span>
                     <span className={insufficientBalance ? 'text-red-500' : 'text-green-500'}>
                         {texts.currency}{Math.floor(userBalance - offer.price)}
@@ -193,10 +173,9 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
                 </div>
             </div>
 
-            {/* Main Input (UID or Email) */}
             <div className="mb-4">
-              <label htmlFor="uidInput" className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2 ml-1">
-                  {isEmailType ? "Email" : texts.uid}
+              <label htmlFor="uidInput" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2 ml-1">
+                  {isEmailType ? "Email" : "UID"}
               </label>
               <input
                 type={isEmailType ? 'email' : 'text'}
@@ -207,18 +186,17 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
                 onKeyDown={(e) => handleKeyDown(e, 'uid')}
                 onBlur={handleBlur}
                 onFocus={handleInputFocus}
-                placeholder={isEmailType ? "Email" : texts.enterUID}
+                placeholder={isEmailType ? "Email" : "UID"}
                 className={`w-full p-3.5 bg-gray-50 dark:bg-dark-bg border rounded-2xl focus:outline-none focus:ring-2 font-medium transition-all ${inputError ? 'border-red-500 focus:ring-red-500/30' : 'border-gray-200 dark:border-gray-700 focus:ring-primary/50'}`}
                 disabled={status === 'processing' || status === 'button-success'}
                 maxLength={!isEmailType ? 15 : undefined}
               />
-              {inputError && <p className="text-red-500 text-xs mt-1.5 font-bold ml-1 animate-fade-in">{inputError}</p>}
+              {inputError && <p className="text-red-500 text-[10px] mt-1.5 font-bold ml-1 animate-fade-in">{inputError}</p>}
             </div>
 
-            {/* Additional Phone Input for Premium Apps */}
             {isEmailType && (
                 <div className="mb-4 animate-fade-in">
-                    <label htmlFor="phoneInput" className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2 ml-1">
+                    <label htmlFor="phoneInput" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2 ml-1">
                         Number
                     </label>
                     <input
@@ -235,12 +213,12 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
                         disabled={status === 'processing' || status === 'button-success'}
                         maxLength={11}
                     />
-                    {phoneError && <p className="text-red-500 text-xs mt-1.5 font-bold ml-1 animate-fade-in">{phoneError}</p>}
+                    {phoneError && <p className="text-red-500 text-[10px] mt-1.5 font-bold ml-1 animate-fade-in">{phoneError}</p>}
                 </div>
             )}
             
             {insufficientBalance && (
-                <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-xl mb-2 text-xs font-bold text-center border border-red-100 dark:border-red-800 animate-pulse">
+                <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-xl mb-2 text-[10px] font-black uppercase text-center border border-red-100 dark:border-red-800 animate-pulse">
                     {texts.insufficientBalance}
                 </div>
             )}
@@ -248,7 +226,7 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
             <div className="flex gap-3 mt-6">
               <button
                 onClick={onClose}
-                className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold py-3.5 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm active:scale-95"
+                className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold py-3.5 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-xs active:scale-95"
                 disabled={status === 'processing' || status === 'button-success'}
               >
                 {texts.cancel}
@@ -256,7 +234,7 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
               <button
                 onClick={handleConfirm}
                 disabled={isConfirmDisabled}
-                className={`flex-1 bg-gradient-to-r from-primary to-secondary text-white font-bold py-3.5 rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg shadow-primary/30 text-sm active:scale-95
+                className={`flex-1 bg-gradient-to-r from-primary to-secondary text-white font-bold py-3.5 rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg shadow-primary/30 text-xs active:scale-95
                     ${status === 'button-success' ? 'bg-green-500' : ''}
                 `}
               >
@@ -275,19 +253,12 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
                 <div className="relative w-24 h-24 mb-6 flex items-center justify-center">
                     <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
                     <div className="absolute inset-2 bg-primary/30 rounded-full animate-ping" style={{animationDelay: '0.2s'}}></div>
-                    
                     <OfferIcon className="w-20 h-20 animate-burst relative z-10 text-primary" />
                 </div>
-                <h3 
-                    className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mb-2 opacity-0 animate-fade-in-up" 
-                    style={{animationDelay: '0.4s'}}
-                >
+                <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mb-2 opacity-0 animate-fade-in-up" style={{animationDelay: '0.4s'}}>
                     {texts.orderSuccessful}
                 </h3>
-                <p 
-                    className="text-gray-600 dark:text-gray-300 opacity-0 animate-fade-in-up text-sm max-w-[200px]"
-                    style={{animationDelay: '0.6s'}}
-                >
+                <p className="text-gray-600 dark:text-gray-300 opacity-0 animate-fade-in-up text-sm max-w-[200px]" style={{animationDelay: '0.6s'}}>
                     {texts.orderPendingGeneric.replace('{packageName}', String(offer.name))}
                 </p>
             </div>

@@ -57,7 +57,7 @@
               'smart-slide-down': 'smartSlideDown 1s cubic-bezier(0.16, 1, 0.3, 1) forwards',
               'smart-pop-in': 'smartPopIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
               'smart-fade-in': 'smartFadeIn 1s ease-out forwards',
-              'scroll-nudge': 'scrollNudge 1.5s ease-in-out infinite',
+              'scroll-nudge': 'scrollNudge 1.2s ease-in-out forwards',
             },
             keyframes: {
               fadeIn: {
@@ -161,9 +161,10 @@
                 '100%': { opacity: '1' },
               },
               scrollNudge: {
-                '0%, 100%': { transform: 'translateX(0)' },
-                '20%, 60%': { transform: 'translateX(-5px)' },
-                '40%, 80%': { transform: 'translateX(5px)' },
+                '0%': { transform: 'translateX(0)' },
+                '30%': { transform: 'translateX(-35px)' },
+                '60%': { transform: 'translateX(10px)' },
+                '100%': { transform: 'translateX(0)' }
               }
             }
           }

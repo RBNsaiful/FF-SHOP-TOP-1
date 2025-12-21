@@ -121,7 +121,6 @@ const PackageCard: FC<{
     size?: 'normal' | 'small' | 'smaller' | 'extra-small' 
 }> = ({ name, price, texts, onBuy, icon: Icon, description, isSpecial, isPremium, size = 'normal' }) => {
     
-    // Dynamic styles based on size prop
     const sizeConfig = {
         'normal': {
             padding: 'p-2',
@@ -204,7 +203,6 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
   const [activeTab, setActiveTab] = useState('');
   const [showScrollHint, setShowScrollHint] = useState(true);
 
-  // Default to true if not provided
   const showDiamond = visibility?.diamonds ?? true;
   const showLevelUp = visibility?.levelUp ?? true;
   const showMembership = visibility?.membership ?? true;
@@ -232,11 +230,10 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
       }
   }, [visibleTabs.length, activeTab, visibility]);
 
-  // Handle nudge animation disappearance
   useEffect(() => {
       const timer = setTimeout(() => {
           setShowScrollHint(false);
-      }, 1200); // 1.2s to cover the 1s animation duration
+      }, 1500); 
       return () => clearTimeout(timer);
   }, []);
 
@@ -269,25 +266,9 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
         });
 
         const orderId = Math.floor(10000000 + Math.random() * 90000000).toString();
-
-        const offerForDB = {
-            id: selectedOffer.id,
-            name: selectedOffer.name,
-            price: selectedOffer.price,
-            diamonds: selectedOffer.diamonds || 0,
-        };
-
-        await push(orderRef, {
-            uid: identifier, 
-            offer: offerForDB,
-            price: selectedOffer.price,
-            status: 'Pending',
-            date: new Date().toISOString(),
-            id: orderId 
-        });
-
+        const offerForDB = { id: selectedOffer.id, name: selectedOffer.name, price: selectedOffer.price, diamonds: selectedOffer.diamonds || 0 };
+        await push(orderRef, { uid: identifier, offer: offerForDB, price: selectedOffer.price, status: 'Pending', date: new Date().toISOString(), id: orderId });
         onPurchase(selectedOffer.price);
-
     } catch (error) {
         console.error("Purchase Transaction failed", error);
         alert("Transaction failed. Please check your balance.");
@@ -298,92 +279,32 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
     switch(activeTab) {
         case 'diamonds':
             return diamondOffers.map((offer, index) => (
-              <div
-                key={offer.id}
-                className="opacity-0 animate-smart-slide-down"
-                style={{ animationDelay: `${index * 120}ms` }}
-              >
-                  <PackageCard 
-                    name={`${offer.diamonds}`}
-                    description="Diamonds"
-                    price={offer.price}
-                    texts={texts}
-                    icon={DiamondIcon}
-                    size={cardSize}
-                    onBuy={() => handleBuyClick({id: offer.id, name: `${offer.diamonds} Diamonds`, price: offer.price, icon: DiamondIcon, diamonds: offer.diamonds, inputType: 'uid'})} 
-                  />
+              <div key={offer.id} className="opacity-0 animate-smart-slide-down" style={{ animationDelay: `${index * 120}ms` }}>
+                  <PackageCard name={`${offer.diamonds}`} description="Diamonds" price={offer.price} texts={texts} icon={DiamondIcon} size={cardSize} onBuy={() => handleBuyClick({id: offer.id, name: `${offer.diamonds} Diamonds`, price: offer.price, icon: DiamondIcon, diamonds: offer.diamonds, inputType: 'uid'})} />
               </div>
             ));
         case 'level-up':
             return levelUpPackages.map((pkg, index) => (
-                 <div
-                    key={pkg.id}
-                    className="opacity-0 animate-smart-slide-down"
-                    style={{ animationDelay: `${index * 120}ms` }}
-                >
-                    <PackageCard 
-                        name={texts[pkg.name] || pkg.name}
-                        price={pkg.price}
-                        texts={texts}
-                        icon={StarIcon}
-                        size={cardSize}
-                        onBuy={() => handleBuyClick({id: pkg.id, name: texts[pkg.name] || pkg.name, price: pkg.price, icon: StarIcon, inputType: 'uid'})} 
-                    />
+                 <div key={pkg.id} className="opacity-0 animate-smart-slide-down" style={{ animationDelay: `${index * 120}ms` }}>
+                    <PackageCard name={texts[pkg.name] || pkg.name} price={pkg.price} texts={texts} icon={StarIcon} size={cardSize} onBuy={() => handleBuyClick({id: pkg.id, name: texts[pkg.name] || pkg.name, price: pkg.price, icon: StarIcon, inputType: 'uid'})} />
                 </div>
             ));
         case 'memberships':
             return memberships.map((mem, index) => (
-                <div
-                    key={mem.id}
-                    className="opacity-0 animate-smart-slide-down"
-                    style={{ animationDelay: `${index * 120}ms` }}
-                >
-                    <PackageCard 
-                        name={texts[mem.name] || mem.name}
-                        price={mem.price}
-                        texts={texts}
-                        icon={IdCardIcon}
-                        size={cardSize}
-                        onBuy={() => handleBuyClick({id: mem.id, name: texts[mem.name] || mem.name, price: mem.price, icon: IdCardIcon, inputType: 'uid'})} 
-                    />
+                <div key={mem.id} className="opacity-0 animate-smart-slide-down" style={{ animationDelay: `${index * 120}ms` }}>
+                    <PackageCard name={texts[mem.name] || mem.name} price={mem.price} texts={texts} icon={IdCardIcon} size={cardSize} onBuy={() => handleBuyClick({id: mem.id, name: texts[mem.name] || mem.name, price: mem.price, icon: IdCardIcon, inputType: 'uid'})} />
                 </div>
             ));
         case 'special':
             return specialOffers.filter(offer => offer.isActive).map((offer, index) => (
-                <div
-                    key={offer.id}
-                    className="opacity-0 animate-smart-slide-down"
-                    style={{ animationDelay: `${index * 120}ms` }}
-                >
-                    <PackageCard 
-                        name={offer.title || offer.name}
-                        description={offer.title ? offer.name : undefined}
-                        price={offer.price}
-                        texts={texts}
-                        icon={FireIcon}
-                        size={cardSize}
-                        isSpecial={true}
-                        onBuy={() => handleBuyClick({id: offer.id, name: offer.name, price: offer.price, icon: FireIcon, diamonds: offer.diamonds, inputType: 'uid'})} 
-                    />
+                <div key={offer.id} className="opacity-0 animate-smart-slide-down" style={{ animationDelay: `${index * 120}ms` }}>
+                    <PackageCard name={offer.title || offer.name} description={offer.title ? offer.name : undefined} price={offer.price} texts={texts} icon={FireIcon} size={cardSize} isSpecial={true} onBuy={() => handleBuyClick({id: offer.id, name: offer.name, price: offer.price, icon: FireIcon, diamonds: offer.diamonds, inputType: 'uid'})} />
                 </div>
             ));
         case 'premium-apps':
             return premiumApps.map((app, index) => (
-                <div
-                    key={app.id}
-                    className="opacity-0 animate-smart-slide-down"
-                    style={{ animationDelay: `${index * 120}ms` }}
-                >
-                    <PackageCard 
-                        name={app.name}
-                        description={app.description}
-                        price={app.price}
-                        texts={texts}
-                        icon={CrownIcon}
-                        size={cardSize}
-                        isPremium={true}
-                        onBuy={() => handleBuyClick({id: app.id, name: app.name, price: app.price, icon: CrownIcon, inputType: 'email'})} 
-                    />
+                <div key={app.id} className="opacity-0 animate-smart-slide-down" style={{ animationDelay: `${index * 120}ms` }}>
+                    <PackageCard name={app.name} description={app.description} price={app.price} texts={texts} icon={CrownIcon} size={cardSize} isPremium={true} onBuy={() => handleBuyClick({id: app.id, name: app.name, price: app.price, icon: CrownIcon, inputType: 'email'})} />
                 </div>
             ));
         default:
@@ -394,70 +315,53 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
 
   return (
     <div>
-      <main className="p-4">
+      <main className="p-4 overflow-x-hidden">
         <div className="opacity-0 animate-smart-slide-down" style={{ animationDelay: '100ms' }}>
             <BannerCarousel images={bannerImages} />
         </div>
         
         {visibleTabs.length > 0 ? (
-            <>
-                {/* Horizontal Scrollable Tabs - Layout fixed for 3 highlighted items */}
-                <div className="my-4 opacity-0 animate-smart-slide-down" style={{ animationDelay: '200ms' }}>
-                    <div 
-                        className={`flex gap-2 pb-2 overflow-x-auto no-scrollbar snap-x ${showScrollHint ? 'animate-[scroll-nudge_1s_ease-in-out_1]' : ''}`}
-                    >
+            <div className="my-4 -mx-4 px-4 opacity-0 animate-smart-slide-down" style={{ animationDelay: '200ms' }}>
+                <div className="overflow-x-auto no-scrollbar snap-x snap-mandatory">
+                    <div className={`flex items-center min-w-full ${showScrollHint ? 'animate-scroll-nudge' : ''}`}>
                         {visibleTabs.map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`
-                                    flex-shrink-0 
-                                    w-[calc((100%-1rem)/3)] sm:w-auto
-                                    px-2 sm:px-6
-                                    py-3 rounded-xl font-black uppercase text-[10px] sm:text-xs transition-all duration-300 border-2 shadow-sm
-                                    flex items-center justify-center text-center leading-tight whitespace-normal sm:whitespace-nowrap snap-start
-                                    ${activeTab === tab.id 
-                                        ? 'bg-primary border-primary text-white shadow-md shadow-primary/30 scale-[1.02] z-10' 
-                                        : 'bg-light-card dark:bg-dark-card text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-primary/50 hover:text-primary dark:hover:text-primary hover:bg-gray-50 dark:hover:bg-gray-800'
-                                    }
+                                className={`flex-shrink-0 w-1/3 px-1 py-2.5 transition-all duration-300 snap-start
+                                    ${activeTab === tab.id ? 'z-10' : ''}
                                 `}
                             >
-                                {tab.label}
+                                <div className={`w-full h-full flex items-center justify-center rounded-xl font-black uppercase text-[9px] sm:text-xs transition-all duration-300 border-2 shadow-sm text-center leading-tight whitespace-normal py-2
+                                    ${activeTab === tab.id 
+                                        ? 'bg-primary border-primary text-white shadow-md shadow-primary/30 scale-[1.01]' 
+                                        : 'bg-light-card dark:bg-dark-card text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-primary/50 hover:text-primary dark:hover:text-primary hover:bg-gray-50 dark:hover:bg-gray-800'
+                                    }
+                                `}>
+                                    {tab.label}
+                                </div>
                             </button>
                         ))}
                     </div>
                 </div>
-                
-                <div className="animate-smart-fade-in" style={{ animationDelay: '300ms' }}>
-                    {renderContent() ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 items-stretch">
-                            {renderContent()}
-                        </div>
-                    ) : null}
-                </div>
-            </>
+            </div>
         ) : null}
 
-        <div className="mt-8 animate-fade-in w-full flex justify-center min-h-[60px]">
-            {homeAdActive ? (
-                <AdRenderer code={homeAdCode || ''} active={homeAdActive} />
-            ) : null}
+        <div className="animate-smart-fade-in" style={{ animationDelay: '300ms' }}>
+            {renderContent() && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 items-stretch">
+                    {renderContent()}
+                </div>
+            )}
         </div>
 
+        <div className="mt-8 animate-fade-in w-full flex justify-center min-h-[60px]">
+            {homeAdActive ? <AdRenderer code={homeAdCode || ''} active={homeAdActive} /> : null}
+        </div>
       </main>
+      
       {selectedOffer && (
-        <PurchaseModal 
-          offer={selectedOffer} 
-          onClose={handleCloseModal} 
-          onConfirm={handleConfirmPurchase}
-          onSuccess={() => {
-              handleCloseModal();
-              onNavigate('myOrders');
-          }}
-          texts={texts}
-          userBalance={user.balance}
-          defaultUid={user.playerUid}
-        />
+        <PurchaseModal offer={selectedOffer} onClose={handleCloseModal} onConfirm={handleConfirmPurchase} onSuccess={() => { handleCloseModal(); onNavigate('myOrders'); }} texts={texts} userBalance={user.balance} defaultUid={user.playerUid} />
       )}
     </div>
   );
