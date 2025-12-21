@@ -36,6 +36,43 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
   
   const [status, setStatus] = useState<'idle' | 'processing' | 'button-success' | 'success'>('idle');
 
+  // Conditional Styling based on offer type (Premium App vs Standard)
+  const styles = isEmailType ? {
+      container: "p-5",
+      title: "text-lg mb-3",
+      offerBox: "p-2 mb-3",
+      icon: "w-10 h-10",
+      offerName: "text-xl",
+      price: "text-lg",
+      balanceBox: "p-2.5 mb-3 space-y-1",
+      balanceText: "text-xs",
+      inputLabel: "text-[10px] mb-1",
+      input: "p-3 rounded-xl text-sm",
+      inputGroup: "mb-2",
+      footer: "mt-4 gap-2",
+      btn: "py-3 rounded-xl",
+      successContainer: "py-8",
+      successIcon: "w-16 h-16",
+      successTitle: "text-xl"
+  } : {
+      container: "p-6",
+      title: "text-xl mb-5",
+      offerBox: "p-4 mb-5",
+      icon: "w-12 h-12",
+      offerName: "text-2xl",
+      price: "text-xl",
+      balanceBox: "p-3 mb-5 space-y-2",
+      balanceText: "text-sm",
+      inputLabel: "text-[11px] mb-1.5",
+      input: "p-3.5 rounded-2xl text-base",
+      inputGroup: "mb-4",
+      footer: "mt-6 gap-3",
+      btn: "py-3.5 rounded-xl",
+      successContainer: "py-10",
+      successIcon: "w-20 h-20",
+      successTitle: "text-2xl"
+  };
+
   const handleInputFocus = (event: React.FocusEvent<HTMLInputElement>) => {
     setTimeout(() => {
       event.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -146,26 +183,26 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-smart-fade-in">
       <div 
-        className="bg-light-card dark:bg-dark-card rounded-3xl p-6 w-full max-w-xs animate-smart-pop-in shadow-2xl border border-gray-100 dark:border-gray-800"
+        className={`bg-light-card dark:bg-dark-card rounded-3xl ${styles.container} w-full max-w-xs animate-smart-pop-in shadow-2xl border border-gray-100 dark:border-gray-800`}
         onClick={(e) => e.stopPropagation()} 
       >
         {status !== 'success' ? (
           <div className="w-full">
-            <h3 className="text-xl font-bold text-center mb-5 text-gray-900 dark:text-white">{texts.confirmPurchase}</h3>
+            <h3 className={`${styles.title} font-bold text-center text-gray-900 dark:text-white`}>{texts.confirmPurchase}</h3>
             
-            <div className="flex flex-col items-center text-center mb-5 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700">
-                <OfferIcon className="w-12 h-12 mb-2 text-primary drop-shadow-md"/>
-                <h4 className="text-2xl font-extrabold text-gray-900 dark:text-white">{offer.name}</h4>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mt-1">Package Price</p>
-                <p className="text-xl font-black text-primary mt-1">{texts.currency}{offer.price.toLocaleString()}</p>
+            <div className={`flex flex-col items-center text-center ${styles.offerBox} bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700`}>
+                <OfferIcon className={`${styles.icon} mb-1 text-primary drop-shadow-md`}/>
+                <h4 className={`${styles.offerName} font-extrabold text-gray-900 dark:text-white leading-tight`}>{offer.name}</h4>
+                <p className="text-[9px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider mt-0.5">Package Price</p>
+                <p className={`${styles.price} font-black text-primary mt-0.5`}>{texts.currency}{offer.price.toLocaleString()}</p>
             </div>
             
-            <div className="text-sm mb-5 p-3 bg-white dark:bg-dark-bg rounded-xl border border-gray-100 dark:border-gray-700 space-y-2 text-light-text dark:text-dark-text shadow-sm">
+            <div className={`${styles.balanceText} ${styles.balanceBox} bg-white dark:bg-dark-bg rounded-xl border border-gray-100 dark:border-gray-700 text-light-text dark:text-dark-text shadow-sm`}>
                 <div className="flex justify-between">
                     <span className="text-gray-500 dark:text-gray-400 font-medium">{texts.balance}</span>
                     <span className="font-bold">{texts.currency}{Math.floor(userBalance)}</span>
                 </div>
-                <div className="flex justify-between font-bold text-base border-t border-gray-200 dark:border-gray-700 mt-1 pt-1">
+                <div className={`flex justify-between font-bold border-t border-gray-200 dark:border-gray-700 mt-0.5 pt-0.5`}>
                     <span>{texts.newBalance}</span>
                     <span className={insufficientBalance ? 'text-red-500' : 'text-green-500'}>
                         {texts.currency}{Math.floor(userBalance - offer.price)}
@@ -173,8 +210,8 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
                 </div>
             </div>
 
-            <div className="mb-4">
-              <label htmlFor="uidInput" className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 block mb-1.5 ml-1">
+            <div className={styles.inputGroup}>
+              <label htmlFor="uidInput" className={`${styles.inputLabel} font-semibold text-gray-500 dark:text-gray-400 block ml-1`}>
                   {isEmailType ? "Email" : "Player UID"}
               </label>
               <input
@@ -187,16 +224,16 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
                 onBlur={handleBlur}
                 onFocus={handleInputFocus}
                 placeholder={isEmailType ? "Email" : "Player UID"}
-                className={`w-full p-3.5 bg-gray-50 dark:bg-dark-bg border rounded-2xl focus:outline-none focus:ring-2 font-medium transition-all ${inputError ? 'border-red-500 focus:ring-red-500/30' : 'border-gray-200 dark:border-gray-700 focus:ring-primary/50'}`}
+                className={`w-full ${styles.input} bg-gray-50 dark:bg-dark-bg border focus:outline-none focus:ring-2 font-medium transition-all ${inputError ? 'border-red-500 focus:ring-red-500/30' : 'border-gray-200 dark:border-gray-700 focus:ring-primary/50'}`}
                 disabled={status === 'processing' || status === 'button-success'}
                 maxLength={!isEmailType ? 15 : undefined}
               />
-              {inputError && <p className="text-red-500 text-[10px] mt-1.5 font-bold ml-1 animate-fade-in">{inputError}</p>}
+              {inputError && <p className="text-red-500 text-[9px] mt-1 font-bold ml-1 animate-fade-in">{inputError}</p>}
             </div>
 
             {isEmailType && (
-                <div className="mb-4 animate-fade-in">
-                    <label htmlFor="phoneInput" className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 block mb-1.5 ml-1">
+                <div className="mb-2 animate-fade-in">
+                    <label htmlFor="phoneInput" className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 block mb-1 ml-1">
                         Number
                     </label>
                     <input
@@ -209,24 +246,24 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
                         onBlur={handlePhoneBlur}
                         onFocus={handleInputFocus}
                         placeholder="WA or IMO"
-                        className={`w-full p-3.5 bg-gray-50 dark:bg-dark-bg border rounded-2xl focus:outline-none focus:ring-2 font-medium transition-all ${phoneError ? 'border-red-500 focus:ring-red-500/30' : 'border-gray-200 dark:border-gray-700 focus:ring-primary/50'}`}
+                        className={`w-full p-3 bg-gray-50 dark:bg-dark-bg border rounded-xl focus:outline-none focus:ring-2 font-medium transition-all text-sm ${phoneError ? 'border-red-500 focus:ring-red-500/30' : 'border-gray-200 dark:border-gray-700 focus:ring-primary/50'}`}
                         disabled={status === 'processing' || status === 'button-success'}
                         maxLength={11}
                     />
-                    {phoneError && <p className="text-red-500 text-[10px] mt-1.5 font-bold ml-1 animate-fade-in">{phoneError}</p>}
+                    {phoneError && <p className="text-red-500 text-[9px] mt-1 font-bold ml-1 animate-fade-in">{phoneError}</p>}
                 </div>
             )}
             
             {insufficientBalance && (
-                <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-xl mb-2 text-[10px] font-black uppercase text-center border border-red-100 dark:border-red-800 animate-pulse">
+                <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-2 rounded-xl mb-2 text-[9px] font-black uppercase text-center border border-red-100 dark:border-red-800 animate-pulse">
                     {texts.insufficientBalance}
                 </div>
             )}
 
-            <div className="flex gap-3 mt-6">
+            <div className={`flex ${styles.footer}`}>
               <button
                 onClick={onClose}
-                className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold py-3.5 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-xs active:scale-95"
+                className={`flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold ${styles.btn} hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-xs active:scale-95`}
                 disabled={status === 'processing' || status === 'button-success'}
               >
                 {texts.cancel}
@@ -234,7 +271,7 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
               <button
                 onClick={handleConfirm}
                 disabled={isConfirmDisabled}
-                className={`flex-1 bg-gradient-to-r from-primary to-secondary text-white font-bold py-3.5 rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg shadow-primary/30 text-xs active:scale-95
+                className={`flex-1 bg-gradient-to-r from-primary to-secondary text-white font-bold ${styles.btn} flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg shadow-primary/30 text-xs active:scale-95
                     ${status === 'button-success' ? 'bg-green-500' : ''}
                 `}
               >
@@ -249,16 +286,16 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
             </div>
           </div>
         ) : (
-            <div className="flex flex-col items-center justify-center text-center p-4 overflow-hidden py-10">
-                <div className="relative w-24 h-24 mb-6 flex items-center justify-center">
+            <div className={`flex flex-col items-center justify-center text-center p-4 overflow-hidden ${styles.successContainer}`}>
+                <div className={`relative ${styles.successIcon} mb-4 flex items-center justify-center`}>
                     <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
                     <div className="absolute inset-2 bg-primary/30 rounded-full animate-ping" style={{animationDelay: '0.2s'}}></div>
-                    <OfferIcon className="w-20 h-20 animate-burst relative z-10 text-primary" />
+                    <OfferIcon className={`${isEmailType ? 'w-16 h-16' : 'w-20 h-20'} animate-burst relative z-10 text-primary`} />
                 </div>
-                <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mb-2 opacity-0 animate-fade-in-up" style={{animationDelay: '0.4s'}}>
+                <h3 className={`${styles.successTitle} font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mb-1 opacity-0 animate-fade-in-up`} style={{animationDelay: '0.4s'}}>
                     {texts.orderSuccessful}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-300 opacity-0 animate-fade-in-up text-sm max-w-[200px]" style={{animationDelay: '0.6s'}}>
+                <p className="text-gray-600 dark:text-gray-300 opacity-0 animate-fade-in-up text-xs max-w-[200px]" style={{animationDelay: '0.6s'}}>
                     {texts.orderPendingGeneric.replace('{packageName}', String(offer.name))}
                 </p>
             </div>

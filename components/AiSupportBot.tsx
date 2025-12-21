@@ -8,7 +8,7 @@ import { ref, get, update, runTransaction } from 'firebase/database';
 
 // --- SOUND ASSETS ---
 const SEND_SOUND = "data:audio/mp3;base64,SUQzBAAAAAAAI1RTSVMAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWgAAAA0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAABzgM0AAAAAAOAAAAAAAAAAAA0gAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAALQAAAAADgOAAA///+5JkAAAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD//+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAADcADQAAAAADgAAAAAAAAAtAAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAAAAAANIAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA"; 
-const RECEIVE_SOUND = "data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWgAAAA0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAABzgM0AAAAAAOAAAAAAAAAAAA0gAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAALQAAAAADgOAAA///+5JkAAAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAADcADQAAAAADgAAAAAAAAAtAAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAAAAAANIAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA";
+const RECEIVE_SOUND = "data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWgAAAA0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAABzgM0AAAAAAOAAAAAAAAAAAA0gAAAAAOA4AAAD///7kmQAAAA3AA0AAAAAAA4AAAAAAAALQAAAAADgOAAA///+5JkAAANwANAAAAAAAOAAAAAAAAC0AAAAAA4DgAAAP///uSZAAAALQAAAAADgOAAA///+5JkAAAAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA//uQZAAAAAAA0gAAAAOA4AAAD///7kmQAAAAAADgOAAAA";
 
 // --- ANIMATED ICONS ---
 const LiveRobotIcon = ({ className }: { className?: string }) => (
@@ -151,7 +151,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
   useEffect(() => { if (textareaRef.current) { textareaRef.current.style.height = 'auto'; textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`; }}, [input]);
 
   const handlePointerDown = (e: any) => { isDragging.current = true; hasMoved.current = false; const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; dragStartPos.current = { x: clientX, y: clientY }; buttonStartPos.current = { ...position }; };
-  const handlePointerMove = (e: any) => { if (!isDragging.current) return; const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; const deltaX = clientX - dragStartPos.current.x; const deltaY = clientY - dragStartPos.current.y; if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) hasMoved.current = true; let newX = buttonStartPos.current.x + deltaX; let newY = buttonStartPos.current.y + deltaY; const maxX = window.innerWidth - 60; const maxY = window.innerHeight - 130; if (newX < 0) newX = 0; if (newX > maxX) newX = maxX; if (newY < 0) newY = 0; if (newY > maxY) newY = maxY; setPosition({ x: newX, y: newY }); };
+  const handlePointerMove = (e: any) => { if (!isDragging.current) return; const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; const deltaX = clientX - dragStartPos.current.x; const deltaY = clientY - dragStartPos.current.y; if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) hasMoved.current = true; let x = buttonStartPos.current.x + deltaX; let y = buttonStartPos.current.y + deltaY; const maxX = window.innerWidth - 60; const maxY = window.innerHeight - 130; if (x < 0) x = 0; if (x > maxX) x = maxX; if (y < 0) y = 0; if (y > maxY) y = maxY; setPosition({ x, y }); };
   const handlePointerUp = () => { isDragging.current = false; };
   const handleButtonClick = () => { if (!hasMoved.current) setActiveScreen('aiChat'); };
 
@@ -166,6 +166,13 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
     if (appSettings.visibility?.premium) availableFeatures.push("- Premium Apps (Netflix, YT Pro)");
     if (appSettings.visibility?.earn) availableFeatures.push("- Watch Ads & Earn");
     if (appSettings.visibility?.ranking) availableFeatures.push("- Leaderboard");
+    if (appSettings.visibility?.specialOffers) availableFeatures.push("- Special OFFERS (Exclusive Deals)");
+
+    // 2. LIVE SPECIAL OFFERS DATA
+    const activeSpecialOffers = specialOffers.filter(o => o.isActive);
+    const offersListString = activeSpecialOffers.length > 0 
+        ? activeSpecialOffers.map(o => `+ ${o.title || o.name}: ${o.price}৳ (${o.diamonds} Diamonds)`).join('\n')
+        : "Currently, no special deals are live.";
 
     const premiumList = premiumApps.length > 0 ? premiumApps.map(p => `${p.name} (${p.price}৳)`).join(', ') : "None";
     const devInfo = appSettings.developerSettings || { title: "RBN Saiful", url: "N/A" };
@@ -173,43 +180,36 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
     return `
       You are the official Smart Assistant for "${appName}". 
       
+      ### NEW FEATURE: OFFERS SECTION
+      - **Knowledge:** There is a new tab on the Home screen named "OFFERS". 
+      - **Content:** This section contains limited-time deals, special discounts, and high-value packages.
+      - **User Guide:** If a user asks "Where are the offers?" or "Current deals?", tell them to go to the **Home screen** and click on the **"OFFERS" tab** (located next to Membership).
+      
+      ### LIVE DATA: SPECIAL OFFERS
+      Current Active Special Deals:
+      ${offersListString}
+
       ### CRITICAL: SESSION & GREETING RULES
       1. **NO REPETITIVE WELCOME:** The user has ALREADY been welcomed at the start of this chat.
       2. **If the user says "Hi", "Hello", "Salam", or "Start" AGAIN:**
-         - DO NOT introduce yourself again.
-         - DO NOT say "Welcome to FF SHOP" again.
          - ONLY say: "Yes, how can I help you?" or "Ji bolun?" (in the user's language).
       
       ### CRITICAL: LANGUAGE DETECTION
-      - **DETECT USER LANGUAGE:** 
-         - If User types in **English** -> You MUST reply in **English**.
-         - If User types in **Bengali/Banglish** -> You MUST reply in **Bengali**.
-      - **DO NOT** default to Bengali if the user is asking in English.
+      - Detect and match user language (English or Bengali).
 
-      ### APP NAVIGATION & FEATURE AWARENESS (PRIORITY 1)
+      ### APP NAVIGATION & FEATURE AWARENESS
       **1. CHANGE PASSWORD / UPDATE PASSWORD**
-      - **Scenario:** User asks "How to change password?", "Change pass", "Password kibhabe change korbo?".
-      - **FACT:** The app HAS a Change Password feature.
-      - **ACTION:** Guide them to **Profile > Change Password**.
-      - **DO NOT** tell them to Contact Us for this.
-      - **Response:** "You can change your password easily. Go to **Profile > Change Password**." (Translate if needed)
+      - Direct to: **Profile > Change Password**.
 
       **2. FORGOT PASSWORD / LOGIN ISSUES**
-      - **Scenario:** User says "Forgot password", "Cannot login", "Password vule gesi".
-      - **FACT:** They cannot access the internal setting.
-      - **ACTION:** Direct to **Contact Us**.
-      - **Response:** "Since you forgot your password, please contact support via **Profile > Contact Us** for a reset."
+      - Direct to: **Profile > Contact Us**.
 
-      ### SUPPORT RULES (PRIORITY 2 - ERRORS ONLY)
-      **CASE A: PAYMENT/ORDER ISSUES**
-      - Issues: Order pending, money not added, refund, bug.
-      - **Action:** Direct them ONLY to "Profile > Contact Us".
+      **3. OFFERS & DISCOUNTS**
+      - Always encourage users to check the **"OFFERS"** tab for the best prices.
+
+      ### SUPPORT RULES (ERRORS ONLY)
+      - Issues: Order pending, money not added, refund -> Direct to "Profile > Contact Us".
       
-      **CASE B: USER ASKS ABOUT DEVELOPER**
-      - Issues: "Who made this app?", "Contact Owner", "Who is RBN Saiful?".
-      - **Action:** Praise the developer and provide this link: ${devInfo.url}
-      - **Developer Name:** ${devInfo.title}
-
       ### LIVE DATA (READ ONLY)
       **Active Features:** ${availableFeatures.join(', ')}
       **Premium Stock:** ${premiumList}
@@ -217,16 +217,15 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
       **User Balance:** ${Math.floor(user.balance)} BDT
 
       ### TONE
-      - Smart, Professional, Concise.
-      - Act like a human agent, not a robot repeating scripts.
+      - Smart, Professional, Concise. Act like a helpful shopping assistant.
     `;
-  }, [appSettings, user, recentHistory, activeScreen, appName, diamondOffers, paymentMethods, supportContacts, premiumApps, levelUpPackages, memberships]);
+  }, [appSettings, user, recentHistory, activeScreen, appName, diamondOffers, paymentMethods, supportContacts, premiumApps, levelUpPackages, memberships, specialOffers]);
 
   // Rate Limiting
   const checkDailyLimit = async (): Promise<boolean> => {
       const today = new Date().toISOString().split('T')[0];
       const usageRef = ref(db, `users/${user.uid}/aiDailyUsage`);
-      const countRef = ref(db, `users/${user.uid}/aiRequestCount`); // Global count ref
+      const countRef = ref(db, `users/${user.uid}/aiRequestCount`); 
 
       try {
           const snapshot = await get(usageRef);
@@ -237,10 +236,7 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
           }
           if (currentUsage.count >= DAILY_LIMIT) return false;
           
-          // Update daily usage
           await update(ref(db, `users/${user.uid}/aiDailyUsage`), { date: today, count: currentUsage.count + 1 });
-          
-          // NEW: Increment Total Lifetime Usage for Admin Stats
           await runTransaction(countRef, (currentCount) => {
               return (currentCount || 0) + 1;
           });
@@ -275,16 +271,16 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
     }
 
     try {
-      // Prioritize process.env.API_KEY to prevent 403 errors, fallback to user settings
       const apiKey = process.env.API_KEY || (appSettings.aiApiKey ? appSettings.aiApiKey.trim() : "") || DEFAULT_AI_KEY;
-      
-      if (!apiKey) {
-          throw new Error("API Key Missing");
-      }
+      if (!apiKey) throw new Error("API Key Missing");
 
       const ai = new GoogleGenAI({ apiKey: apiKey });
       const history = messages.map(m => ({ role: m.role, parts: [{ text: m.text }] }));
-      const chat = ai.chats.create({ model: "gemini-2.5-flash", config: { systemInstruction: systemInstruction }, history: history });
+      const chat = ai.chats.create({ 
+          model: "gemini-2.5-flash", 
+          config: { systemInstruction: systemInstruction }, 
+          history: history 
+      });
 
       const result = await chat.sendMessageStream({ message: userMessageText });
       const botMessageId = (Date.now() + 1).toString();
@@ -304,11 +300,6 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
     } catch (error: any) {
       console.error("AI Error:", error);
       let errorMsg = "নেটওয়ার্ক সমস্যার কারণে উত্তর দিতে পারছি না। দয়া করে আবার চেষ্টা করুন।";
-      if (error.message === "API Key Missing") {
-          errorMsg = "সিস্টেম এরর: AI কনফিগারেশন সেট করা নেই। অ্যাডমিনকে জানান।";
-      } else if (error.status === 403 || (error.message && error.message.includes('403'))) {
-          errorMsg = "সিস্টেম এরর: AI পারমিশন নেই (403)। অ্যাডমিনকে API Key চেক করতে বলুন।";
-      }
       setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: errorMsg }]);
     } finally {
       setIsTyping(false);
@@ -341,10 +332,8 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
             <div className="flex items-center gap-3">
               <button onClick={() => setActiveScreen('home')} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-300"><ArrowLeftIcon className="w-6 h-6" /></button>
               <div className="flex items-center gap-3">
-                  <div className="relative">
-                      <div className="bg-gradient-to-r from-primary to-secondary p-1.5 rounded-full text-white shadow-md">
-                          <LiveRobotIcon className="w-5 h-5" />
-                      </div>
+                  <div className="bg-gradient-to-r from-primary to-secondary p-1.5 rounded-full text-white shadow-md">
+                      <LiveRobotIcon className="w-5 h-5" />
                   </div>
                   <div><h3 className="font-bold text-lg text-gray-900 dark:text-white leading-none">{botName}</h3></div>
               </div>

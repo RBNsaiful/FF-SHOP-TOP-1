@@ -238,7 +238,7 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
           sessionStorage.setItem('hasPlayedNudge', 'true');
           const timer = setTimeout(() => {
               setShowScrollHint(false);
-          }, 1500); 
+          }, 3000); // Extended timeout to match 2.4s animation
           return () => clearTimeout(timer);
       }
   }, []);
