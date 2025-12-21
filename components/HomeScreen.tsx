@@ -318,8 +318,9 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
     }
   };
 
-  // Determine width based on count: 1 = full, 2 = half, 3+ = slightly over 1/3 (scrollable)
-  const tabWidthClass = visibleTabs.length === 1 ? 'w-full' : visibleTabs.length === 2 ? 'w-1/2' : 'w-[35.5%]';
+  // UI Fixed: Show exactly 3 tabs at once (w-1/3) to avoid partial cuts.
+  // Size increased by 3% via padding/font tweaks.
+  const tabWidthClass = visibleTabs.length === 1 ? 'w-full' : visibleTabs.length === 2 ? 'w-1/2' : 'w-[33.333%]';
 
   return (
     <div>
@@ -336,11 +337,11 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex-shrink-0 ${tabWidthClass} px-1 py-2.5 transition-all duration-300 snap-start
+                                className={`flex-shrink-0 ${tabWidthClass} px-1.5 py-3 transition-all duration-300 snap-start
                                     ${activeTab === tab.id ? 'z-10' : ''}
                                 `}
                             >
-                                <div className={`w-full h-full flex items-center justify-center rounded-xl font-black uppercase text-[9px] sm:text-xs transition-all duration-300 border-2 shadow-sm text-center leading-tight whitespace-normal py-2
+                                <div className={`w-full h-full flex items-center justify-center rounded-xl font-black uppercase text-[10px] sm:text-sm transition-all duration-300 border-2 shadow-sm text-center leading-tight whitespace-normal py-2.5
                                     ${activeTab === tab.id 
                                         ? 'bg-primary border-primary text-white shadow-md shadow-primary/30 scale-[1.01]' 
                                         : 'bg-light-card dark:bg-dark-card text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-primary/50 hover:text-primary dark:hover:text-primary hover:bg-gray-50 dark:hover:bg-gray-800'

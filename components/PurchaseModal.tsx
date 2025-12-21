@@ -146,7 +146,7 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-smart-fade-in">
       <div 
-        className="bg-light-card dark:bg-dark-card rounded-3xl p-6 w-full max-w-xs animate-smart-pop-in shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto border border-gray-100 dark:border-gray-800"
+        className="bg-light-card dark:bg-dark-card rounded-3xl p-6 w-full max-w-xs animate-smart-pop-in shadow-2xl border border-gray-100 dark:border-gray-800"
         onClick={(e) => e.stopPropagation()} 
       >
         {status !== 'success' ? (
@@ -174,8 +174,8 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
             </div>
 
             <div className="mb-4">
-              <label htmlFor="uidInput" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2 ml-1">
-                  {isEmailType ? "Email" : "UID"}
+              <label htmlFor="uidInput" className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 block mb-1.5 ml-1">
+                  {isEmailType ? "Email" : "Player UID"}
               </label>
               <input
                 type={isEmailType ? 'email' : 'text'}
@@ -186,7 +186,7 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
                 onKeyDown={(e) => handleKeyDown(e, 'uid')}
                 onBlur={handleBlur}
                 onFocus={handleInputFocus}
-                placeholder={isEmailType ? "Email" : "UID"}
+                placeholder={isEmailType ? "Email" : "Player UID"}
                 className={`w-full p-3.5 bg-gray-50 dark:bg-dark-bg border rounded-2xl focus:outline-none focus:ring-2 font-medium transition-all ${inputError ? 'border-red-500 focus:ring-red-500/30' : 'border-gray-200 dark:border-gray-700 focus:ring-primary/50'}`}
                 disabled={status === 'processing' || status === 'button-success'}
                 maxLength={!isEmailType ? 15 : undefined}
@@ -196,7 +196,7 @@ const PurchaseModal: FC<PurchaseModalProps> = ({ offer, onClose, onConfirm, onSu
 
             {isEmailType && (
                 <div className="mb-4 animate-fade-in">
-                    <label htmlFor="phoneInput" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest block mb-2 ml-1">
+                    <label htmlFor="phoneInput" className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 block mb-1.5 ml-1">
                         Number
                     </label>
                     <input
