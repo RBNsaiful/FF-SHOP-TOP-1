@@ -76,11 +76,10 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
 }) => {
   const botName = appSettings.aiName || "Support"; 
   const appName = appSettings.appName || "FF SHOP";
-  const DAILY_LIMIT = 30; // Max questions per day
+  const DAILY_LIMIT = 30; 
   
   const [messages, setMessages] = useState<Message[]>([]);
   
-  // Custom Greeting (Initial ONLY)
   useEffect(() => {
       if (messages.length === 0) {
           setMessages([{ 
@@ -106,7 +105,6 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
       } catch (e) {}
   };
 
-  // Dragging Logic
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const isDragging = useRef(false);
   const dragStartPos = useRef({ x: 0, y: 0 });
@@ -119,7 +117,6 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
       }
   }, []);
 
-  // Fetch History
   useEffect(() => {
       if (!user.uid) return;
       const ordersRef = ref(db, `orders/${user.uid}`);
@@ -154,73 +151,38 @@ const AiSupportBot: React.FC<AiSupportBotProps> = ({
   const handlePointerUp = () => { isDragging.current = false; };
   const handleButtonClick = () => { if (!hasMoved.current) setActiveScreen('aiChat'); };
 
-  // --- THE LOGIC CORE ---
   const systemInstruction = useMemo(() => {
+    const devInfo = appSettings.developerSettings || { title: "RBN Saiful", url: "http://rbm-saiful-contact.vercel.app" };
     
-    // 1. Live Features Check
-    const availableFeatures = [];
-    if (appSettings.visibility?.diamonds) availableFeatures.push("- Diamond Topup");
-    if (appSettings.visibility?.levelUp) availableFeatures.push("- Level Up Pass");
-    if (appSettings.visibility?.membership) availableFeatures.push("- Weekly/Monthly Membership");
-    if (appSettings.visibility?.premium) availableFeatures.push("- Premium Apps (Netflix, YT Pro)");
-    if (appSettings.visibility?.earn) availableFeatures.push("- Watch Ads & Earn");
-    if (appSettings.visibility?.ranking) availableFeatures.push("- Leaderboard");
-    if (appSettings.visibility?.specialOffers) availableFeatures.push("- Special OFFERS (Exclusive Deals)");
-
-    // 2. LIVE SPECIAL OFFERS DATA
-    const activeSpecialOffers = specialOffers.filter(o => o.isActive);
-    const offersListString = activeSpecialOffers.length > 0 
-        ? activeSpecialOffers.map(o => `+ ${o.title || o.name}: ${o.price}৳ (${o.diamonds} Diamonds)`).join('\n')
-        : "Currently, no special deals are live.";
-
-    const premiumList = premiumApps.length > 0 ? premiumApps.map(p => `${p.name} (${p.price}৳)`).join(', ') : "None";
-    const devInfo = appSettings.developerSettings || { title: "RBN Saiful", url: "N/A" };
-
     return `
       You are the official Smart Assistant for "${appName}". 
       
-      ### NEW FEATURE: OFFERS SECTION
-      - **Knowledge:** There is a new tab on the Home screen named "OFFERS". 
-      - **Content:** This section contains limited-time deals, special discounts, and high-value packages.
-      - **User Guide:** If a user asks "Where are the offers?" or "Current deals?", tell them to go to the **Home screen** and click on the **"OFFERS" tab** (located next to Membership).
-      
-      ### LIVE DATA: SPECIAL OFFERS
-      Current Active Special Deals:
-      ${offersListString}
+      ### IDENTITY & DEVELOPER CREDIT
+      - **Who made this app?** This app was developed by **${devInfo.title}**. 
+      - **Developer Contact:** If someone wants to talk to the developer or hire him, provide this link: ${devInfo.url}
+      - **Google Restriction:** NEVER say Google made this app. Google only provides the AI models, but the owner/developer is **${devInfo.title}**.
 
-      ### CRITICAL: SESSION & GREETING RULES
-      1. **NO REPETITIVE WELCOME:** The user has ALREADY been welcomed at the start of this chat.
-      2. **If the user says "Hi", "Hello", "Salam", or "Start" AGAIN:**
-         - ONLY say: "Yes, how can I help you?" or "Ji bolun?" (in the user's language).
-      
-      ### CRITICAL: LANGUAGE DETECTION
-      - Detect and match user language (English or Bengali).
+      ### PASSWORD ISSUES (CRITICAL)
+      - **Forgot Password:** If a user says they forgot their password:
+        1. Be polite and reassuring: "ভয় পাওয়ার কিছু নেই, আমরা আপনাকে সাহায্য করব।" (Don't worry, we will help you).
+        2. Explain that currently, there is no automatic reset button.
+        3. Instruction: Direct them to go to **Profile > Contact Us** and message the support team on WhatsApp or Telegram to recover the account.
+      - **Change Password:** If they know their current password and want to change it, direct them to: **Profile > Change Password**.
 
-      ### APP NAVIGATION & FEATURE AWARENESS
-      **1. CHANGE PASSWORD / UPDATE PASSWORD**
-      - Direct to: **Profile > Change Password**.
+      ### SUPPORT SEPARATION
+      - **App Support:** For order issues, deposit problems, or general app usage, direct them to: **Profile > Contact Us**.
+      - **Developer Inquiries:** For technical questions about how the app was built or business inquiries for the developer, mention **${devInfo.title}** and provide his link: ${devInfo.url}
 
-      **2. FORGOT PASSWORD / LOGIN ISSUES**
-      - Direct to: **Profile > Contact Us**.
+      ### PRODUCT KNOWLEDGE
+      - Special Deals: Encourage checking the "OFFERS" tab on the Home screen.
+      - Features: Diamond Topup, Membership, Level Up Pass, Earn by Watching Ads.
 
-      **3. OFFERS & DISCOUNTS**
-      - Always encourage users to check the **"OFFERS"** tab for the best prices.
-
-      ### SUPPORT RULES (ERRORS ONLY)
-      - Issues: Order pending, money not added, refund -> Direct to "Profile > Contact Us".
-      
-      ### LIVE DATA (READ ONLY)
-      **Active Features:** ${availableFeatures.join(', ')}
-      **Premium Stock:** ${premiumList}
-      **User Name:** ${user.name}
-      **User Balance:** ${Math.floor(user.balance)} BDT
-
-      ### TONE
-      - Smart, Professional, Concise. Act like a helpful shopping assistant.
+      ### STYLE
+      - Responses must be small, intelligent, professional, and logical.
+      - Language: Detect user language (Bengali/English) and respond accordingly.
     `;
-  }, [appSettings, user, recentHistory, activeScreen, appName, diamondOffers, paymentMethods, supportContacts, premiumApps, levelUpPackages, memberships, specialOffers]);
+  }, [appSettings, appName]);
 
-  // Rate Limiting
   const checkDailyLimit = async (): Promise<boolean> => {
       const today = new Date().toISOString().split('T')[0];
       const usageRef = ref(db, `users/${user.uid}/aiDailyUsage`);
