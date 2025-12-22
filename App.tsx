@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, FC, useRef, useLayoutEffect } from 'react';
 import AuthScreen from './components/AuthScreen';
 import HomeScreen from './components/HomeScreen';
@@ -50,7 +51,6 @@ interface HeaderProps {
 }
 
 const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavigate, isBalancePulsing, onBalancePulseEnd, hasUnreadNotifications }) => {
-    // ADMIN CHECK: If user is admin, hide header (AdminScreen has its own)
     if (user && user.role && user.role.toLowerCase() === 'admin') return null;
 
     const isSubScreen = (['myOrders', 'myTransaction', 'contactUs', 'wallet', 'changePassword', 'watchAds', 'editProfile', 'notifications'] as Screen[]).includes(screen);
@@ -175,8 +175,8 @@ const Header: FC<HeaderProps> = ({ appName, screen, texts, onBack, user, onNavig
 
 const App: FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [authChecking, setAuthChecking] = useState(true); // NEW: Auth checking state
-  const [loading, setLoading] = useState(true); // Content loading state
+  const [authChecking, setAuthChecking] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme | null) || 'light');
   const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('language') as Language | null) || 'en');
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
@@ -212,11 +212,35 @@ const App: FC = () => {
   
   const prevBalanceRef = useRef<number | null>(null);
 
+  // --- SUPER AGGRESSIVE FINAL SCROLL RESET ---
   useLayoutEffect(() => {
-    window.scrollTo(0, 0);
-    document.body.scrollTop = 0;
-    const timer = setTimeout(() => window.scrollTo(0, 0), 0);
-    return () => clearTimeout(timer);
+    const handleScrollReset = () => {
+        // Multi-level reset
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        
+        const scrollTargets = [
+            document.documentElement,
+            document.body,
+            document.getElementById('main-content-area'),
+            document.querySelector('.overflow-y-auto')
+        ];
+
+        scrollTargets.forEach(el => {
+            if (el) {
+                el.scrollTop = 0;
+                el.scrollLeft = 0;
+            }
+        });
+    };
+
+    handleScrollReset();
+    const rafId = requestAnimationFrame(handleScrollReset);
+    const timer = setTimeout(handleScrollReset, 50); // Delayed for dynamic content
+    
+    return () => {
+        cancelAnimationFrame(rafId);
+        clearTimeout(timer);
+    };
   }, [activeScreen]);
 
   // Settings Listener
@@ -309,7 +333,6 @@ const App: FC = () => {
                         return;
                     }
 
-                    // --- IMMEDIATE ADMIN REDIRECT FIX (NO FLICKER) ---
                     if (userData.role === 'admin') {
                         if (activeScreen !== 'admin') setActiveScreen('admin');
                     } else if (activeScreen === 'admin') {
@@ -318,11 +341,10 @@ const App: FC = () => {
 
                     setUser(userData);
                 } else {
-                    // New user creation handled here
                     setUser({ name: firebaseUser.displayName || 'User', email: firebaseUser.email || '', balance: 0, uid: firebaseUser.uid, playerUid: '', avatarUrl: firebaseUser.photoURL || undefined, totalAdsWatched: 0, totalEarned: 0, role: 'user', isBanned: false });
                 }
                 setLoading(false);
-                setAuthChecking(false); // Auth verified
+                setAuthChecking(false); 
             }, (error) => {
                 setUser(null);
                 setLoading(false);
@@ -338,7 +360,7 @@ const App: FC = () => {
         }
     });
     return () => unsubscribeAuth();
-  }, []); // Intentionally empty dependency to run once on mount
+  }, []); 
 
   // Notification Listener
   useEffect(() => {
@@ -365,7 +387,7 @@ const App: FC = () => {
       if (user && appSettings.popupNotification?.active && activeScreen !== 'admin') {
           const hasSeen = sessionStorage.getItem('hasSeenLoginPopup');
           if (!hasSeen) {
-              setTimeout(() => setShowLoginPopup(true), 1000); // Slight delay for effect
+              setTimeout(() => setShowLoginPopup(true), 1000); 
               sessionStorage.setItem('hasSeenLoginPopup', 'true');
           }
       }
@@ -452,12 +474,8 @@ const App: FC = () => {
 
   const animationsEnabled = appSettings.uiSettings?.animationsEnabled ?? true;
 
-  // --- RENDERING LOGIC ---
-
-  // 1. Initial Loading State (Spinner)
   if (authChecking || loading) return (<div className="min-h-screen w-full flex items-center justify-center bg-gray-100 dark:bg-gray-900"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>);
 
-  // 2. Auth Guard (Login Screen)
   if (!user) {
     return (
       <div className="min-h-screen w-full flex justify-center bg-gray-100 dark:bg-gray-900 font-sans">
@@ -473,7 +491,6 @@ const App: FC = () => {
     );
   }
 
-  // 3. Admin Guard (Strict Redirect)
   if (user.role && user.role.toLowerCase() === 'admin') {
       return (
           <AdminScreen 
@@ -490,7 +507,6 @@ const App: FC = () => {
       );
   }
 
-  // 4. Maintenance Mode
   if (appSettings.maintenanceMode) {
       return (
           <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 p-6 text-center">
@@ -502,7 +518,6 @@ const App: FC = () => {
       )
   }
 
-  // 5. Banned State
   if (user.isBanned) {
       return (
           <div className="min-h-screen w-full flex flex-col items-center justify-center bg-red-50 dark:bg-red-900/10 p-6 text-center">
@@ -513,7 +528,6 @@ const App: FC = () => {
       )
   }
 
-  // 6. Main User App UI
   const renderScreen = () => {
     switch (activeScreen) {
       case 'home': return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} specialOffers={specialOffers} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} uiSettings={appSettings.uiSettings} />;
@@ -531,7 +545,6 @@ const App: FC = () => {
       case 'ranking': 
         if (appSettings.visibility && !appSettings.visibility.ranking) return null;
         return <RankingScreen user={user} texts={texts} adCode={appSettings.earnSettings?.profileAdCode} adActive={appSettings.earnSettings?.profileAdActive} onClose={() => setActiveScreen('profile')} />;
-      // Fallback for unexpected routes
       default: return <HomeScreen user={user} texts={texts} onPurchase={handlePurchase} diamondOffers={diamondOffers} levelUpPackages={levelUpPackages} memberships={memberships} premiumApps={premiumApps} specialOffers={specialOffers} onNavigate={handleSuccessNavigate} bannerImages={banners} visibility={appSettings.visibility} homeAdActive={appSettings.earnSettings?.homeAdActive} homeAdCode={appSettings.earnSettings?.homeAdCode} uiSettings={appSettings.uiSettings} />;
     }
   };
@@ -557,7 +570,7 @@ const App: FC = () => {
             <Header appName={appSettings.appName} screen={activeScreen} texts={texts} onBack={handleBack} user={user} onNavigate={setActiveScreen} isBalancePulsing={isBalancePulsing} onBalancePulseEnd={() => setIsBalancePulsing(false)} hasUnreadNotifications={hasUnreadNotifications} />
             
             <div className={!isFullScreenPage ? 'pb-24 md:pb-10' : ''}>
-                <div className={`h-full w-full ${['wallet', 'profile', 'changePassword', 'editProfile', 'contactUs', 'myOrders', 'myTransaction', 'notifications', 'ranking'].includes(activeScreen) ? 'md:max-w-3xl md:mx-auto md:mt-6' : ''}`}>
+                <div id="main-content-area" className={`h-full w-full ${['wallet', 'profile', 'changePassword', 'editProfile', 'contactUs', 'myOrders', 'myTransaction', 'notifications', 'ranking'].includes(activeScreen) ? 'md:max-w-3xl md:mx-auto md:mt-6' : ''}`}>
                     {renderScreen()}
                 </div>
             </div>

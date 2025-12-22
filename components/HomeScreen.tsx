@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, FC } from 'react';
 import type { User, DiamondOffer, LevelUpPackage, Membership, GenericOffer, PremiumApp, Screen, AppVisibility, Banner, SpecialOffer, UiSettings } from '../types';
 import PurchaseModal from './PurchaseModal';
@@ -116,11 +115,13 @@ const PackageCard: FC<{
     onBuy: () => void; 
     icon: FC<{className?: string}>; 
     description?: string; 
+    diamonds?: number; 
     isSpecial?: boolean; 
     isPremium?: boolean;
     size?: 'normal' | 'small' | 'smaller' | 'extra-small' 
-}> = ({ name, price, texts, onBuy, icon: Icon, description, isSpecial, isPremium, size = 'normal' }) => {
+}> = ({ name, price, texts, onBuy, icon: Icon, description, diamonds, isSpecial, isPremium, size = 'normal' }) => {
     
+    // Standard size config for consistency
     const sizeConfig = {
         'normal': {
             padding: 'p-2',
@@ -162,14 +163,59 @@ const PackageCard: FC<{
 
     const s = sizeConfig[size] || sizeConfig.normal;
 
-    return (
-        <div className={`bg-light-card dark:bg-dark-card rounded-2xl shadow-md ${s.padding} flex flex-col items-center justify-between transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 border border-transparent dark:border-gray-800 text-center relative overflow-hidden h-full ${isSpecial || isPremium ? 'border-primary/30 shadow-lg' : 'hover:border-primary/50'}`}>
-            
-            {isSpecial && (
-                <div className="absolute -right-5 top-3 bg-gradient-to-r from-red-600 to-orange-600 text-white text-[9px] font-black px-6 py-1 rotate-45 shadow-sm uppercase tracking-tighter">
+    // --- SPECIAL OFFER DESIGN (OFFERS SECTION) ---
+    // Now adjusted to match standard height and padding
+    if (isSpecial) {
+        return (
+            <div className={`bg-light-card dark:bg-dark-card rounded-2xl shadow-md ${s.padding} flex flex-col items-center justify-between transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 border border-primary/20 dark:border-gray-800 text-center relative overflow-hidden h-full group bg-primary/5`}>
+                
+                {/* Standard Size Limited Tag */}
+                <div className="absolute -right-5 top-3 bg-gradient-to-r from-red-600 to-orange-600 text-white text-[9px] font-black px-6 py-1 rotate-45 shadow-sm uppercase tracking-tighter z-10">
                     LIMITED
                 </div>
-            )}
+
+                <div className="flex flex-col items-center justify-center flex-grow py-1 w-full">
+                    <div className="rounded-xl p-1.5 bg-red-50 dark:bg-red-900/20 mb-1 group-hover:scale-105 transition-transform">
+                        <Icon className={`${s.iconSize} text-red-500`}/>
+                    </div>
+                    
+                    <div className="w-full">
+                        <h3 className={`${s.titleSize} font-black text-light-text dark:text-dark-text leading-tight line-clamp-1`}>
+                            {name}
+                        </h3>
+
+                        {/* Diamonds Badge - Compact Pill */}
+                        {diamonds !== undefined && diamonds > 0 && (
+                            <div className="inline-flex items-center gap-1 bg-blue-100/60 dark:bg-blue-900/40 rounded-full border border-blue-200 dark:border-blue-800 px-1.5 py-0.5 mt-0.5">
+                                <DiamondIcon className="w-2.5 h-2.5 text-blue-500" />
+                                <span className="text-[9px] font-black text-blue-600 dark:text-blue-400">{diamonds}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {description && (
+                        <p className={`${s.descSize} text-gray-500 dark:text-gray-400 font-bold italic line-clamp-1 mt-0.5`}>
+                            {description}
+                        </p>
+                    )}
+                </div>
+                
+                <div className="w-full mt-1 flex flex-col items-center">
+                    <p className={`${s.priceSize} font-black text-primary mb-1`}>{texts.currency}{price}</p>
+                    <button
+                        onClick={onBuy}
+                        className={`w-full text-white font-bold ${s.btnSize} rounded-lg transition-all active:scale-95 shadow-lg bg-gradient-to-r from-red-600 to-red-500 shadow-red-500/20`}
+                    >
+                        {texts.buyNow}
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // --- ORIGINAL CLASSIC DESIGN (FOR ALL OTHER SECTIONS) ---
+    return (
+        <div className={`bg-light-card dark:bg-dark-card rounded-2xl shadow-md ${s.padding} flex flex-col items-center justify-between transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 border border-transparent dark:border-gray-800 text-center relative overflow-hidden h-full ${isPremium ? 'border-primary/30 shadow-lg' : 'hover:border-primary/50'}`}>
             
             {isPremium && (
                 <div className="absolute -right-5 top-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-[9px] font-black px-6 py-1 rotate-45 shadow-sm uppercase tracking-tighter">
@@ -178,7 +224,7 @@ const PackageCard: FC<{
             )}
 
             <div className="flex flex-col items-center justify-center flex-grow py-1">
-                <Icon className={`${s.iconSize} mb-1 ${isSpecial ? 'text-red-500' : isPremium ? 'text-yellow-500' : 'text-primary'}`}/>
+                <Icon className={`${s.iconSize} mb-1 ${isPremium ? 'text-yellow-500' : 'text-primary'}`}/>
                 <h3 className={`${s.titleSize} font-bold text-light-text dark:text-dark-text tracking-tight line-clamp-2 ${s.minHeight} flex items-center justify-center`}>
                     {name}
                 </h3>
@@ -189,7 +235,7 @@ const PackageCard: FC<{
                 <p className={`${s.priceSize} font-bold text-primary mb-1`}>{texts.currency}{price}</p>
                 <button
                 onClick={onBuy}
-                className={`w-full text-white font-bold ${s.btnSize} rounded-lg hover:opacity-90 transition-opacity shadow-lg ${isSpecial ? 'bg-gradient-to-r from-red-600 to-red-500 shadow-red-500/30' : isPremium ? 'bg-gradient-to-r from-yellow-500 to-orange-500 shadow-yellow-500/30' : 'bg-gradient-to-r from-primary to-secondary shadow-primary/30'}`}
+                className={`w-full text-white font-bold ${s.btnSize} rounded-lg hover:opacity-90 transition-opacity shadow-lg ${isPremium ? 'bg-gradient-to-r from-yellow-500 to-orange-500 shadow-yellow-500/30' : 'bg-gradient-to-r from-primary to-secondary shadow-primary/30'}`}
                 >
                 {texts.buyNow}
                 </button>
@@ -231,14 +277,11 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
   }, [visibleTabs.length, activeTab, visibility]);
 
   useEffect(() => {
-      // PLAY NUDGE ONLY ONCE PER SESSION
       const hasNudged = sessionStorage.getItem('hasPlayedNudge');
       if (!hasNudged) {
           setShowScrollHint(true);
           sessionStorage.setItem('hasPlayedNudge', 'true');
-          const timer = setTimeout(() => {
-              setShowScrollHint(false);
-          }, 3000); // Extended timeout to match 2.4s animation
+          const timer = setTimeout(() => { setShowScrollHint(false); }, 3000); 
           return () => clearTimeout(timer);
       }
   }, []);
@@ -253,10 +296,8 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
   
   const handleConfirmPurchase = async (identifier: string) => {
     if (!selectedOffer || !user.uid) return;
-    
     const userRef = ref(db, 'users/' + user.uid);
     const orderRef = ref(db, 'orders/' + user.uid);
-
     try {
         await runTransaction(userRef, (userData) => {
             if (userData) {
@@ -264,19 +305,15 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
                     userData.balance -= selectedOffer.price;
                     userData.totalSpent = (Number(userData.totalSpent) || 0) + selectedOffer.price;
                     return userData;
-                } else {
-                    return; 
-                }
+                } else { return; }
             }
             return userData;
         });
-
         const orderId = Math.floor(10000000 + Math.random() * 90000000).toString();
         const offerForDB = { id: selectedOffer.id, name: selectedOffer.name, price: selectedOffer.price, diamonds: selectedOffer.diamonds || 0 };
         await push(orderRef, { uid: identifier, offer: offerForDB, price: selectedOffer.price, status: 'Pending', date: new Date().toISOString(), id: orderId });
         onPurchase(selectedOffer.price);
     } catch (error) {
-        console.error("Purchase Transaction failed", error);
         alert("Transaction failed. Please check your balance.");
     }
   };
@@ -285,31 +322,41 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
     switch(activeTab) {
         case 'diamonds':
             return diamondOffers.map((offer, index) => (
-              <div key={offer.id} className="opacity-0 animate-smart-slide-down" style={{ animationDelay: `${index * 120}ms` }}>
+              <div key={offer.id} className="opacity-0 animate-smart-slide-down" style={{ animationDelay: `${index * 80}ms` }}>
                   <PackageCard name={`${offer.diamonds}`} description="Diamonds" price={offer.price} texts={texts} icon={DiamondIcon} size={cardSize} onBuy={() => handleBuyClick({id: offer.id, name: `${offer.diamonds} Diamonds`, price: offer.price, icon: DiamondIcon, diamonds: offer.diamonds, inputType: 'uid'})} />
               </div>
             ));
         case 'level-up':
             return levelUpPackages.map((pkg, index) => (
-                 <div key={pkg.id} className="opacity-0 animate-smart-slide-down" style={{ animationDelay: `${index * 120}ms` }}>
+                 <div key={pkg.id} className="opacity-0 animate-smart-slide-down" style={{ animationDelay: `${index * 80}ms` }}>
                     <PackageCard name={texts[pkg.name] || pkg.name} price={pkg.price} texts={texts} icon={StarIcon} size={cardSize} onBuy={() => handleBuyClick({id: pkg.id, name: texts[pkg.name] || pkg.name, price: pkg.price, icon: StarIcon, inputType: 'uid'})} />
                 </div>
             ));
         case 'memberships':
             return memberships.map((mem, index) => (
-                <div key={mem.id} className="opacity-0 animate-smart-slide-down" style={{ animationDelay: `${index * 120}ms` }}>
+                <div key={mem.id} className="opacity-0 animate-smart-slide-down" style={{ animationDelay: `${index * 80}ms` }}>
                     <PackageCard name={texts[mem.name] || mem.name} price={mem.price} texts={texts} icon={IdCardIcon} size={cardSize} onBuy={() => handleBuyClick({id: mem.id, name: texts[mem.name] || mem.name, price: mem.price, icon: IdCardIcon, inputType: 'uid'})} />
                 </div>
             ));
         case 'special':
             return specialOffers.filter(offer => offer.isActive).map((offer, index) => (
-                <div key={offer.id} className="opacity-0 animate-smart-slide-down" style={{ animationDelay: `${index * 120}ms` }}>
-                    <PackageCard name={offer.title || offer.name} description={offer.title ? offer.name : undefined} price={offer.price} texts={texts} icon={FireIcon} size={cardSize} isSpecial={true} onBuy={() => handleBuyClick({id: offer.id, name: offer.name, price: offer.price, icon: FireIcon, diamonds: offer.diamonds, inputType: 'uid'})} />
+                <div key={offer.id} className="opacity-0 animate-smart-slide-down h-full" style={{ animationDelay: `${index * 100}ms` }}>
+                    <PackageCard 
+                        name={offer.name} 
+                        description={offer.title} 
+                        diamonds={offer.diamonds}
+                        price={offer.price} 
+                        texts={texts} 
+                        icon={FireIcon} 
+                        isSpecial={true} 
+                        size={cardSize}
+                        onBuy={() => handleBuyClick({id: offer.id, name: offer.name, price: offer.price, icon: FireIcon, diamonds: offer.diamonds, inputType: 'uid'})} 
+                    />
                 </div>
             ));
         case 'premium-apps':
             return premiumApps.map((app, index) => (
-                <div key={app.id} className="opacity-0 animate-smart-slide-down" style={{ animationDelay: `${index * 120}ms` }}>
+                <div key={app.id} className="opacity-0 animate-smart-slide-down" style={{ animationDelay: `${index * 80}ms` }}>
                     <PackageCard name={app.name} description={app.description} price={app.price} texts={texts} icon={CrownIcon} size={cardSize} isPremium={true} onBuy={() => handleBuyClick({id: app.id, name: app.name, price: app.price, icon: CrownIcon, inputType: 'email'})} />
                 </div>
             ));
@@ -318,8 +365,6 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
     }
   };
 
-  // UI Fixed: Show exactly 3 tabs at once (w-1/3) to avoid partial cuts.
-  // Size increased by 3% via padding/font tweaks.
   const tabWidthClass = visibleTabs.length === 1 ? 'w-full' : visibleTabs.length === 2 ? 'w-1/2' : 'w-[33.333%]';
 
   return (
@@ -358,7 +403,7 @@ const HomeScreen: FC<HomeScreenProps> = ({ user, texts, onPurchase, diamondOffer
 
         <div className="animate-smart-fade-in" style={{ animationDelay: '300ms' }}>
             {renderContent() && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 items-stretch">
+                <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 items-stretch`}>
                     {renderContent()}
                 </div>
             )}

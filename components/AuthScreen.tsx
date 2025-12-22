@@ -1,4 +1,3 @@
-
 import React, { useState, FC, FormEvent } from 'react';
 import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, db } from '../firebase';
@@ -16,8 +15,7 @@ const MailIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://
 const LockIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>);
 const UserIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>);
 const EyeIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>);
-const EyeOffIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x="1" y1="1" x2="23" y2="23"/></svg>);
-// Bold Check Icon for Success
+const EyeOffIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>);
 const CheckIcon: FC<{className?: string}> = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12" /></svg>);
 
 const Spinner: FC = () => (<div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>);
@@ -38,61 +36,47 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // --- VALIDATION RULES ---
-
-  // 1. Email: Standard Email Validation
   const validateEmail = (val: string) => {
-      // Robust regex for email validation
       return /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/.test(val.trim());
   };
 
   const isEmailValid = validateEmail(email);
   const isPasswordValid = password.length >= 6;
   
-  // 2. Name Validation
   const validateName = (val: string) => {
       const trimmed = val.trim();
-      if (trimmed.length < 3 || trimmed.length > 20) return false;
-      return /^[a-zA-Z\s]*$/.test(trimmed); // Allow letters and spaces only
+      // Length check
+      if (trimmed.length < 3 || trimmed.length > 25) return false;
+      // Block keyboard mashing (3+ consecutive identical characters)
+      if (/(.)\1\1/.test(trimmed)) return false;
+      // Support English & Bengali letters + single spaces
+      return /^[a-zA-Z\u0980-\u09FF]+(?:\s[a-zA-Z\u0980-\u09FF]+)*$/.test(trimmed);
   };
 
   const isNameValid = isLogin || validateName(name);
   const doPasswordsMatch = isLogin || (password === confirmPassword);
-  
   const isFormValid = isEmailValid && isPasswordValid && isNameValid && doPasswordsMatch;
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const raw = e.target.value;
-      // Filter out special chars immediately
-      if (/^[a-zA-Z\s]*$/.test(raw)) {
-          setName(raw);
-      }
+      // BLOCK trash characters (numbers, symbols) instantly
+      const cleanVal = e.target.value.replace(/[^a-zA-Z\u0980-\u09FF\s]/g, '');
+      setName(cleanVal);
   };
 
-  const handleNameBlur = () => {
-      setNameTouched(true);
-  };
-
-  const handleEmailBlur = () => {
-      setEmailTouched(true);
-  };
+  const handleNameBlur = () => { setNameTouched(true); };
+  const handleEmailBlur = () => { setEmailTouched(true); };
 
   const handleGoogleLogin = async () => {
-    // UNLOCK LOGOUT STATE: User is explicitly trying to login
     onLoginAttempt();
-
     const provider = new GoogleAuthProvider();
     setLoading(true);
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-
       const userRef = ref(db, 'users/' + user.uid);
       const snapshot = await get(userRef);
-
       if (snapshot.exists()) {
           const userData = snapshot.val();
-          // Ensure correct login provider tracking
           if (userData.loginProvider !== 'google') {
               await set(ref(db, 'users/' + user.uid + '/loginProvider'), 'google');
           }
@@ -113,15 +97,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
     } catch (error: any) {
       console.error("Google Login failed", error);
       let msg = "Google Login Failed.";
-      if (error.code === 'auth/popup-closed-by-user') {
-          msg = "Login canceled.";
-      } else if (error.code === 'auth/account-exists-with-different-credential') {
-          msg = "An account already exists with this email. Please sign in with your Password.";
-      } else if (error.code === 'auth/unauthorized-domain') {
-          msg = "Domain not authorized. Add to Firebase Console.";
-      } else if (error.code === 'auth/invalid-credential') {
-          msg = "Invalid configuration or credentials.";
-      }
+      if (error.code === 'auth/popup-closed-by-user') msg = "Login canceled.";
       setError(msg);
       setLoading(false);
     }
@@ -130,35 +106,20 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
   const handleAuth = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-
-    // Force touch states on submit to show errors if fields are empty/invalid
     if (!isLogin) setNameTouched(true);
     setEmailTouched(true);
-
-    // UNLOCK LOGOUT STATE
     onLoginAttempt();
-
-    if (!isFormValid) {
-        return;
-    }
-
+    if (!isFormValid) return;
     setLoading(true);
     const trimmedEmail = email.trim();
     const trimmedName = name.trim();
-
     try {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, trimmedEmail, password);
       } else {
-        if (password !== confirmPassword) {
-            throw new Error(texts.passwordsDoNotMatch);
-        }
-        
         const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
         const user = userCredential.user;
-        
         await updateProfile(user, { displayName: trimmedName });
-
         await set(ref(db, 'users/' + user.uid), {
             name: trimmedName,
             email: trimmedEmail,
@@ -174,63 +135,30 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
       setLoading(false);
       setSuccess(true);
     } catch (err: any) {
-      console.error(err);
       setLoading(false);
-      
       let msg = "Authentication failed.";
-      
-      // Standardized Error Mapping
       switch (err.code) {
-          case 'auth/invalid-email':
-              msg = texts.emailInvalid;
-              break;
-          case 'auth/user-not-found':
-          case 'auth/wrong-password':
-          case 'auth/invalid-credential':
-          case 'auth/invalid-login-credentials':
-              msg = "Invalid email or password.";
-              break;
-          case 'auth/user-disabled':
-              msg = "This account has been disabled.";
-              break;
-          case 'auth/email-already-in-use':
-              msg = "Email already in use.";
-              break;
-          case 'auth/weak-password':
-              msg = "Password too weak (min 6 chars).";
-              break;
-          case 'auth/too-many-requests':
-              msg = "Too many failed attempts. Please try again later.";
-              break;
-          case 'auth/network-request-failed':
-              msg = "Network error. Please check your connection.";
-              break;
-          default:
-              if (err.message === texts.passwordsDoNotMatch) {
-                  msg = texts.passwordsDoNotMatch;
-              }
+          case 'auth/invalid-email': msg = texts.emailInvalid; break;
+          case 'auth/invalid-credential': msg = "Invalid email or password."; break;
+          case 'auth/email-already-in-use': msg = "Email already in use."; break;
+          case 'auth/weak-password': msg = "Password too weak."; break;
+          default: msg = "Connection error.";
       }
-      
       setError(msg);
     }
   };
 
   return (
     <div className="min-h-screen w-full flex flex-col justify-center px-6 bg-light-bg dark:bg-dark-bg transition-colors duration-300">
-      
       <div className="w-full max-w-md mx-auto z-10">
-          
-          {/* App Header */}
           <div className="flex flex-col items-center mb-6 mt-20">
-              <div className="relative mb-2 min-h-[5.5rem] flex items-center justify-center"> 
-                  {/* LOGO SIZE: w-[5.5rem] (88px) */}
+              <div className="relative mb-2 min-h-[5rem] flex items-center justify-center"> 
                   {logoUrl ? (
-                      <div className="w-[5.5rem] h-[5.5rem] rounded-full bg-white dark:bg-dark-card p-1 shadow-md ring-1 ring-gray-200 dark:ring-gray-700 animate-smart-pop-in">
+                      <div className="w-20 h-20 rounded-full bg-white dark:bg-dark-card p-1 shadow-md ring-1 ring-gray-200 dark:ring-gray-700 animate-smart-pop-in">
                           <img src={logoUrl} alt={appName} className="w-full h-full object-cover rounded-full" />
                       </div>
                   ) : (
-                      // Transparent placeholder to hold layout
-                      <div className="w-[5.5rem] h-[5.5rem] rounded-full bg-transparent"></div>
+                      <div className="w-20 h-20 rounded-full bg-transparent"></div>
                   )}
               </div>
               <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mt-2">
@@ -241,9 +169,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
               </p>
           </div>
 
-          {/* Main Form */}
           <form onSubmit={handleAuth} className="w-full space-y-4">
-            
             {!isLogin && (
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">{texts.name}</label>
@@ -263,8 +189,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                             required={!isLogin}
                         />
                     </div>
-                    {/* Error Message for Name */}
-                    {nameTouched && !validateName(name) && <p className="text-red-500 text-xs mt-1 ml-1">Invalid name (3-20 letters)</p>}
+                    {nameTouched && !validateName(name) && <p className="text-red-500 text-xs mt-1 ml-1 font-bold">Invalid name</p>}
                 </div>
             )}
 
@@ -289,8 +214,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                         required
                     />
                 </div>
-                {/* Error Message for Email */}
-                {emailTouched && !isEmailValid && <p className="text-red-500 text-xs mt-1 ml-1">Invalid email address</p>}
+                {emailTouched && !isEmailValid && <p className="text-red-500 text-xs mt-1 ml-1 font-bold">Invalid Email</p>}
             </div>
 
             <div>
@@ -346,7 +270,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                         </button>
                     </div>
                     {confirmPassword && password !== confirmPassword && (
-                        <p className="text-red-500 text-xs mt-1 ml-1">{texts.passwordsDoNotMatch}</p>
+                        <p className="text-red-500 text-xs mt-1 ml-1 font-bold">{texts.passwordsDoNotMatch}</p>
                     )}
                 </div>
             )}
@@ -356,38 +280,24 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
                 disabled={loading || success || !isFormValid}
                 className={`w-full h-14 font-bold rounded-xl flex justify-center items-center transition-all duration-200
                     bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30
-                    ${!isFormValid || loading || success
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : 'opacity-100 hover:opacity-90 active:scale-[0.98]'
-                    }
+                    ${!isFormValid || loading || success ? 'opacity-50 cursor-not-allowed' : 'opacity-100 hover:opacity-90 active:scale-[0.98]'}
                 `}
             >
-                {loading ? (
-                    <Spinner />
-                ) : success ? (
-                    <CheckIcon className="w-8 h-8 text-white drop-shadow-md animate-smart-pop-in" />
-                ) : (
-                    isLogin ? "Login" : "Register"
-                )}
+                {loading ? <Spinner /> : success ? <CheckIcon className="w-8 h-8 text-white drop-shadow-md animate-smart-pop-in" /> : (isLogin ? "Login" : "Register")}
             </button>
-            
-            {/* Error Message - BELOW BUTTON to prevent layout shift of button */}
             {error && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center border border-red-100 dark:border-red-800 animate-fade-in">
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center border border-red-100 dark:border-red-800 animate-fade-in font-bold">
                     {error}
                 </div>
             )}
-
           </form>
 
-          {/* Divider */}
           <div className="relative flex py-4 items-center w-full"> 
                 <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
                 <span className="flex-shrink-0 mx-4 text-gray-400 dark:text-gray-500 text-xs font-medium">Or</span>
                 <div className="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
           </div>
 
-          {/* Social / Guest Login */}
           <div className="w-full space-y-3 mb-6">
              <button
               onClick={handleGoogleLogin}
@@ -399,7 +309,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ texts, appName, logoUrl, onLogi
             </button>
           </div>
 
-          {/* Toggle Login/Register */}
           <div className="text-center pb-8">
               <p className="text-sm text-gray-600 dark:text-gray-400">
                   {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}

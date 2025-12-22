@@ -1,4 +1,3 @@
-
 import React, { useState, FC, FormEvent, useRef, useEffect } from 'react';
 import type { User, Screen } from '../types';
 import { DEFAULT_AVATAR_URL } from '../constants';
@@ -33,7 +32,6 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   
-  // New: Field Level Error
   const [nameError, setNameError] = useState('');
   const [error, setError] = useState('');
   
@@ -49,28 +47,26 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
             onNavigate('profile');
         }, 1500);
     }
-    return () => {
-        if (timer) clearTimeout(timer);
-    };
+    return () => { if (timer) clearTimeout(timer); };
   }, [showSuccess, onNavigate]);
 
   const validateNameRule = (val: string) => {
-      if (val.length < 6 || val.length > 15) return false;
-      if (/(.)\1\1/.test(val)) return false;
-      return true;
+      const trimmed = val.trim();
+      if (trimmed.length < 3 || trimmed.length > 25) return false;
+      if (/(.)\1\1/.test(trimmed)) return false; 
+      return /^[a-zA-Z\u0980-\u09FF]+(?:\s[a-zA-Z\u0980-\u09FF]+)*$/.test(trimmed);
   };
 
   const handleNameChange = (val: string) => {
-      // STRICT MASK: Only Letters and Spaces
-      if (/^[a-zA-Z\s]*$/.test(val)) {
-          setName(val);
-          setNameError(''); // Clear error on type
-      }
+      // BLOCK trash characters (numbers, symbols) instantly
+      const cleanVal = val.replace(/[^a-zA-Z\u0980-\u09FF\s]/g, '');
+      setName(cleanVal);
+      setNameError(''); 
   };
 
   const handleNameBlur = () => {
       if (!validateNameRule(name)) {
-          setNameError("Invalid Name");
+          setNameError("Invalid name");
       }
   };
 
@@ -79,42 +75,29 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
       setPlayerUid(val);
   };
 
-  // Logic to enable button
   const isNameValid = validateNameRule(name);
-  const isDirty = name !== user.name || playerUid !== (user.playerUid || '') || avatarUrl !== user.avatarUrl;
+  const isDirty = name.trim() !== user.name || playerUid !== (user.playerUid || '') || avatarUrl !== user.avatarUrl;
   const canSave = isDirty && isNameValid;
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     if (isSaving || !user.uid || !canSave) return;
     setError('');
-
     setIsSaving(true);
-    
     try {
-        const updates: any = {
-            name: name,
-            playerUid: playerUid,
-            avatarUrl: avatarUrl
-        };
-
+        const updates: any = { name: name.trim(), playerUid: playerUid, avatarUrl: avatarUrl };
         await update(ref(db, 'users/' + user.uid), updates);
-        
         if (auth.currentUser) {
             try {
-                 const profileUpdates: any = { displayName: name };
+                 const profileUpdates: any = { displayName: name.trim() };
                  if (avatarUrl && !avatarUrl.startsWith('data:')) {
                      profileUpdates.photoURL = avatarUrl;
                  }
                  await updateProfile(auth.currentUser, profileUpdates);
-            } catch (authErr) {
-                // Auth profile update skipped
-            }
+            } catch (authErr) {}
         }
-
         setIsSaving(false);
         setShowSuccess(true); 
-
     } catch (error) {
         setError("Failed to update profile");
         setIsSaving(false);
@@ -142,7 +125,6 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
 
   return (
     <div className="p-4 pb-24">
-      {/* Cropper Modal */}
       {showCropper && tempImageSrc && (
           <ImageCropper 
             imageSrc={tempImageSrc} 
@@ -150,51 +132,29 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
             onCropComplete={handleCropComplete}
           />
       )}
-
       <div className="max-w-md mx-auto bg-white dark:bg-dark-card rounded-2xl shadow-lg p-6">
-         
          <form onSubmit={handleSave} className="space-y-6">
-            
             <div className="flex flex-col items-center">
                 <div className="relative group">
                     <div 
                         className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 cursor-pointer"
                         onClick={() => fileInputRef.current?.click()}
                     >
-                        <img 
-                            src={avatarUrl} 
-                            alt="Avatar" 
-                            className="w-full h-full object-cover"
-                            onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR_URL; }}
-                        />
+                        <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR_URL; }} />
                     </div>
-                    <button 
-                        type="button" 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full border-2 border-white dark:border-dark-card shadow-sm hover:scale-105 transition-transform"
-                    >
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full border-2 border-white dark:border-dark-card shadow-sm hover:scale-105 transition-transform">
                         <PencilIcon className="w-3.5 h-3.5" />
                     </button>
                 </div>
-                
-                <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileSelect} 
-                    accept="image/*" 
-                    className="hidden" 
-                />
+                <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="text-primary font-bold text-sm mt-3 hover:underline">
                     {texts.changePhoto}
                 </button>
             </div>
 
             <div className="space-y-4">
-                {/* Name Input */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 ml-1">
-                        {texts.name}
-                    </label>
+                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 ml-1">{texts.name}</label>
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <UserIcon className="h-5 w-5 text-primary" />
@@ -206,51 +166,28 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
                             onBlur={handleNameBlur}
                             placeholder="Name"
                             className={`w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border rounded-xl outline-none transition-all text-gray-700 dark:text-gray-200
-                                ${nameError
-                                    ? 'border-red-500 focus:border-red-500'
-                                    : 'border-gray-200 dark:border-gray-700 focus:border-primary'
-                                }
+                                ${nameError ? 'border-red-500 focus:border-red-500' : 'border-gray-200 dark:border-gray-700 focus:border-primary'}
                             `}
                         />
                     </div>
                     {nameError && <p className="text-red-500 text-xs mt-1 ml-1 font-bold animate-fade-in">{nameError}</p>}
                 </div>
-
-                {/* Email (Read Only) */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 ml-1">
-                        {texts.email}
-                    </label>
+                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 ml-1">{texts.email}</label>
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <MailIcon className="h-5 w-5 text-primary" />
                         </div>
-                        <input 
-                            type="email" 
-                            value={user.email}
-                            disabled
-                            className="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                        />
+                        <input type="email" value={user.email} disabled className="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-500 dark:text-gray-400 cursor-not-allowed" />
                     </div>
                 </div>
-
-                {/* Player UID */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 ml-1">
-                        Save UID
-                    </label>
+                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 ml-1">Save UID</label>
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <GamepadIcon className="h-5 w-5 text-primary" />
                         </div>
-                        <input 
-                            type="text"
-                            inputMode="numeric"
-                            value={playerUid}
-                            onChange={(e) => handleUidChange(e.target.value)}
-                            placeholder="Save UID"
-                            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none transition-all focus:border-primary text-gray-700 dark:text-gray-200"
-                        />
+                        <input type="text" inputMode="numeric" value={playerUid} onChange={(e) => handleUidChange(e.target.value)} placeholder="Save UID" className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none transition-all focus:border-primary text-gray-700 dark:text-gray-200" />
                     </div>
                 </div>
             </div>
@@ -260,32 +197,18 @@ const EditProfileScreen: FC<EditProfileScreenProps> = ({ user, texts, onNavigate
                     type="submit" 
                     disabled={isSaving || showSuccess || !canSave}
                     className={`w-full py-3 rounded-xl font-bold text-white shadow-lg transition-all bg-gradient-to-r from-primary to-secondary flex items-center justify-center
-                        ${showSuccess 
-                            ? 'bg-green-500 shadow-green-500/30' 
-                            : (isSaving || !canSave)
-                                ? 'opacity-50 cursor-not-allowed shadow-none' // 50% Opacity when disabled
-                                : 'opacity-100 hover:opacity-95 shadow-primary/30' // 100% when active
-                        }`}
+                        ${showSuccess ? 'bg-green-500 shadow-green-500/30' : (isSaving || !canSave) ? 'opacity-50 cursor-not-allowed shadow-none' : 'opacity-100 hover:opacity-95 shadow-primary/30'}`}
                 >
-                    {isSaving ? (
-                        <Spinner />
-                    ) : showSuccess ? (
-                        <CheckIcon className="w-6 h-6 animate-smart-pop-in" />
-                    ) : (
-                        texts.saveChanges
-                    )}
+                    {isSaving ? <Spinner /> : showSuccess ? <CheckIcon className="w-6 h-6 animate-smart-pop-in" /> : texts.saveChanges}
                 </button>
             </div>
-            
-            {/* Simple Error Display */}
             {error && (
-                <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center border border-red-100 dark:border-red-800 animate-fade-in font-medium">
+                <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg text-center border border-red-100 dark:border-red-800 animate-fade-in font-bold">
                     {error}
                 </div>
             )}
          </form>
       </div>
-
       {adCode && (
             <div className="mt-8 w-full flex justify-center min-h-[250px]">
                 <AdRenderer code={adCode} active={adActive} />

@@ -47,9 +47,14 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
   const MIN_AMOUNT = 20;
   const MAX_AMOUNT = 10000;
 
+  // ENSURE SCROLL TO TOP ON MOUNT AND STEP CHANGE
   useEffect(() => {
-      // Gentle scroll to top when step changes
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo(0, 0);
+      const root = document.documentElement;
+      if (root) root.scrollTop = 0;
+      
+      // Gentle scroll reset for mobile browsers
+      window.scrollTo({ top: 0, behavior: 'auto' });
   }, [step]);
 
   const handleInputFocus = (event: React.FocusEvent<HTMLInputElement>) => {
@@ -336,7 +341,7 @@ const WalletScreen: FC<WalletScreenProps> = ({ user, texts, onNavigate, paymentM
 
         {/* --- FOOTER ADVERTISEMENT (Scroll to View) --- */}
         {adCode && (
-            <div className="mt-8 animate-fade-in w-full flex justify-center min-h-[250px]">
+            <div className="mt-8 animate-smart-fade-in w-full flex justify-center min-h-[250px]">
                 <AdRenderer code={adCode} active={adActive} />
             </div>
         )}
